@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -104,8 +105,8 @@ export function Sidebar() {
     <div className="space-y-4 py-4 flex flex-col h-full bg-slate-900 text-white dark:bg-slate-950 border-r border-slate-800/50">
       <div className="px-3 py-2 flex-1 overflow-y-auto">
         <Link href="/" className="flex items-center pl-3 mb-10">
-          <div className="relative w-8 h-8 mr-4 flex items-center justify-center bg-emerald-600 rounded-lg shadow-lg">
-            <span className="text-white font-bold text-xl leading-none">N</span>
+          <div className="relative w-8 h-8 mr-4 flex items-center justify-center shadow-lg rounded-lg overflow-hidden shrink-0">
+            <Image src="/logo.png" alt="Nur-e-Qulb Logo" width={32} height={32} className="object-cover" />
           </div>
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
             Nur E Qalbb

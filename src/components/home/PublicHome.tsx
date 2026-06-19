@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Compass, Heart, MoonStar, Target, Clock, ArrowRight, BookMarked, Users, Sparkles } from 'lucide-react';
@@ -87,12 +88,17 @@ export function PublicHome() {
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 text-center space-y-8">
+          <div className="flex justify-center mb-6">
+            <div className="relative w-24 h-24 rounded-2xl shadow-2xl overflow-hidden bg-slate-900 border border-slate-800">
+              <Image src="/logo.png" alt="Nur-e-Qulb Logo" width={96} height={96} className="object-cover" />
+            </div>
+          </div>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium mb-4">
             <MoonStar className="w-4 h-4" />
             <span>Welcome to Nur-e-Qulb</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mt-0">
             Your Digital <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
               Islamic Companion

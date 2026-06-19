@@ -29,7 +29,7 @@ const RANDOM_WAZEEFAHS = [
 export function PublicHome() {
   const [sunnah, setSunnah] = useState(RANDOM_SUNNAHS[0]);
   const [wazeefah, setWazeefah] = useState(RANDOM_WAZEEFAHS[0]);
-  const { currentPrayer, nextPrayer, timesData } = usePrayerTimes('Makkah', 'Saudi Arabia'); // Default for public view
+  const { currentPrayer, nextPrayer, data: timesData } = usePrayerTimes('Makkah', 'Saudi Arabia'); // Default for public view
 
   useEffect(() => {
     // Pick randomly on client mount to avoid hydration mismatch
@@ -170,11 +170,11 @@ export function PublicHome() {
             <div className="flex gap-4 sm:gap-8 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
               {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((prayer) => {
                 const pName = prayer.toLowerCase();
-                const isNext = nextPrayer === pName;
+                const isNext = nextPrayer?.name.toLowerCase() === pName;
                 return (
                   <div key={prayer} className={`flex flex-col items-center ${isNext ? 'opacity-100 scale-110 font-bold text-emerald-600 dark:text-emerald-400' : 'opacity-60 text-slate-700 dark:text-slate-400'}`}>
                     <span className="text-xs uppercase tracking-wider mb-1">{prayer}</span>
-                    <span className="font-mono text-sm">{timesData[pName as keyof typeof timesData]}</span>
+                    <span className="font-mono text-sm">{timesData.data.timings[prayer as keyof typeof timesData.data.timings] || '--:--'}</span>
                   </div>
                 );
               })}

@@ -1,65 +1,553 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { BookOpen, Calendar, Compass, Heart, MoonStar, Target, Clock, Loader2, ArrowRight, ShieldCheck, Award, Lock, CircleDot } from 'lucide-react';
+import Link from 'next/link';
+
+import { usePrayerTimes } from '@/hooks/usePrayerTimes';
+import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
+import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
+import { useSession } from 'next-auth/react';
+import { getCurrentUser } from '@/app/actions/authActions';
+import { getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
+import { getLastRead } from '@/app/actions/lastReadActions';
+import { getFastingSummary } from '@/app/actions/fastingActions';
+import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
+import { getQuranProgress } from '@/app/actions/quranProgressActions';
+import { getUserWazeefahs, logWazeefahProgress } from '@/app/actions/userWazeefahActions';
+
+export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const [city, setCity] = useState('Makkah');
+  const [country, setCountry] = useState('Saudi Arabia');
+  const [loadingDb, setLoadingDb] = useState(true);
+
+  // Stats from DB
+  const [prayerStreak, setPrayerStreak] = useState(0);
+  const [fajrStreak, setFajrStreak] = useState(0);
+  const [todayCompletion, setTodayCompletion] = useState(0);
+  
+  // Custom checkpoints & achievements
+  const [lastRead, setLastRead] = useState<any>(null);
+  const [totalFasts, setTotalFasts] = useState(0);
+  const [bookmarksCount, setBookmarksCount] = useState(0);
+  const [quranProgress, setQuranProgress] = useState<any>(null);
+  const [userWazeefahs, setUserWazeefahs] = useState<any[]>([]);
+
+  // Tasbih Widget State
+  const TASBIH_ADHKARS = [
+    { id: 'subhanallah',   arabic: 'سُبْحَانَ اللَّه',  label: 'Subhān Allāh',  target: 33  },
+    { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّه', label: 'Al-Ḥamdu Lillāh', target: 33  },
+    { id: 'allahuakbar',   arabic: 'اللَّهُ أَكْبَر',   label: 'Allāhu Akbar',   target: 34  },
+  ];
+  const [tasbihIdx, setTasbihIdx] = useState(0);
+  const [tasbihCount, setTasbihCount] = useState(0);
+  const [tasbihTotal, setTasbihTotal] = useState(0);
+  const [tasbihPressed, setTasbihPressed] = useState(false);
+  const tasbihAudioRef = useRef<AudioContext | null>(null);
+
+  const playTasbihClick = useCallback(() => {
+    try {
+      if (!tasbihAudioRef.current || tasbihAudioRef.current.state === 'closed') {
+        tasbihAudioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = tasbihAudioRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {}
+  }, []);
+
+  const handleTasbihTap = useCallback(() => {
+    setTasbihPressed(true);
+    setTimeout(() => setTasbihPressed(false), 120);
+    playTasbihClick();
+    const target = TASBIH_ADHKARS[tasbihIdx].target;
+    setTasbihCount((prev) => {
+      if (prev + 1 >= target) {
+        setTasbihTotal((t) => t + target);
+        return 0;
+      }
+      setTasbihTotal((t) => t + 1);
+      return prev + 1;
+    });
+  }, [tasbihIdx, playTasbihClick]);
+
+  const localTodayDateString = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+
+  // Hook handles countdown timer internally
+  const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const user = await getCurrentUser();
+        if (user && user.location) {
+          setCity(user.location.city || 'Makkah');
+          setCountry(user.location.country || 'Saudi Arabia');
+        }
+
+        const streaks = await getPrayerStreaks(localTodayDateString);
+        setPrayerStreak(streaks.currentStreak);
+        setFajrStreak(streaks.fajrStreak);
+
+        const log = await getTodayPrayerLog(localTodayDateString);
+        if (log) {
+          setTodayCompletion(log.completionPercentage);
+        }
+
+        const readData = await getLastRead();
+        setLastRead(readData);
+
+        const fastingData = await getFastingSummary();
+        setTotalFasts(fastingData.totalFasts);
+
+        const bookmarks = await getQuranBookmarks();
+        setBookmarksCount(bookmarks.length);
+
+        const progress = await getQuranProgress();
+        setQuranProgress(progress);
+
+        const wazeefahs = await getUserWazeefahs();
+        setUserWazeefahs(wazeefahs);
+      } catch (err) {
+        console.error('Failed to load dashboard stats from DB', err);
+      } finally {
+        setLoadingDb(false);
+      }
+    }
+
+    if (status === 'authenticated') {
+      loadStats();
+    }
+  }, [status]);
+
+  if (status === 'loading' || (status === 'authenticated' && loadingDb)) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+        <p className="text-muted-foreground text-sm">Welcome to Nur E Qalbb. Initializing dashboard...</p>
+      </div>
+    );
+  }
+
+  const username = session?.user?.name || 'User';
+
+  // Gamification Badges calculation
+  const badgesList = [
+    {
+      id: 'fajr_streak',
+      title: 'Fajr Guardian',
+      desc: 'Achieve a 7-day Fajr prayer streak',
+      unlocked: fajrStreak >= 7,
+      metric: `${fajrStreak}/7 days`,
+      color: 'from-amber-400 to-orange-500 text-amber-950',
+    },
+    {
+      id: 'fasting_devotee',
+      title: 'Fasting Devotee',
+      desc: 'Complete 5 fasts this year',
+      unlocked: totalFasts >= 5,
+      metric: `${totalFasts}/5 fasts`,
+      color: 'from-emerald-400 to-teal-500 text-emerald-950',
+    },
+    {
+      id: 'knowledge_seeker',
+      title: 'Knowledge Seeker',
+      desc: 'Save at least 2 Quran bookmarks',
+      unlocked: bookmarksCount >= 2,
+      metric: `${bookmarksCount}/2 saved`,
+      color: 'from-blue-400 to-indigo-500 text-blue-950',
+    },
+    {
+      id: 'tasbih_master',
+      title: 'Tasbih Master',
+      desc: 'Achieve an active prayer streak',
+      unlocked: prayerStreak >= 3,
+      metric: `${prayerStreak}/3 days`,
+      color: 'from-purple-400 to-pink-500 text-purple-950',
+    }
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="space-y-8 pb-32">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+            As-salamu alaykum, {username}!
+          </h2>
+          <p className="text-muted-foreground mt-1 text-lg">
+            {timesData ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}` : 'Loading Hijri Date...'} • {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 shadow-lg shrink-0">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="bg-white/20 p-3 rounded-full">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-emerald-50">Next Prayer: {nextPrayer?.name || 'Loading...'}</p>
+              <p className="text-2xl font-bold">
+                {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '--:--'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Continue Reading Widget Banner */}
+      {lastRead && (
+        <Link href={`/quran/${lastRead.surahNumber}#ayah-${lastRead.ayahNumber}`}>
+          <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5 hover:from-emerald-500/15 border-emerald-500/20 dark:border-emerald-500/10 cursor-pointer shadow-md group transition-all duration-300">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+                  <BookOpen className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Last Read Checkpoint</p>
+                  <h4 className="font-bold text-lg text-slate-800 dark:text-slate-200 mt-0.5">
+                    Surah {lastRead.surahNumber} (Ayah {lastRead.ayahNumber})
+                  </h4>
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
+      <div>
+        <h3 className="text-xl font-semibold mb-4">Today's Prayers</h3>
+        {timesLoading ? (
+          <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((prayerName) => {
+              const timings = timesData?.data?.timings;
+              let start = '--:--';
+              let end = '--:--';
+
+              if (timings) {
+                start = timings[prayerName as keyof typeof timings] || '--:--';
+                if (prayerName === 'Fajr') end = timings.Sunrise;
+                else if (prayerName === 'Dhuhr') end = timings.Asr;
+                else if (prayerName === 'Asr') end = timings.Maghrib || timings.Sunset;
+                else if (prayerName === 'Maghrib') end = timings.Isha;
+                else if (prayerName === 'Isha') end = timings.Fajr;
+              }
+
+              const isNext = nextPrayer?.name === prayerName;
+              const isCurrent = currentPrayer === prayerName;
+
+              return (
+                <Card key={prayerName} className={`border-l-4 ${
+                  isCurrent ? 'border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' :
+                  isNext ? 'border-l-amber-500 ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-slate-950' :
+                  'border-l-slate-300 dark:border-l-slate-700'
+                }`}>
+                  <CardContent className="p-4 flex flex-col items-center text-center">
+                    <span className="font-semibold text-base mb-2">{prayerName}</span>
+                    <div className="text-xs space-y-0.5 text-muted-foreground w-full">
+                      <div className="flex justify-between px-1">
+                        <span>Start:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{start}</span>
+                      </div>
+                      <div className="flex justify-between px-1">
+                        <span>End:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{end}</span>
+                      </div>
+                    </div>
+                    {isCurrent && <Badge className="mt-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-transparent">Current</Badge>}
+                    {isNext && <Badge variant="outline" className="mt-3 text-amber-600 border-amber-600">Next</Badge>}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Quran Progress</CardTitle>
+            <BookOpen className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            {quranProgress ? (
+              <>
+                <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
+                  {quranProgress.overallPercentage}% Completed
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  {quranProgress.juzProgress.filter((j: any) => j.completed).length} of 30 Juz • {quranProgress.khatmCount} Khatms
+                </p>
+                <Progress value={quranProgress.overallPercentage} className="h-2 [&>div]:bg-emerald-500" />
+                {quranProgress.targetDate && (
+                  <p className="text-[10px] text-muted-foreground mt-2 italic">
+                    Target completion: {new Date(quranProgress.targetDate).toLocaleDateString()}
+                  </p>
+                )}
+              </>
+            ) : lastRead ? (
+              <>
+                <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">Surah {lastRead.surahNumber}</div>
+                <p className="text-xs text-muted-foreground mb-4">Ayah {lastRead.ayahNumber}</p>
+                <Progress value={Math.round((lastRead.surahNumber / 114) * 100)} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2 text-right">
+                  {Math.round((lastRead.surahNumber / 114) * 100)}% Completed
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-slate-400">Not Started</div>
+                <p className="text-xs text-muted-foreground mb-4">Read to begin tracking</p>
+                <Progress value={0} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2 text-right">0% Completed</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today's Goals</CardTitle>
+            <Target className="h-4 w-4 text-rose-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span>Prayer Completion</span>
+                <span className="font-medium text-emerald-600">{todayCompletion}%</span>
+              </div>
+              <Progress value={todayCompletion} className="h-1.5" />
+              
+              <div className="flex justify-between items-center text-sm">
+                <span>Prayer Streak</span>
+                <span className="font-medium text-emerald-600">{prayerStreak} Days</span>
+              </div>
+              <Progress value={Math.min(100, (prayerStreak / 30) * 100)} className="h-1.5 [&>div]:bg-emerald-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Wazeefahs</CardTitle>
+            <MoonStar className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {userWazeefahs.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground space-y-2">
+                  <p>No active scheduled wazeefahs.</p>
+                  <Link href="/wazeefahs" className="inline-block text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                    Create Routine
+                  </Link>
+                </div>
+              ) : (
+                userWazeefahs.slice(0, 3).map((uw: any) => {
+                  const todayCompletion = uw.completions.find((c: any) => c.date === localTodayDateString);
+                  const count = todayCompletion ? todayCompletion.count : 0;
+                  const isCompleted = count >= uw.targetCount;
+
+                  const handleCheckClick = async () => {
+                    const newCount = isCompleted ? 0 : uw.targetCount;
+                    const res = await logWazeefahProgress(uw._id, newCount, localTodayDateString);
+                    if (res.success) {
+                      setUserWazeefahs(prev => prev.map((w: any) => w._id === uw._id ? res.userWazeefah : w));
+                    }
+                  };
+
+                  return (
+                    <div key={uw._id} className="flex justify-between items-center group">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          onClick={handleCheckClick}
+                          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                            isCompleted
+                              ? 'bg-emerald-500 border-emerald-500 text-white'
+                              : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500'
+                          }`}
+                        >
+                          {isCompleted && (
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                              <path d="M0 11l2-2 5 5L18 3l2 2L7 18z" />
+                            </svg>
+                          )}
+                        </button>
+                        <div className="min-w-0">
+                          <p className={`font-medium text-sm truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                            {uw.title}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {count}/{uw.targetCount} • {uw.reminderTime || 'Fajr'}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={isCompleted ? 'border-emerald-550/20 text-emerald-600' : ''}>
+                        {isCompleted ? 'Done' : 'Pending'}
+                      </Badge>
+                    </div>
+                  );
+                })
+              )}
+              {userWazeefahs.length > 3 && (
+                <div className="text-center pt-2">
+                  <Link href="/wazeefahs" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    View all ({userWazeefahs.length})
+                  </Link>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Productivity Achievements (Badge System) */}
+      <Card className="border-slate-200 dark:border-slate-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Award className="w-5 h-5 text-emerald-500" /> Gamified Badges & Achievements
+          </CardTitle>
+          <CardDescription>Strengthen your discipline and unlock visual honor badges.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+            {badgesList.map((badge) => (
+              <div
+                key={badge.id}
+                className={`p-4 rounded-xl border flex flex-col justify-between h-36 transition-all ${
+                  badge.unlocked
+                    ? `bg-gradient-to-br ${badge.color} border-transparent shadow-lg scale-100 hover:scale-[1.02]`
+                    : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-900 text-slate-400'
+                }`}
+              >
+                <div>
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-bold text-base leading-snug">{badge.title}</h4>
+                    {badge.unlocked ? (
+                      <ShieldCheck className="w-6 h-6 text-emerald-950 shrink-0" />
+                    ) : (
+                      <Lock className="w-4 h-4 text-slate-400 dark:text-slate-600 shrink-0" />
+                    )}
+                  </div>
+                  <p className={`text-xs mt-1 leading-normal ${badge.unlocked ? 'text-slate-950/80' : 'text-muted-foreground'}`}>
+                    {badge.desc}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center border-t border-black/5 dark:border-white/5 pt-2.5">
+                  <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Progress</span>
+                  <span className="text-xs font-bold font-mono">{badge.metric}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tasbeeh Mini Widget */}
+      <Card className="border-slate-200 dark:border-slate-800">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CircleDot className="w-5 h-5 text-purple-500" /> Tasbeeh Counter
+            </CardTitle>
+            <Link href="/tasbih" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Full Counter <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <CardDescription>Click the bead to count your dhikr</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Adhkar selector chips */}
+            <div className="flex gap-2 flex-wrap">
+              {TASBIH_ADHKARS.map((d, i) => (
+                <button
+                  key={d.id}
+                  onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    i === tasbihIdx
+                      ? 'bg-primary text-primary-foreground border-transparent shadow'
+                      : 'border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-primary'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Bead tap button */}
+            <button
+              onPointerDown={handleTasbihTap}
+              className={`relative w-24 h-24 rounded-full flex flex-col items-center justify-center
+                bg-gradient-to-br from-primary/90 to-primary text-primary-foreground shadow-xl
+                transition-all duration-100 shrink-0
+                ${tasbihPressed ? 'scale-90 shadow-md' : 'scale-100 hover:scale-105'}`}
+              aria-label="Tap bead"
+            >
+              <CircleDot className="w-5 h-5 opacity-60 mb-0.5" />
+              <span className="text-3xl font-bold font-mono leading-none">{tasbihCount}</span>
+              <span className="text-[10px] opacity-60">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
+            </button>
+
+            {/* Stats */}
+            <div className="flex gap-4 text-center">
+              <div>
+                <p className="font-arabic text-2xl leading-relaxed">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                <p className="text-xs text-muted-foreground mt-1">Active Dhikr</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold font-mono text-violet-500">{tasbihTotal}</p>
+                <p className="text-xs text-muted-foreground mt-1">Total Today</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <DailyAyahWidget />
+        <DailyHadithWidget />
+      </div>
+
+      <div>
+        <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Read Quran', icon: BookOpen, color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', href: '/quran' },
+            { label: 'Qibla Finder', icon: Compass, color: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', href: '/qibla' },
+            { label: 'Dhikr Counter', icon: Heart, color: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400', href: '/dua' },
+            { label: 'My Wazeefahs', icon: Calendar, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', href: '/wazeefahs' },
+          ].map((action) => (
+            <Link href={action.href} key={action.label}>
+              <Card className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                  <div className={`p-3 rounded-2xl ${action.color}`}>
+                    <action.icon className="w-6 h-6" />
+                  </div>
+                  <span className="font-medium">{action.label}</span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

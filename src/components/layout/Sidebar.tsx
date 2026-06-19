@@ -23,7 +23,7 @@ import { useSession, signOut } from 'next-auth/react';
 
 const routes = [
   {
-    label: 'Landing Page',
+    label: 'Home',
     icon: LayoutDashboard,
     href: '/',
     color: 'text-sky-500',
@@ -80,6 +80,12 @@ const routes = [
     label: 'Settings',
     icon: Settings,
     href: '/settings',
+    color: 'text-slate-500',
+  },
+  {
+    label: 'Profile',
+    icon: Settings,
+    href: '/settings/profile',
     color: 'text-slate-500',
   },
 ];

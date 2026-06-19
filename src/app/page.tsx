@@ -19,11 +19,25 @@ import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
 import { getQuranProgress } from '@/app/actions/quranProgressActions';
 import { getUserWazeefahs, logWazeefahProgress } from '@/app/actions/userWazeefahActions';
 
+import { PublicHome } from '@/components/home/PublicHome';
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [city, setCity] = useState('Makkah');
   const [country, setCountry] = useState('Saudi Arabia');
   const [loadingDb, setLoadingDb] = useState(true);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return <PublicHome />;
+  }
 
   // Stats from DB
   const [prayerStreak, setPrayerStreak] = useState(0);

@@ -147,7 +147,7 @@ export default function Dashboard() {
     }
   }, [status]);
 
-  if (status === 'loading' || (status === 'authenticated' && loadingDb)) {
+  if (loadingDb) {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />

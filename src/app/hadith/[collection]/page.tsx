@@ -1,41 +1,64 @@
 import React from 'react';
-import { fetchHadithsByCollection } from '@/app/actions/hadithActions';
-import { HadithBlock } from '@/components/hadith/HadithBlock';
+import Link from 'next/link';
+import { fetchHadithCategories } from '@/app/actions/hadithActions';
+import { BookOpen, BookMarked, ArrowRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default async function HadithCollectionPage({ params }: { params: { collection: string } }) {
-  const data = await fetchHadithsByCollection(params.collection, 50); // Fetch first 50 hadiths for demo
+  const data = await fetchHadithCategories(params.collection);
 
   if (!data) {
     return (
-      <div className="flex justify-center mt-20 text-red-500">
-        Error loading Hadith collection.
+      <div className="flex justify-center mt-20 text-rose-500 font-medium">
+        Error loading Hadith categories.
       </div>
     );
   }
 
-  const { metadata, hadiths } = data;
+  const { metadata, sections, sectionDetails } = data;
+  
+  // Transform the sections object into an array for rendering
+  const categories = Object.keys(sections)
+    .filter(key => sections[key] && sections[key].trim() !== '') // Remove empty names
+    .map(key => ({
+      bookNumber: key,
+      name: sections[key],
+      details: sectionDetails ? sectionDetails[key] : null
+    }));
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto pb-32">
-      <div className="text-center space-y-4 py-8 border-b border-emerald-100 dark:border-emerald-900">
+    <div className="space-y-8 max-w-6xl mx-auto pb-32">
+      <div className="text-center space-y-4 py-8 border-b border-slate-100 dark:border-slate-800">
         <h1 className="text-4xl md:text-5xl font-bold text-emerald-600 dark:text-emerald-400">
           {metadata.name}
         </h1>
-        <h2 className="text-xl font-medium font-arabic text-slate-500" style={{ fontFamily: 'Amiri, serif' }}>
-          {metadata.name}
-        </h2>
+        <p className="text-muted-foreground text-lg">Browse by Book (Kitab)</p>
       </div>
 
-      <div className="space-y-6">
-        {hadiths.map((hadith: any) => (
-          <HadithBlock
-            key={hadith.hadithnumber}
-            collectionId={params.collection}
-            bookNumber={hadith.booknumber || '1'}
-            hadithNumber={hadith.hadithnumber}
-            text={hadith.text}
-            grades={hadith.grades || []}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {categories.map((category) => (
+          <Link href={`/hadith/${params.collection}/${category.bookNumber}`} key={category.bookNumber}>
+            <Card className="hover:shadow-md hover:border-emerald-500/30 transition-all cursor-pointer h-full border-slate-200 dark:border-slate-800">
+              <CardContent className="p-5 flex items-start justify-between gap-4">
+                <div className="flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-2">
+                      {category.name}
+                    </h3>
+                    {category.details && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Hadiths: {category.details.hadithnumber_first} - {category.details.hadithnumber_last}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 mt-3" />
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

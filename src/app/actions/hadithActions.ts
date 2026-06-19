@@ -19,17 +19,53 @@ export async function fetchHadithCollections() {
 
 export async function fetchHadithsByCollection(collection: string, limit = 20) {
   try {
-    // Note: The API structure typically returns the entire collection, which can be large.
-    // For this prototype, we'll fetch the English translation and slice it.
     const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
     if (!res.ok) throw new Error(`Failed to fetch ${collection}`);
     
     const data = await res.json();
     
-    // Return metadata and a sliced portion of the hadiths to avoid massive payloads
     return {
       metadata: data.metadata,
       hadiths: data.hadiths.slice(0, limit),
+    };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export async function fetchHadithCategories(collection: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
+    if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
+    
+    const data = await res.json();
+    
+    return {
+      metadata: data.metadata,
+      sections: data.metadata.sections || data.metadata.section,
+      sectionDetails: data.metadata.sectionDetails,
+    };
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export async function fetchHadithsByCategory(collection: string, bookNumber: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
+    if (!res.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
+    
+    const data = await res.json();
+    
+    const filteredHadiths = data.hadiths.filter(
+      (h: any) => h.booknumber && h.booknumber.toString() === bookNumber.toString()
+    );
+
+    return {
+      metadata: data.metadata,
+      hadiths: filteredHadiths,
     };
   } catch (error) {
     console.error(error);

@@ -1,5 +1,3 @@
-'use server';
-
 // EveryAyah URL structure: https://everyayah.com/data/{reciterIdentifier}/{surahNumber}{ayahNumber}.mp3
 // Surah and Ayah numbers must be 3 digits (e.g., 001001 for Surah 1, Ayah 1)
 
@@ -21,3 +19,4 @@ export async function getAyahAudioUrl(reciterId: string, surahNumber: number, ay
   const paddedAyah = String(ayahNumber).padStart(3, '0');
   return `https://everyayah.com/data/${reciterId}/${paddedSurah}${paddedAyah}.mp3`;
 }
+

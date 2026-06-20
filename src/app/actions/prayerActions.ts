@@ -183,7 +183,7 @@ export async function getTodayPrayerLog(localDateStr: string) {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return null;
 
     await syncPastMissedPrayers(user);
@@ -227,14 +227,14 @@ export async function togglePrayerStatus(localDateStr: string, prayerName: strin
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const isPeriodDay = await checkIsPeriodDate(user._id as any, localDateStr);
     const resolvedStatus = isPeriodDay ? 'excused' : status;
 
     const updateField = prayerName.toLowerCase();
-    const log = await PrayerLog.findOne({ userId: user._id, date: localDateStr });
+    const log = await PrayerLog.findOne({ userId: user._id, date: localDateStr }).lean();
 
     const update: any = { [updateField]: resolvedStatus };
 
@@ -272,11 +272,11 @@ export async function getPrayerStreaks(localTodayStr?: string) {
     if (!session?.user?.email) return { currentStreak: 0, fajrStreak: 0 };
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return { currentStreak: 0, fajrStreak: 0 };
 
     // Fetch last 60 days of prayer logs to calculate streak
-    const logs = await PrayerLog.find({ userId: user._id })
+    const logs = await PrayerLog.find({ userId: user._id }).lean()
       .sort({ date: -1 })
       .limit(60);
 
@@ -366,12 +366,12 @@ export async function getQazaPrayers() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return null;
 
     await syncPastMissedPrayers(user);
 
-    const qazaDocs = await MissedPrayer.find({ userId: user._id });
+    const qazaDocs = await MissedPrayer.find({ userId: user._id }).lean();
     const result: any = { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 };
     qazaDocs.forEach(doc => {
       result[doc.prayerName] = doc.count;
@@ -390,7 +390,7 @@ export async function updateQazaPrayer(prayerName: string, change: number) {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const key = prayerName.toLowerCase();
@@ -409,7 +409,7 @@ export async function updateQazaPrayer(prayerName: string, change: number) {
     }
 
     // Retrieve all updated counts to return to the frontend
-    const qazaDocs = await MissedPrayer.find({ userId: user._id });
+    const qazaDocs = await MissedPrayer.find({ userId: user._id }).lean();
     const result: any = { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0, witr: 0 };
     qazaDocs.forEach(doc => {
       result[doc.prayerName] = doc.count;
@@ -428,7 +428,7 @@ export async function getPrayerHeatmapData() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
     // Load past 120 days of logs for heatmap

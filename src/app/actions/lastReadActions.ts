@@ -12,7 +12,7 @@ export async function saveLastRead(surahNumber: number, ayahNumber: number) {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const lastRead = await LastRead.findOneAndUpdate(
@@ -34,10 +34,10 @@ export async function getLastRead() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return null;
 
-    const progress = await LastRead.findOne({ userId: user._id });
+    const progress = await LastRead.findOne({ userId: user._id }).lean();
     if (!progress) return null;
 
     return JSON.parse(JSON.stringify(progress));

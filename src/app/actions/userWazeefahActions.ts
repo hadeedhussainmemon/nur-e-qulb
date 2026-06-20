@@ -14,10 +14,10 @@ export async function getUserWazeefahs() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const wazeefahs = await UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean();
+    const wazeefahs = await UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean().lean();
     return JSON.parse(JSON.stringify(wazeefahs));
   } catch (error) {
     console.error('Failed to get user wazeefahs:', error);
@@ -31,7 +31,7 @@ export async function subscribeToWazeefah(wazeefahId: string, targetCount: numbe
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const template = await Wazeefah.findById(wazeefahId);
@@ -83,7 +83,7 @@ export async function createCustomWazeefah(
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const newUserWazeefah = await UserWazeefah.create({
@@ -114,7 +114,7 @@ export async function logWazeefahProgress(userWazeefahId: string, count: number,
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const userWazeefah = await UserWazeefah.findOne({ _id: userWazeefahId, userId: user._id });
@@ -145,7 +145,7 @@ export async function deleteUserWazeefah(userWazeefahId: string) {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     await UserWazeefah.findOneAndDelete({ _id: userWazeefahId, userId: user._id });

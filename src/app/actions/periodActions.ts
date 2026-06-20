@@ -13,10 +13,10 @@ export async function isPeriodActive() {
     if (!session?.user?.email) return false;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return false;
 
-    const activePeriod = await PeriodTracker.findOne({ userId: user._id, isActive: true });
+    const activePeriod = await PeriodTracker.findOne({ userId: user._id, isActive: true }).lean();
     return !!activePeriod;
   } catch (error) {
     console.error('Error checking active period:', error);
@@ -30,12 +30,12 @@ export async function togglePeriodState(isActive: boolean, localDateStr: string)
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     if (isActive) {
       // Start a new cycle if one isn't already active
-      const activePeriod = await PeriodTracker.findOne({ userId: user._id, isActive: true });
+      const activePeriod = await PeriodTracker.findOne({ userId: user._id, isActive: true }).lean();
       if (!activePeriod) {
         await PeriodTracker.create({
           userId: user._id,
@@ -80,10 +80,10 @@ export async function getPeriodHistory() {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
-    const history = await PeriodTracker.find({ userId: user._id }).sort({ startDate: -1 });
+    const history = await PeriodTracker.find({ userId: user._id }).sort({ startDate: -1 }).lean();
     return JSON.parse(JSON.stringify(history));
   } catch (error) {
     console.error('Error fetching period history:', error);

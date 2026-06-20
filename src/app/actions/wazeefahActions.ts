@@ -13,7 +13,7 @@ export async function getApprovedWazeefahs(category?: string) {
     if (category) {
       query.category = category;
     }
-    const wazeefahs = await Wazeefah.find(query).populate('submittedBy', 'name').sort({ createdAt: -1 }).lean();
+    const wazeefahs = await Wazeefah.find(query).populate('submittedBy', 'name').sort({ createdAt: -1 }).lean().lean();
     return JSON.parse(JSON.stringify(wazeefahs));
   } catch (error) {
     console.error('Failed to get wazeefahs:', error);
@@ -29,7 +29,7 @@ export async function getPendingWazeefahs() {
     }
     
     await connectToDatabase();
-    const wazeefahs = await Wazeefah.find({ isApproved: false }).populate('submittedBy', 'name').sort({ createdAt: 1 }).lean();
+    const wazeefahs = await Wazeefah.find({ isApproved: false }).populate('submittedBy', 'name').sort({ createdAt: 1 }).lean().lean();
     return JSON.parse(JSON.stringify(wazeefahs));
   } catch (error) {
     console.error('Failed to get pending wazeefahs:', error);
@@ -48,7 +48,7 @@ export async function submitWazeefah(formData: FormData) {
     // Assuming session user has an ID we stored, or we look it up by email
     const mongoose = (await import('mongoose')).default;
     const User = mongoose.models.User;
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     
     if (!user) throw new Error('User not found');
 
@@ -128,7 +128,7 @@ export async function createAndPublishWazeefah(
     await connectToDatabase();
     const mongoose = (await import('mongoose')).default;
     const User = mongoose.models.User;
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('Admin user not found');
 
     const wazeefah = await Wazeefah.create({

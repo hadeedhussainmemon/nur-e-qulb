@@ -13,10 +13,10 @@ export async function getQuranProgress() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return null;
 
-    let progress = await QuranProgress.findOne({ userId: user._id });
+    let progress = await QuranProgress.findOne({ userId: user._id }).lean();
     if (!progress) {
       // Initialize progress for all 30 Juz
       const juzProgress = Array.from({ length: 30 }, (_, i) => ({
@@ -63,7 +63,7 @@ export async function toggleJuzCompleted(juzNumber: number, completed: boolean) 
     }
 
     // Find the juz and update its status
-    const juzItem = progress.juzProgress.find((j) => j.juzNumber === juzNumber);
+    const juzItem = progress.juzProgress.find((j: any) => j.juzNumber === juzNumber);
     if (juzItem) {
       juzItem.completed = completed;
     } else {

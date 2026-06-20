@@ -13,10 +13,10 @@ export async function getFamilyChallenges() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user || !user.familyId) return [];
 
-    const challenges = await FamilyChallenge.find({ familyId: user.familyId })
+    const challenges = await FamilyChallenge.find({ familyId: user.familyId }).lean()
       .populate('progress.userId', 'name')
       .sort({ createdAt: -1 });
 
@@ -39,7 +39,7 @@ export async function createFamilyChallenge(
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
     if (!user.familyId) throw new Error('You must belong to a Family Group to create a challenge');
 
@@ -71,7 +71,7 @@ export async function contributeToChallenge(challengeId: string, count: number) 
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
     if (!user.familyId) throw new Error('User is not part of a family');
 

@@ -14,10 +14,10 @@ export async function getFastingLogs() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const logs = await FastingLog.find({ userId: user._id }).sort({ date: -1 }).limit(30);
+    const logs = await FastingLog.find({ userId: user._id }).sort({ date: -1 }).limit(30).lean();
     return JSON.parse(JSON.stringify(logs));
   } catch (error) {
     console.error('Error fetching fasting logs:', error);
@@ -31,7 +31,7 @@ export async function logFast(dateStr: string, type: string, status: string, not
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const date = new Date(dateStr);
@@ -65,7 +65,7 @@ export async function getFastingSummary() {
     if (!session?.user?.email) return { totalFasts: 0, sunnahFasts: 0, makeupsRemaining: 0 };
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return { totalFasts: 0, sunnahFasts: 0, makeupsRemaining: 0 };
 
     const currentYear = new Date().getFullYear();
@@ -89,7 +89,7 @@ export async function getFastingSummary() {
 
     // Missed fasts (makeup targets) from RamadanStats
     const ramadanYear = 1447; // Current active Hijri year
-    const ramadanStats = await RamadanStats.findOne({ userId: user._id, year: ramadanYear });
+    const ramadanStats = await RamadanStats.findOne({ userId: user._id, year: ramadanYear }).lean();
     const missedFasts = ramadanStats ? ramadanStats.fastsMissed : 0;
 
     return {
@@ -109,7 +109,7 @@ export async function adjustFastsMissed(change: number) {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const currentYear = 1447;
@@ -138,10 +138,10 @@ export async function getLifetimeQazaFasts() {
     if (!session?.user?.email) return 0;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return 0;
 
-    const missed = await MissedFast.findOne({ userId: user._id });
+    const missed = await MissedFast.findOne({ userId: user._id }).lean();
     return missed ? missed.count : 0;
   } catch (error) {
     console.error('Error fetching lifetime qaza fasts:', error);
@@ -155,7 +155,7 @@ export async function updateLifetimeQazaFasts(change: number) {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const missed = await MissedFast.findOneAndUpdate(

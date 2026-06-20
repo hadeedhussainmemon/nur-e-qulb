@@ -15,11 +15,11 @@ export async function toggleQuranBookmark(surahNumber: number, ayahNumber: numbe
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const query = { userId: user._id, surahNumber, ayahNumber };
-    const existing = await QuranBookmark.findOne(query);
+    const existing = await QuranBookmark.findOne(query).lean();
 
     if (existing) {
       await QuranBookmark.deleteOne(query);
@@ -43,10 +43,10 @@ export async function isQuranBookmarked(surahNumber: number, ayahNumber: number)
     if (!session?.user?.email) return false;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return false;
 
-    const existing = await QuranBookmark.findOne({ userId: user._id, surahNumber, ayahNumber });
+    const existing = await QuranBookmark.findOne({ userId: user._id, surahNumber, ayahNumber }).lean();
     return !!existing;
   } catch (error) {
     console.error('Error checking Quran bookmark:', error);
@@ -60,10 +60,10 @@ export async function getQuranBookmarks() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const bookmarks = await QuranBookmark.find({ userId: user._id }).sort({ createdAt: -1 });
+    const bookmarks = await QuranBookmark.find({ userId: user._id }).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(bookmarks));
   } catch (error) {
     console.error('Error fetching Quran bookmarks:', error);
@@ -79,11 +79,11 @@ export async function toggleHadithBookmark(collectionName: string, bookNumber: s
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const query = { userId: user._id, collectionName, hadithNumber };
-    const existing = await HadithBookmark.findOne(query);
+    const existing = await HadithBookmark.findOne(query).lean();
 
     if (existing) {
       await HadithBookmark.deleteOne(query);
@@ -108,10 +108,10 @@ export async function isHadithBookmarked(collectionName: string, hadithNumber: s
     if (!session?.user?.email) return false;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return false;
 
-    const existing = await HadithBookmark.findOne({ userId: user._id, collectionName, hadithNumber });
+    const existing = await HadithBookmark.findOne({ userId: user._id, collectionName, hadithNumber }).lean();
     return !!existing;
   } catch (error) {
     console.error('Error checking Hadith bookmark:', error);
@@ -125,10 +125,10 @@ export async function getHadithBookmarks() {
     if (!session?.user?.email) return [];
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const bookmarks = await HadithBookmark.find({ userId: user._id }).sort({ createdAt: -1 });
+    const bookmarks = await HadithBookmark.find({ userId: user._id }).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(bookmarks));
   } catch (error) {
     console.error('Error fetching Hadith bookmarks:', error);

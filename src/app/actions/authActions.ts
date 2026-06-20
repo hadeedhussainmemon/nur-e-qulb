@@ -40,10 +40,10 @@ export async function updateUserSettings(data: {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email }).lean();
+    const user = await User.findOne({ email: session.user.email });
     if (!user) throw new Error('User not found');
 
-    let settings = await Settings.findOne({ userId: user._id }).lean();
+    let settings = await Settings.findOne({ userId: user._id });
     if (!settings) {
       settings = new Settings({ userId: user._id });
     }

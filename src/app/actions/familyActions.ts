@@ -23,7 +23,7 @@ export async function getFamilyDetails() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user || !user.familyId) return null;
 
     const group = await FamilyGroup.findById(user.familyId).populate('members', 'name email role');
@@ -46,10 +46,10 @@ export async function createFamilyGroup(name: string) {
 
     // Generate unique code
     let joinCode = generateJoinCode();
-    let codeExists = await FamilyGroup.findOne({ joinCode });
+    let codeExists = await FamilyGroup.findOne({ joinCode }).lean();
     while (codeExists) {
       joinCode = generateJoinCode();
-      codeExists = await FamilyGroup.findOne({ joinCode });
+      codeExists = await FamilyGroup.findOne({ joinCode }).lean();
     }
 
     const group = await FamilyGroup.create({

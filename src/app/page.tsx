@@ -11,13 +11,8 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
 import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import { useSession } from 'next-auth/react';
-import { getCurrentUser } from '@/app/actions/authActions';
-import { getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
-import { getLastRead } from '@/app/actions/lastReadActions';
-import { getFastingSummary } from '@/app/actions/fastingActions';
-import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
-import { getQuranProgress } from '@/app/actions/quranProgressActions';
-import { getUserWazeefahs, logWazeefahProgress } from '@/app/actions/userWazeefahActions';
+import { getDashboardData } from '@/app/actions/authActions';
+import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
 
 import { PublicHome } from '@/components/home/PublicHome';
 
@@ -106,35 +101,27 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const user = await getCurrentUser();
-        if (user && user.location) {
-          setCity(user.location.city || 'Makkah');
-          setCountry(user.location.country || 'Saudi Arabia');
+        const data = await getDashboardData(localTodayDateString);
+        if (data) {
+          if (data.user && data.user.location) {
+            setCity(data.user.location.city || 'Makkah');
+            setCountry(data.user.location.country || 'Saudi Arabia');
+          }
+          if (data.streaks) {
+            setPrayerStreak(data.streaks.currentStreak || 0);
+            setFajrStreak(data.streaks.fajrStreak || 0);
+          }
+          if (data.log) {
+            setTodayCompletion(data.log.completionPercentage || 0);
+          }
+          setLastRead(data.readData);
+          if (data.fastingData) {
+            setTotalFasts(data.fastingData.totalFasts || 0);
+          }
+          setBookmarksCount(data.bookmarksCount || 0);
+          setQuranProgress(data.quranProgress);
+          setUserWazeefahs(data.wazeefahs || []);
         }
-
-        const streaks = await getPrayerStreaks(localTodayDateString);
-        setPrayerStreak(streaks.currentStreak);
-        setFajrStreak(streaks.fajrStreak);
-
-        const log = await getTodayPrayerLog(localTodayDateString);
-        if (log) {
-          setTodayCompletion(log.completionPercentage);
-        }
-
-        const readData = await getLastRead();
-        setLastRead(readData);
-
-        const fastingData = await getFastingSummary();
-        setTotalFasts(fastingData.totalFasts);
-
-        const bookmarks = await getQuranBookmarks();
-        setBookmarksCount(bookmarks.length);
-
-        const progress = await getQuranProgress();
-        setQuranProgress(progress);
-
-        const wazeefahs = await getUserWazeefahs();
-        setUserWazeefahs(wazeefahs);
       } catch (err) {
         console.error('Failed to load dashboard stats from DB', err);
       } finally {

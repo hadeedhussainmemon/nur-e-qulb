@@ -9,8 +9,7 @@ import { PrayerHeatmap } from '@/components/prayers/PrayerHeatmap';
 import { Clock, MapPin, AlertCircle, Flame, History, Check, ShieldCheck, Heart, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser } from '@/app/actions/authActions';
-import { getTodayPrayerLog, togglePrayerStatus, getPrayerStreaks, getQazaPrayers, updateQazaPrayer, getPrayerHeatmapData } from '@/app/actions/prayerActions';
-import { isPeriodActive } from '@/app/actions/periodActions';
+import { getTodayPrayerLog, togglePrayerStatus, getPrayerStreaks, getQazaPrayers, updateQazaPrayer, getPrayerHeatmapData, getPrayersPageData } from '@/app/actions/prayerActions';
 
 export default function PrayerTrackerPage() {
   const [city, setCity] = useState('Makkah');
@@ -33,30 +32,24 @@ export default function PrayerTrackerPage() {
 
   const loadDatabaseData = async () => {
     try {
-      const user = await getCurrentUser();
-      if (user) {
-        setGender(user.gender || 'other');
-        if (user.location?.city) {
-          setCity(user.location.city);
-          setCountry(user.location.country || 'Saudi Arabia');
+      const data = await getPrayersPageData(localDateStr);
+      if (data) {
+        if (data.user) {
+          setGender(data.user.gender || 'other');
+          if (data.user.location?.city) {
+            setCity(data.user.location.city);
+            setCountry(data.user.location.country || 'Saudi Arabia');
+          }
         }
+        setIsCycleActive(data.isCycleActive || false);
+        setTodayLog(data.todayLog);
+        if (data.streaks) {
+          setCurrentStreak(data.streaks.currentStreak || 0);
+          setFajrStreak(data.streaks.fajrStreak || 0);
+        }
+        setQazaPrayers(data.qazaPrayers);
+        setHeatmapData(data.heatmapData || []);
       }
-
-      const periodOn = await isPeriodActive();
-      setIsCycleActive(periodOn);
-
-      const log = await getTodayPrayerLog(localDateStr);
-      setTodayLog(log);
-
-      const streaks = await getPrayerStreaks(localDateStr);
-      setCurrentStreak(streaks.currentStreak);
-      setFajrStreak(streaks.fajrStreak);
-
-      const qaza = await getQazaPrayers();
-      setQazaPrayers(qaza);
-
-      const heatmap = await getPrayerHeatmapData();
-      setHeatmapData(heatmap);
     } catch (err) {
       console.error('Failed to load database details in prayer page', err);
     } finally {

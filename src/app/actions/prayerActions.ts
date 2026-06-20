@@ -8,6 +8,7 @@ import { PrayerLog } from '@/models/PrayerLog';
 import { MissedPrayer } from '@/models/MissedPrayer';
 import { PeriodTracker } from '@/models/PeriodTracker';
 import mongoose from 'mongoose';
+import { isPeriodActive } from '@/app/actions/periodActions';
 
 export interface PrayerTimes {
   Fajr: string;
@@ -451,4 +452,35 @@ export async function getPrayerHeatmapData() {
     return [];
   }
 }
+
+export async function getPrayersPageData(localDateStr: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return null;
+
+    await connectToDatabase();
+
+    const [user, periodOn, todayLog, streaks, qaza, heatmap] = await Promise.all([
+      User.findOne({ email: session.user.email }).lean(),
+      isPeriodActive(),
+      getTodayPrayerLog(localDateStr),
+      getPrayerStreaks(localDateStr),
+      getQazaPrayers(),
+      getPrayerHeatmapData()
+    ]);
+
+    return {
+      user: JSON.parse(JSON.stringify(user)),
+      isCycleActive: periodOn,
+      todayLog,
+      streaks,
+      qazaPrayers: qaza,
+      heatmapData: heatmap
+    };
+  } catch (error) {
+    console.error('Failed to load combined prayers page data:', error);
+    return null;
+  }
+}
+
 

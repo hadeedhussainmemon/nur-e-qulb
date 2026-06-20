@@ -6,6 +6,8 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { QuranProgress } from '@/models/QuranProgress';
 import { revalidatePath } from 'next/cache';
+import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
+import { getLastRead } from '@/app/actions/lastReadActions';
 
 export async function getQuranProgress() {
   try {
@@ -172,3 +174,28 @@ export async function setKhatmTarget(targetDateStr: string | null) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getQuranPageData() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return null;
+
+    await connectToDatabase();
+
+    const [bookmarks, lastRead, progress] = await Promise.all([
+      getQuranBookmarks(),
+      getLastRead(),
+      getQuranProgress()
+    ]);
+
+    return {
+      bookmarks,
+      lastRead,
+      quranProgress: progress
+    };
+  } catch (error) {
+    console.error('Failed to load combined Quran page data:', error);
+    return null;
+  }
+}
+

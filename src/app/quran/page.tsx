@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { BookOpen, Bookmark, ArrowRight, Loader2 } from 'lucide-react';
 import { fetchSurahList } from '@/app/actions/quranActions';
-import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
-import { getLastRead } from '@/app/actions/lastReadActions';
 import { useSession } from 'next-auth/react';
 import { QuranNavigator } from '@/components/quran/QuranNavigator';
-import { getQuranProgress, toggleJuzCompleted, incrementKhatmCount, setKhatmTarget } from '@/app/actions/quranProgressActions';
+import { toggleJuzCompleted, incrementKhatmCount, setKhatmTarget, getQuranPageData } from '@/app/actions/quranProgressActions';
 import { KhatmTracker } from '@/components/quran/KhatmTracker';
 
 export default function QuranIndexPage() {
@@ -26,20 +24,19 @@ export default function QuranIndexPage() {
   const loadQuranData = async () => {
     setLoading(true);
     try {
-      const list = await fetchSurahList();
+      const [list, data] = await Promise.all([
+        fetchSurahList(),
+        session ? getQuranPageData() : null
+      ]);
+
       if (list) {
         setSurahList(list.data);
       }
 
-      if (session) {
-        const bookData = await getQuranBookmarks();
-        setBookmarks(bookData);
-
-        const readData = await getLastRead();
-        setLastRead(readData);
-
-        const progressData = await getQuranProgress();
-        setQuranProgress(progressData);
+      if (data) {
+        setBookmarks(data.bookmarks || []);
+        setLastRead(data.lastRead);
+        setQuranProgress(data.quranProgress);
       }
     } catch (err) {
       console.error('Failed to load Quran dashboard data', err);

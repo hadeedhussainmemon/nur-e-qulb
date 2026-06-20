@@ -5,6 +5,57 @@ import { authOptions } from '@/lib/authOptions';
 import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { Settings } from '@/models/Settings';
+import { getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
+import { getLastRead } from '@/app/actions/lastReadActions';
+import { getFastingSummary } from '@/app/actions/fastingActions';
+import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
+import { getQuranProgress } from '@/app/actions/quranProgressActions';
+import { getUserWazeefahs } from '@/app/actions/userWazeefahActions';
+
+export async function getDashboardData(localTodayDateString: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return null;
+
+    await connectToDatabase();
+
+    const [
+      user,
+      streaks,
+      log,
+      readData,
+      fastingData,
+      bookmarks,
+      progress,
+      wazeefahs
+    ] = await Promise.all([
+      User.findOne({ email: session.user.email }).populate('settingsId').lean(),
+      getPrayerStreaks(localTodayDateString),
+      getTodayPrayerLog(localTodayDateString),
+      getLastRead(),
+      getFastingSummary(),
+      getQuranBookmarks(),
+      getQuranProgress(),
+      getUserWazeefahs()
+    ]);
+
+    if (!user) return null;
+
+    return {
+      user: JSON.parse(JSON.stringify(user)),
+      streaks,
+      log,
+      readData,
+      fastingData,
+      bookmarksCount: bookmarks ? bookmarks.length : 0,
+      quranProgress: progress,
+      wazeefahs
+    };
+  } catch (error) {
+    console.error('Error in getDashboardData:', error);
+    return null;
+  }
+}
 
 export async function getCurrentUser() {
   try {
@@ -22,6 +73,7 @@ export async function getCurrentUser() {
     return null;
   }
 }
+
 
 export async function updateUserSettings(data: {
   madhab?: string;

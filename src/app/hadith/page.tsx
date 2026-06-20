@@ -7,6 +7,9 @@ import { BookMarked, Bookmark, Search, ArrowRight, Loader2 } from 'lucide-react'
 import { getHadithBookmarks } from '@/app/actions/bookmarkActions';
 import { useSession } from 'next-auth/react';
 
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { fetchHadithCategories } from '@/app/actions/hadithActions';
+
 const COLLECTIONS = [
   { id: 'bukhari', name: 'Sahih Bukhari', arabic: 'صحيح البخاري', author: 'Imam Bukhari', color: 'border-emerald-500' },
   { id: 'muslim', name: 'Sahih Muslim', arabic: 'صحيح مسلم', author: 'Imam Muslim', color: 'border-blue-500' },
@@ -15,6 +18,93 @@ const COLLECTIONS = [
   { id: 'nasai', name: 'Sunan an-Nasa\'i', arabic: 'سنن النسائي', author: 'Imam an-Nasa\'i', color: 'border-indigo-500' },
   { id: 'ibnmajah', name: 'Sunan Ibn Majah', arabic: 'سنن ابن ماجه', author: 'Imam Ibn Majah', color: 'border-teal-500' },
 ];
+
+function CollectionCard({ collection }: { collection: typeof COLLECTIONS[0] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCats, setLoadingCats] = useState(false);
+
+  const handleExpand = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isExpanded && categories.length === 0) {
+      setLoadingCats(true);
+      try {
+        const data = await fetchHadithCategories(collection.id);
+        if (data && data.sections) {
+          const cats = Object.keys(data.sections)
+            .filter(key => data.sections[key] && data.sections[key].trim() !== '')
+            .map(key => ({
+              bookNumber: key,
+              name: data.sections[key],
+              details: data.sectionDetails ? data.sectionDetails[key] : null
+            }));
+          setCategories(cats);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingCats(false);
+      }
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <Card className={`hover:shadow-lg transition-all border-l-4 ${collection.color} border-slate-200 dark:border-slate-800 bg-card overflow-hidden`}>
+      <Link href={`/hadith/${collection.id}`} className="block">
+        <CardContent className="p-6 flex flex-col justify-between space-y-4">
+          <div className="flex justify-between items-start">
+            <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-900/60 flex items-center justify-center border border-slate-200 dark:border-slate-800/80">
+              <BookMarked className={`w-6 h-6 ${collection.color.replace('border-', 'text-')}`} />
+            </div>
+            <h3 className="text-2xl font-arabic text-right text-slate-800 dark:text-slate-200" style={{ fontFamily: 'Amiri, serif' }}>
+              {collection.arabic}
+            </h3>
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{collection.name}</h3>
+            <p className="text-sm text-muted-foreground mt-1">Compiled by {collection.author}</p>
+          </div>
+        </CardContent>
+      </Link>
+      
+      <div className="px-6 pb-4 border-t border-slate-100 dark:border-slate-800/50 pt-3 bg-slate-50/50 dark:bg-slate-900/20">
+        <button 
+          onClick={handleExpand}
+          className="flex items-center justify-between w-full text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+        >
+          <span>{isExpanded ? 'Hide Categories' : 'Show Categories'}</span>
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        
+        {isExpanded && (
+          <div className="mt-4 space-y-1 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            {loadingCats ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+              </div>
+            ) : categories.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-2">No categories found.</p>
+            ) : (
+              categories.map((cat) => (
+                <Link 
+                  key={cat.bookNumber} 
+                  href={`/hadith/${collection.id}/${cat.bookNumber}`}
+                  className="block p-2 text-sm rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                >
+                  <span className="font-semibold mr-2">{cat.bookNumber}.</span>
+                  {cat.name}
+                </Link>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 export default function HadithIndexPage() {
   const { data: session } = useSession();
@@ -118,26 +208,9 @@ export default function HadithIndexPage() {
       </div>
 
       {activeTab === 'collections' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {filteredCollections.map((collection) => (
-            <Link href={`/hadith/${collection.id}`} key={collection.id}>
-              <Card className={`hover:shadow-lg hover:border-emerald-500/20 transition-all cursor-pointer border-l-4 ${collection.color} border-slate-200 dark:border-slate-800 bg-card`}>
-                <CardContent className="p-6 flex flex-col justify-between h-full space-y-4">
-                  <div className="flex justify-between items-start">
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-900/60 flex items-center justify-center border border-slate-200 dark:border-slate-800/80">
-                      <BookMarked className={`w-6 h-6 ${collection.color.replace('border-', 'text-')}`} />
-                    </div>
-                    <h3 className="text-2xl font-arabic text-right text-slate-800 dark:text-slate-200" style={{ fontFamily: 'Amiri, serif' }}>
-                      {collection.arabic}
-                    </h3>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{collection.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Compiled by {collection.author}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <CollectionCard key={collection.id} collection={collection} />
           ))}
         </div>
       ) : (

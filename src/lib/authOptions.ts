@@ -72,15 +72,18 @@ export const authOptions: NextAuthOptions = {
         const dbUser = await User.findOne({ email: token.email });
         if (dbUser) {
           token.id = dbUser._id.toString();
+          token.name = dbUser.name;
           token.role = dbUser.role || 'user';
           token.gender = dbUser.gender || 'other';
         } else if (user) {
           token.id = user.id;
+          token.name = user.name;
           token.role = (user as any).role || 'user';
           token.gender = 'other';
         }
       } else if (user) {
         token.id = user.id;
+        token.name = user.name;
         token.role = (user as any).role || 'user';
         token.gender = 'other';
       }

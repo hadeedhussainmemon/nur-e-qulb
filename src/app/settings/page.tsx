@@ -12,7 +12,7 @@ import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
 import { useSession } from 'next-auth/react';
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -128,10 +128,15 @@ export default function SettingsPage() {
 
     try {
       // Save profile
-      await updateUserProfile(name, gender as 'male' | 'female' | 'other', city, country);
+      const profileRes = await updateUserProfile(name, gender as 'male' | 'female' | 'other', city, country);
+      if (!profileRes.success) {
+        alert('Failed to save profile: ' + profileRes.error);
+        setSaving(false);
+        return;
+      }
 
       // Save notification settings and juristic methods
-      await updateUserSettings({
+      const settingsRes = await updateUserSettings({
         madhab,
         prayerCalculationMethod: calculationMethod,
         theme: activeTheme,
@@ -144,10 +149,20 @@ export default function SettingsPage() {
         },
       });
 
+      if (!settingsRes.success) {
+        alert('Failed to save settings: ' + settingsRes.error);
+        setSaving(false);
+        return;
+      }
+
+      // Force NextAuth to update session with new DB data
+      await updateSession();
+
       setSuccessMsg('Settings saved successfully!');
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       console.error(err);
+      alert('An unexpected error occurred while saving.');
     } finally {
       setSaving(false);
     }

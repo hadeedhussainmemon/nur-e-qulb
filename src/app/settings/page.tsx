@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings2, Bell, ShieldAlert, CalendarHeart, MoonStar, MapPin, Sparkles, Loader2, Check, Palette } from 'lucide-react';
+import { Settings2, Bell, ShieldAlert, CalendarHeart, MoonStar, MapPin, Sparkles, Loader2, Check, Palette, User } from 'lucide-react';
 import { applyTheme } from '@/components/layout/ThemeSyncEngine';
-import { getCurrentUser, updateUserSettings, updateUserLocation } from '@/app/actions/authActions';
+import { getCurrentUser, updateUserSettings, updateUserProfile } from '@/app/actions/authActions';
 import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
 import { useSession } from 'next-auth/react';
 
@@ -15,9 +15,11 @@ export default function SettingsPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // User details
+  const [name, setName] = useState<string>('');
   const [gender, setGender] = useState<string>('other');
   const [city, setCity] = useState('Makkah');
   const [country, setCountry] = useState('Saudi Arabia');
@@ -41,6 +43,7 @@ export default function SettingsPage() {
       try {
         const user = await getCurrentUser();
         if (user) {
+          setName(user.name || '');
           setGender(user.gender || 'other');
           if (user.location) {
             setCity(user.location.city || 'Makkah');
@@ -79,13 +82,53 @@ export default function SettingsPage() {
     }
   }, [session]);
 
+  const handleDetectLocation = () => {
+    setDetecting(true);
+    setSuccessMsg(null);
+
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      setDetecting(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Reverse geocoding using OpenStreetMap Nominatim
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`);
+          if (!res.ok) throw new Error('Failed to fetch address');
+          const data = await res.json();
+
+          const newCity = data.address.city || data.address.town || data.address.village || data.address.county || '';
+          const newCountry = data.address.country || '';
+
+          setCity(newCity);
+          setCountry(newCountry);
+          setSuccessMsg('Location auto-detected! Click Save to apply.');
+          setTimeout(() => setSuccessMsg(null), 3000);
+        } catch (error) {
+          alert('Failed to retrieve city and country from coordinates.');
+        } finally {
+          setDetecting(false);
+        }
+      },
+      (error) => {
+        console.error(error);
+        alert('Location access denied or unavailable.');
+        setDetecting(false);
+      }
+    );
+  };
+
   const handleSaveSettings = async () => {
     setSaving(true);
     setSuccessMsg(null);
 
     try {
-      // Save location
-      await updateUserLocation(city, country);
+      // Save profile
+      await updateUserProfile(name, gender as 'male' | 'female' | 'other', city, country);
 
       // Save notification settings and juristic methods
       await updateUserSettings({
@@ -140,11 +183,74 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
+        
+        {/* Personal Profile */}
+        <Card className="border-slate-200 dark:border-slate-800 md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-emerald-500" /> Personal Profile
+            </CardTitle>
+            <CardDescription>Manage your personal information and location settings.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Full Name</label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your Name"
+                  className="bg-background border-slate-200 dark:border-slate-800 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-emerald-500"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">City</label>
+                  <button type="button" onClick={handleDetectLocation} disabled={detecting} className="text-xs text-emerald-600 dark:text-emerald-400 font-medium hover:underline flex items-center gap-1">
+                    {detecting ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                    Auto-Detect
+                  </button>
+                </div>
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Makkah"
+                  className="bg-background border-slate-200 dark:border-slate-800 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Country</label>
+                <Input
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Saudi Arabia"
+                  className="bg-background border-slate-200 dark:border-slate-800 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Core Calculation Preferences */}
         <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings2 className="w-5 h-5 text-emerald-500" /> Calculation Settings
+              <Settings2 className="w-5 h-5 text-indigo-500" /> Calculation Settings
             </CardTitle>
             <CardDescription>Configure calculation settings for prayer times.</CardDescription>
           </CardHeader>
@@ -178,32 +284,37 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Location Preferences */}
+        {/* Notifications Card */}
         <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-indigo-500" /> Location Profile
+              <Bell className="w-5 h-5 text-indigo-500" /> Notification Center
             </CardTitle>
-            <CardDescription>Your location is used to display exact local timings.</CardDescription>
+            <CardDescription>Manage daily alarms and motivational prompts.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">City</label>
-              <Input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Makkah"
-                className="bg-background border-slate-200 dark:border-slate-800 focus:ring-emerald-500"
-              />
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-base font-medium">Adhan & Prayer Alerts</p>
+                <p className="text-sm text-muted-foreground">Receive push notifications immediately at local prayer times.</p>
+              </div>
+              <Switch checked={prayerReminders} onCheckedChange={setPrayerReminders} disabled={womenMode} />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Country</label>
-              <Input
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Saudi Arabia"
-                className="bg-background border-slate-200 dark:border-slate-800 focus:ring-emerald-500"
-              />
+
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-base font-medium">Daily Quran Ayah</p>
+                <p className="text-sm text-muted-foreground">Get daily inspirational verse notifications in the morning.</p>
+              </div>
+              <Switch checked={dailyAyah} onCheckedChange={setDailyAyah} />
+            </div>
+
+            <div className="flex items-center justify-between space-x-4">
+              <div>
+                <p className="text-base font-medium">Daily Hadith Alerts</p>
+                <p className="text-sm text-muted-foreground">Receive authentic snippets of Sunnah directly on your dashboard.</p>
+              </div>
+              <Switch checked={dailyHadith} onCheckedChange={setDailyHadith} />
             </div>
           </CardContent>
         </Card>
@@ -302,41 +413,6 @@ export default function SettingsPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-3">Theme preference is saved when you click &quot;Save Settings&quot;.</p>
-          </CardContent>
-        </Card>
-
-        {/* Notifications Card */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-indigo-500" /> Notification Center
-            </CardTitle>
-            <CardDescription>Manage daily alarms and motivational prompts.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-4">
-              <div>
-                <p className="text-base font-medium">Adhan & Prayer Alerts</p>
-                <p className="text-sm text-muted-foreground">Receive push notifications immediately at local prayer times.</p>
-              </div>
-              <Switch checked={prayerReminders} onCheckedChange={setPrayerReminders} disabled={womenMode} />
-            </div>
-
-            <div className="flex items-center justify-between space-x-4">
-              <div>
-                <p className="text-base font-medium">Daily Quran Ayah</p>
-                <p className="text-sm text-muted-foreground">Get daily inspirational verse notifications in the morning.</p>
-              </div>
-              <Switch checked={dailyAyah} onCheckedChange={setDailyAyah} />
-            </div>
-
-            <div className="flex items-center justify-between space-x-4">
-              <div>
-                <p className="text-base font-medium">Daily Hadith Alerts</p>
-                <p className="text-sm text-muted-foreground">Receive authentic snippets of Sunnah directly on your dashboard.</p>
-              </div>
-              <Switch checked={dailyHadith} onCheckedChange={setDailyHadith} />
-            </div>
           </CardContent>
         </Card>
       </div>

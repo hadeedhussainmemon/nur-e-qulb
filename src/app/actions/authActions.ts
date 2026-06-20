@@ -12,7 +12,7 @@ export async function getCurrentUser() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email }).populate('settingsId').lean().lean();
+    const user = await User.findOne({ email: session.user.email }).populate('settingsId').lean();
     if (!user) return null;
 
     // Convert mongoose document to plain JS object for RSC compatibility
@@ -107,6 +107,25 @@ export async function updateUserLocation(city: string, country: string) {
     return { success: true, location: JSON.parse(JSON.stringify(user?.location)) };
   } catch (error: any) {
     console.error('Error updating location:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateUserProfile(name: string, gender: 'male' | 'female' | 'other', city: string, country: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) throw new Error('Unauthorized');
+
+    await connectToDatabase();
+    const user = await User.findOneAndUpdate(
+      { email: session.user.email },
+      { name, gender, location: { city, country, latitude: 0, longitude: 0 } },
+      { new: true }
+    ).lean();
+
+    return { success: true, user: JSON.parse(JSON.stringify(user)) };
+  } catch (error: any) {
+    console.error('Error updating profile:', error);
     return { success: false, error: error.message };
   }
 }

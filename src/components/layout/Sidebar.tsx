@@ -82,12 +82,6 @@ const routes = [
     href: '/settings',
     color: 'text-slate-500',
   },
-  {
-    label: 'Profile',
-    icon: Settings,
-    href: '/settings/profile',
-    color: 'text-slate-500',
-  },
 ];
 
 export function Sidebar() {

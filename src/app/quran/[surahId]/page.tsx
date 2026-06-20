@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import { fetchSurahDetail } from '@/app/actions/quranActions';
 import { getLastRead } from '@/app/actions/lastReadActions';
@@ -60,3 +61,4 @@ export default async function SurahDetailPage({ params }: { params: { surahId: s
     </div>
   );
 }
+

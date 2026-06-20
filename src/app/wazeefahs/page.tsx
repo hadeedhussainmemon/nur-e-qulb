@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
@@ -22,3 +23,4 @@ export default async function WazeefahsPage() {
     </div>
   );
 }
+

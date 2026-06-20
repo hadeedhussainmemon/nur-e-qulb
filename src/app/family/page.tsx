@@ -1,6 +1,6 @@
 import React from 'react';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { Users } from 'lucide-react';
 import { getFamilyDetails } from '@/app/actions/familyActions';
 import { getFamilyChallenges } from '@/app/actions/familyChallengeActions';

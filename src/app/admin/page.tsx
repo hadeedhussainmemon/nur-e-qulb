@@ -1,6 +1,6 @@
 import React from 'react';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 import { redirect } from 'next/navigation';
 import { ShieldAlert, Users, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import { getPendingWazeefahs } from '@/app/actions/wazeefahActions';

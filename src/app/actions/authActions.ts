@@ -12,7 +12,7 @@ export async function getCurrentUser() {
     if (!session?.user?.email) return null;
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email }).populate('settingsId');
+    const user = await User.findOne({ email: session.user.email }).populate('settingsId').lean().lean();
     if (!user) return null;
 
     // Convert mongoose document to plain JS object for RSC compatibility
@@ -40,10 +40,10 @@ export async function updateUserSettings(data: {
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     await connectToDatabase();
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
-    let settings = await Settings.findOne({ userId: user._id });
+    let settings = await Settings.findOne({ userId: user._id }).lean();
     if (!settings) {
       settings = new Settings({ userId: user._id });
     }
@@ -83,7 +83,7 @@ export async function updateUserGender(gender: 'male' | 'female' | 'other') {
       { email: session.user.email },
       { gender },
       { new: true }
-    );
+    ).lean();
 
     return { success: true, gender: user?.gender };
   } catch (error: any) {
@@ -102,7 +102,7 @@ export async function updateUserLocation(city: string, country: string) {
       { email: session.user.email },
       { location: { city, country, latitude: 0, longitude: 0 } },
       { new: true }
-    );
+    ).lean();
 
     return { success: true, location: JSON.parse(JSON.stringify(user?.location)) };
   } catch (error: any) {

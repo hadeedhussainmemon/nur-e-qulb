@@ -278,8 +278,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 9. Approved Wazeefahs template lists
-    const approvedWazeefahs = await Wazeefah.find({ isApproved: true }).populate('submittedBy', 'name').sort({ createdAt: -1 }).lean();
+    // (Approved Wazeefahs fetched in Promise.all above)
 
     return NextResponse.json({
       streaks: { currentStreak, fajrStreak },

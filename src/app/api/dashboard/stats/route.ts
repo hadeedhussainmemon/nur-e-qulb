@@ -31,17 +31,21 @@ async function checkIsPeriodDate(userId: any, dateStr: string): Promise<boolean>
 // Sync past missed prayers
 async function syncPastMissedPrayers(user: any) {
   try {
-    const start = new Date(user.createdAt);
-    start.setHours(0,0,0,0);
+    // Limit sync to max 14 days ago to avoid slow O(N) DB calls on every dashboard load
+    const start = new Date();
+    start.setDate(start.getDate() - 14);
+    const userStart = new Date(user.createdAt);
+    const actualStart = userStart > start ? userStart : start;
+    actualStart.setHours(0,0,0,0);
     
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(0,0,0,0);
     
-    if (start > yesterday) return;
+    if (actualStart > yesterday) return;
     
     const dateStrings: string[] = [];
-    const current = new Date(start);
+    const current = new Date(actualStart);
     while (current <= yesterday) {
       dateStrings.push(current.toLocaleDateString('en-CA'));
       current.setDate(current.getDate() + 1);
@@ -201,20 +205,24 @@ export async function GET(request: NextRequest) {
       if (streakBroken && fajrStreakBroken) break;
     }
 
-    // 3. Last read progress
-    const lastRead = await LastRead.findOne({ userId: user._id }).lean();
-
-    // 4. Fasting summary (for the current calendar year)
-    const currentYear = new Date().getFullYear();
-    const startOfYear = new Date(currentYear, 0, 1);
-    const totalFasts = await FastingLog.countDocuments({
-      userId: user._id,
-      status: 'completed',
-      date: { $gte: startOfYear }
-    } as any);
-
-    // 5. Bookmarks count
-    const bookmarks = await QuranBookmark.find({ userId: user._id }).lean();
+    // Fetch independent queries in parallel
+    const [
+      lastRead,
+      totalFasts,
+      bookmarksCount,
+      userWazeefahs,
+      approvedWazeefahs
+    ] = await Promise.all([
+      LastRead.findOne({ userId: user._id }).lean(),
+      FastingLog.countDocuments({
+        userId: user._id,
+        status: 'completed',
+        date: { $gte: startOfYear }
+      } as any),
+      QuranBookmark.countDocuments({ userId: user._id }),
+      UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean(),
+      Wazeefah.find({ isApproved: true }).populate('submittedBy', 'name').sort({ createdAt: -1 }).lean()
+    ]);
 
     // 6. Quran Progress (Juz & Khatm Tracker)
     let quranProgress = await QuranProgress.findOne({ userId: user._id }).lean();
@@ -230,9 +238,6 @@ export async function GET(request: NextRequest) {
         overallPercentage: 0,
       });
     }
-
-    // 7. User Wazeefahs
-    const userWazeefahs = await UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean();
 
     // 8. Family details
     let familyDetails = null;
@@ -277,7 +282,7 @@ export async function GET(request: NextRequest) {
       prayerLog,
       lastRead,
       totalFasts,
-      bookmarksCount: bookmarks.length,
+      bookmarksCount,
       quranProgress,
       userWazeefahs,
       familyDetails,

@@ -6,6 +6,7 @@ import { AyahBlock } from '@/components/quran/AyahBlock';
 import { QuranNavigator } from '@/components/quran/QuranNavigator';
 import { SurahScrollTracker } from '@/components/quran/SurahScrollTracker';
 import { Loader2 } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 const BASE_URL = 'https://api.alquran.cloud/v1';
 
@@ -35,9 +36,9 @@ async function fetchSurahDetailClient(surahNumber: number) {
   };
 }
 
-export default function SurahDetailPage({ params }: { params: any }) {
-  const resolvedParams = React.use(params) as any;
-  const surahId = parseInt(resolvedParams.surahId, 10);
+export default function SurahDetailPage() {
+  const params = useParams();
+  const surahId = parseInt(params.surahId as string, 10);
 
   const [data, setData] = useState<any>(null);
   const [lastRead, setLastRead] = useState<any>(null);

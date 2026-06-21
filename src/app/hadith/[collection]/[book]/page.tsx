@@ -31,7 +31,13 @@ async function fetchHadithsByCategoryClient(collection: string, bookNumber: stri
   };
 }
 
-export default function HadithCategoryPage({ params }: { params: { collection: string, book: string } }) {
+import { useParams } from 'next/navigation';
+
+export default function HadithCategoryPage() {
+  const params = useParams();
+  const collection = params.collection as string;
+  const book = params.book as string;
+
   const [data, setData] = useState<any>(null);
   const [categoriesData, setCategoriesData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,8 +46,8 @@ export default function HadithCategoryPage({ params }: { params: { collection: s
     async function loadData() {
       try {
         const [hadithRes, catRes] = await Promise.all([
-          fetchHadithsByCategoryClient(params.collection, params.book),
-          fetchHadithCategoriesClient(params.collection)
+          fetchHadithsByCategoryClient(collection, book),
+          fetchHadithCategoriesClient(collection)
         ]);
         if (hadithRes && catRes) {
           setData(hadithRes);
@@ -53,8 +59,10 @@ export default function HadithCategoryPage({ params }: { params: { collection: s
         setLoading(false);
       }
     }
-    loadData();
-  }, [params.collection, params.book]);
+    if (collection && book) {
+      loadData();
+    }
+  }, [collection, book]);
 
   if (loading) {
     return (
@@ -74,12 +82,12 @@ export default function HadithCategoryPage({ params }: { params: { collection: s
   }
 
   const { metadata, hadiths } = data;
-  const bookName = categoriesData.sections[params.book] || `Book ${params.book}`;
+  const bookName = categoriesData.sections[book] || `Book ${book}`;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-32">
       <div className="flex items-center gap-4 py-8 border-b border-emerald-100 dark:border-emerald-900">
-        <Link href={`/hadith/${params.collection}`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+        <Link href={`/hadith/${collection}`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-500" />
         </Link>
         <div>
@@ -99,8 +107,8 @@ export default function HadithCategoryPage({ params }: { params: { collection: s
           hadiths.map((hadith: any) => (
             <HadithBlock
               key={hadith.hadithnumber}
-              collectionId={params.collection}
-              bookNumber={hadith.booknumber || params.book}
+              collectionId={collection}
+              bookNumber={hadith.booknumber || book}
               hadithNumber={hadith.hadithnumber}
               text={hadith.text}
               grades={hadith.grades || []}

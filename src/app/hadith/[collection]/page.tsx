@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BookOpen, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useParams } from 'next/navigation';
+
 const BASE_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
 
 async function fetchHadithCategoriesClient(collection: string) {
@@ -19,14 +21,16 @@ async function fetchHadithCategoriesClient(collection: string) {
   };
 }
 
-export default function HadithCollectionPage({ params }: { params: { collection: string } }) {
+export default function HadithCollectionPage() {
+  const params = useParams();
+  const collection = params.collection as string;
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadCategories() {
       try {
-        const res = await fetchHadithCategoriesClient(params.collection);
+        const res = await fetchHadithCategoriesClient(collection);
         if (res) {
           setData(res);
         }
@@ -36,8 +40,10 @@ export default function HadithCollectionPage({ params }: { params: { collection:
         setLoading(false);
       }
     }
-    loadCategories();
-  }, [params.collection]);
+    if (collection) {
+      loadCategories();
+    }
+  }, [collection]);
 
   if (loading) {
     return (
@@ -78,7 +84,7 @@ export default function HadithCollectionPage({ params }: { params: { collection:
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((category) => (
-          <Link href={`/hadith/${params.collection}/${category.bookNumber}`} key={category.bookNumber}>
+          <Link href={`/hadith/${collection}/${category.bookNumber}`} key={category.bookNumber}>
             <Card className="hover:shadow-md hover:border-emerald-500/30 transition-all cursor-pointer h-full border-slate-200 dark:border-slate-800">
               <CardContent className="p-5 flex items-start justify-between gap-4">
                 <div className="flex gap-4 items-start">

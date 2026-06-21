@@ -18,6 +18,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const isSettingsPage = pathname === '/settings';
 
+  // Register Service Worker for PWA
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => console.error('Service Worker registration failed:', err));
+    }
+  }, []);
+
   // Redirect first-time users to settings
   useEffect(() => {
     if (

@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Clock, Check, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Clock, Check, Loader2, CircleDot, ArrowRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { PublicHome } from '@/components/home/PublicHome';
 import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -19,6 +20,53 @@ export default function Dashboard() {
   const [fajrStreak, setFajrStreak] = useState(0);
   const [todayLog, setTodayLog] = useState<any>(null);
   const [todayCompletion, setTodayCompletion] = useState(0);
+
+  // Tasbih Widget State
+  const TASBIH_ADHKARS = [
+    { id: 'subhanallah',   arabic: 'سُبْحَانَ اللَّه',  label: 'Subhān Allāh',  target: 33  },
+    { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّه', label: 'Al-Ḥamdu Lillāh', target: 33  },
+    { id: 'allahuakbar',   arabic: 'اللَّهُ أَكْبَر',   label: 'Allāhu Akbar',   target: 34  },
+  ];
+  const [tasbihIdx, setTasbihIdx] = useState(0);
+  const [tasbihCount, setTasbihCount] = useState(0);
+  const [tasbihTotal, setTasbihTotal] = useState(0);
+  const [tasbihPressed, setTasbihPressed] = useState(false);
+  const tasbihAudioRef = useRef<AudioContext | null>(null);
+
+  const playTasbihClick = useCallback(() => {
+    try {
+      if (!tasbihAudioRef.current || tasbihAudioRef.current.state === 'closed') {
+        tasbihAudioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = tasbihAudioRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {}
+  }, []);
+
+  const handleTasbihTap = useCallback(() => {
+    setTasbihPressed(true);
+    setTimeout(() => setTasbihPressed(false), 120);
+    playTasbihClick();
+    const target = TASBIH_ADHKARS[tasbihIdx].target;
+    setTasbihCount((prev) => {
+      if (prev + 1 >= target) {
+        setTasbihTotal((t) => t + target);
+        return 0;
+      }
+      setTasbihTotal((t) => t + 1);
+      return prev + 1;
+    });
+  }, [tasbihIdx, playTasbihClick]);
 
   const localTodayDateString = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
 
@@ -194,6 +242,67 @@ export default function Dashboard() {
           </Card>
         )}
       </div>
+
+      {/* Tasbeeh Mini Widget */}
+      <Card className="border-slate-200 dark:border-slate-800">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CircleDot className="w-4 h-4 text-purple-500" /> Tasbeeh Counter
+            </CardTitle>
+            <Link href="/tasbih" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Full Counter <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <CardDescription className="text-xs">Click the bead to count your dhikr</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Adhkar selector chips */}
+            <div className="flex gap-2 flex-wrap">
+              {TASBIH_ADHKARS.map((d, i) => (
+                <button
+                  key={d.id}
+                  onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                    i === tasbihIdx
+                      ? 'bg-purple-600 text-white border-transparent shadow'
+                      : 'border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-purple-500'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Bead tap button */}
+            <button
+              onPointerDown={handleTasbihTap}
+              className={`relative w-20 h-20 rounded-full flex flex-col items-center justify-center
+                bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg
+                transition-all duration-100 shrink-0
+                ${tasbihPressed ? 'scale-95 shadow-sm' : 'scale-100 hover:scale-105'}`}
+              aria-label="Tap bead"
+            >
+              <CircleDot className="w-4 h-4 opacity-60 mb-0.5" />
+              <span className="text-2xl font-bold font-mono leading-none">{tasbihCount}</span>
+              <span className="text-[9px] opacity-60">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
+            </button>
+
+            {/* Stats */}
+            <div className="flex gap-4 text-center">
+              <div>
+                <p className="font-arabic text-xl leading-relaxed">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Active Dhikr</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold font-mono text-purple-600">{tasbihTotal}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Total Today</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

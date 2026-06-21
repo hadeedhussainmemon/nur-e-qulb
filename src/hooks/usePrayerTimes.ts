@@ -12,12 +12,28 @@ export function usePrayerTimes(city: string, country: string) {
 
   useEffect(() => {
     async function loadData() {
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      const cacheKey = `prayer_times_${city}_${country}_${todayStr}`;
+      
+      // Try cache first
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          setData(JSON.parse(cached));
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
       setLoading(true);
       try {
         // Fallback default city to Makkah if empty
         const res = await fetchPrayerTimesByCity(city || 'Makkah', country || 'Saudi Arabia');
         if (res) {
           setData(res);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(res));
+          } catch (e) {}
         } else {
           setError('Failed to fetch prayer data');
         }

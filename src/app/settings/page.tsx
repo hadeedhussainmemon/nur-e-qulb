@@ -359,17 +359,22 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             {/* Women Mode - Female Users Only */}
             {gender === 'female' ? (
-              <div className="flex items-center justify-between space-x-4 p-4 rounded-xl border border-rose-100 dark:border-rose-950/30 bg-rose-50/20 dark:bg-rose-950/10">
-                <div className="flex items-start space-x-4">
-                  <ShieldAlert className="w-6 h-6 text-rose-500 mt-1" />
-                  <div>
-                    <p className="text-base font-semibold text-rose-800 dark:text-rose-400">Women's Period Mode</p>
-                    <p className="text-sm text-rose-600/80 dark:text-rose-400/70">
-                      Toggling this ON excuses you from prayer requirements without breaking streaks, and automates make-up fast targets.
-                    </p>
+              <div className="flex flex-col gap-3 p-4 rounded-xl border border-rose-100 dark:border-rose-950/30 bg-rose-50/20 dark:bg-rose-950/10">
+                <div className="flex items-center justify-between space-x-4">
+                  <div className="flex items-start space-x-4">
+                    <ShieldAlert className="w-6 h-6 text-rose-500 mt-1" />
+                    <div>
+                      <p className="text-base font-semibold text-rose-800 dark:text-rose-400">Women's Period Mode</p>
+                      <p className="text-sm text-rose-600/80 dark:text-rose-400/70">
+                        Toggling this ON excuses you from prayer requirements without breaking streaks, and automates make-up fast targets.
+                      </p>
+                    </div>
                   </div>
+                  <Switch checked={womenMode} onCheckedChange={handleToggleWomenMode} className="data-[checked]:bg-rose-500" />
                 </div>
-                <Switch checked={womenMode} onCheckedChange={handleToggleWomenMode} className="data-[state=checked]:bg-rose-500" />
+                <div className="text-xs text-rose-650/75 dark:text-rose-400/75 border-t border-rose-100/40 dark:border-rose-950/25 pt-2 italic">
+                  ℹ️ Note: Simply keep the toggle ON during your cycle. Turn it OFF when finished. The app handles the days and excuses your prayers automatically.
+                </div>
               </div>
             ) : gender === 'male' ? (
               <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-sm">

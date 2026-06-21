@@ -46,6 +46,21 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60,   // Re-issue token once per day max
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   callbacks: {
     async signIn({ user, account }) {
@@ -65,21 +80,23 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user }) {
-      await connectToDatabase();
-      
-      if (token.email) {
+    async jwt({ token, user, trigger }) {
+      // On first sign-in (user object exists) OR explicit update trigger — hit the DB
+      if (user || trigger === 'update') {
+        await connectToDatabase();
         const dbUser = await User.findOne({ email: token.email }).populate('settingsId').lean();
         if (dbUser) {
-          token.id = dbUser._id.toString();
-          token.name = dbUser.name;
-          token.role = dbUser.role || 'user';
-          token.gender = dbUser.gender || 'other';
-          token.location = dbUser.location ? {
-            city: dbUser.location.city,
-            country: dbUser.location.country,
+          token.id = (dbUser as any)._id.toString();
+          token.name = (dbUser as any).name;
+          token.role = (dbUser as any).role || 'user';
+          token.gender = (dbUser as any).gender || 'other';
+          token.location = (dbUser as any).location ? {
+            city: (dbUser as any).location.city,
+            country: (dbUser as any).location.country,
           } : null;
-          token.settings = dbUser.settingsId ? JSON.parse(JSON.stringify(dbUser.settingsId)) : null;
+          token.settings = (dbUser as any).settingsId
+            ? JSON.parse(JSON.stringify((dbUser as any).settingsId))
+            : null;
         } else if (user) {
           token.id = user.id;
           token.name = user.name;
@@ -88,13 +105,6 @@ export const authOptions: NextAuthOptions = {
           token.location = null;
           token.settings = null;
         }
-      } else if (user) {
-        token.id = user.id;
-        token.name = user.name;
-        token.role = (user as any).role || 'user';
-        token.gender = 'other';
-        token.location = null;
-        token.settings = null;
       }
 
       return token;

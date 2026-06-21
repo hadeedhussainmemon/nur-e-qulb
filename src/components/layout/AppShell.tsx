@@ -8,6 +8,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { GlobalAudioPlayer } from '@/components/quran/GlobalAudioPlayer';
 import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { WazeefahReminderEngine } from '@/components/layout/WazeefahReminderEngine';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { Loader2 } from 'lucide-react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <GlobalAudioPlayer />
       <WazeefahReminderEngine />
+      <BottomNav />
     </div>
   );
 }

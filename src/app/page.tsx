@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
   const [country, setCountry] = useState(() => (session?.user as any)?.location?.country || 'Saudi Arabia');
   const [loadingDb, setLoadingDb] = useState(true);
+  const [hijriDate, setHijriDate] = useState<string>('');
 
   // Stats from DB
   const [prayerStreak, setPrayerStreak] = useState(0);
@@ -96,6 +97,25 @@ export default function Dashboard() {
   }, []);
 
   const localTodayDateString = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+
+  // Fetch Hijri date based on local Gregorian date (NOT from prayer API location)
+  useEffect(() => {
+    async function fetchHijriDate() {
+      try {
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}`);
+        if (res.ok) {
+          const json = await res.json();
+          const h = json?.data?.hijri;
+          if (h) setHijriDate(`${h.day} ${h.month.en} ${h.year}`);
+        }
+      } catch {}
+    }
+    fetchHijriDate();
+  }, []);
 
   // Sync city/country if session loads later
   useEffect(() => {
@@ -200,10 +220,10 @@ export default function Dashboard() {
   const statusVal = todayLog?.[activePrayerName.toLowerCase()] || 'pending';
   const isDone = statusVal === 'completed' || statusVal === 'excused';
 
-  // Format Hijri Date & Gregorian Date
-  const hijriStr = timesData 
-    ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}` 
-    : '6 Muharram 1448';
+  // Hijri date fetched from local Gregorian date (region-accurate)
+  const hijriStr = hijriDate || (timesData
+    ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}`
+    : '');
   
   const gregorianStr = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 

@@ -16,9 +16,14 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
 import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import { useSession } from 'next-auth/react';
-import { getDashboardData } from '@/app/actions/authActions';
-import { logWazeefahProgress, subscribeToWazeefah } from '@/app/actions/userWazeefahActions';
-import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
+import { logWazeefahProgress, subscribeToWazeefah, getUserWazeefahs } from '@/app/actions/userWazeefahActions';
+import { togglePrayerStatus, getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
+import { getLastRead } from '@/app/actions/lastReadActions';
+import { getFastingSummary } from '@/app/actions/fastingActions';
+import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
+import { getQuranProgress } from '@/app/actions/quranProgressActions';
+import { getFamilyDetails } from '@/app/actions/familyActions';
+import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
 
 import { PublicHome } from '@/components/home/PublicHome';
 
@@ -124,37 +129,52 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const data = await getDashboardData(localTodayDateString);
-        if (data) {
-          if (data.user && data.user.location) {
-            setCity(data.user.location.city || 'Makkah');
-            setCountry(data.user.location.country || 'Saudi Arabia');
-          }
-          if (data.streaks) {
-            setPrayerStreak(data.streaks.currentStreak || 0);
-            setFajrStreak(data.streaks.fajrStreak || 0);
-          }
-          if (data.log) {
-            setTodayLog(data.log);
-            setTodayCompletion(data.log.completionPercentage || 0);
-          }
-          setLastRead(data.readData);
-          if (data.fastingData) {
-            setTotalFasts(data.fastingData.totalFasts || 0);
-          }
-          setBookmarksCount(data.bookmarksCount || 0);
-          setQuranProgress(data.quranProgress);
-          setUserWazeefahs(data.wazeefahs || []);
-          setFamily(data.family);
+        const [
+          streaks,
+          log,
+          readData,
+          fastingData,
+          bookmarks,
+          progress,
+          wazeefahs,
+          familyData,
+          approvedWazeefahs
+        ] = await Promise.all([
+          getPrayerStreaks(localTodayDateString).catch(() => ({ currentStreak: 0, fajrStreak: 0 })),
+          getTodayPrayerLog(localTodayDateString).catch(() => null),
+          getLastRead().catch(() => null),
+          getFastingSummary().catch(() => ({ totalFasts: 0 })),
+          getQuranBookmarks().catch(() => []),
+          getQuranProgress().catch(() => null),
+          getUserWazeefahs().catch(() => []),
+          getFamilyDetails().catch(() => null),
+          getApprovedWazeefahs().catch(() => [])
+        ]);
 
-          // Select a random suggested wazeefah that user is not yet subscribed to
-          if (data.suggestedWazeefahs && data.suggestedWazeefahs.length > 0) {
-            const userWazeefahIds = data.wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
-            const unsubscribed = data.suggestedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
-            const pool = unsubscribed.length > 0 ? unsubscribed : data.suggestedWazeefahs;
-            const randomWaz = pool[Math.floor(Math.random() * pool.length)];
-            setSuggestedWazeefah(randomWaz);
-          }
+        if (streaks) {
+          setPrayerStreak(streaks.currentStreak || 0);
+          setFajrStreak(streaks.fajrStreak || 0);
+        }
+        if (log) {
+          setTodayLog(log);
+          setTodayCompletion(log.completionPercentage || 0);
+        }
+        setLastRead(readData);
+        if (fastingData) {
+          setTotalFasts(fastingData.totalFasts || 0);
+        }
+        setBookmarksCount(bookmarks ? bookmarks.length : 0);
+        setQuranProgress(progress);
+        setUserWazeefahs(wazeefahs || []);
+        setFamily(familyData);
+
+        // Select a random suggested wazeefah that user is not yet subscribed to
+        if (approvedWazeefahs && approvedWazeefahs.length > 0) {
+          const userWazeefahIds = wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
+          const unsubscribed = approvedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
+          const pool = unsubscribed.length > 0 ? unsubscribed : approvedWazeefahs;
+          const randomWaz = pool[Math.floor(Math.random() * pool.length)];
+          setSuggestedWazeefah(randomWaz);
         }
       } catch (err) {
         console.error('Failed to load dashboard stats from DB', err);

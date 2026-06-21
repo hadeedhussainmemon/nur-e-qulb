@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getLastRead } from '@/app/actions/lastReadActions';
 import { AyahBlock } from '@/components/quran/AyahBlock';
 import { QuranNavigator } from '@/components/quran/QuranNavigator';
@@ -40,34 +40,75 @@ export default function SurahDetailPage() {
   const params = useParams();
   const surahId = parseInt(params.surahId as string, 10);
 
-  const [data, setData] = useState<any>(null);
+  const [surahs, setSurahs] = useState<any[]>([]);
   const [lastRead, setLastRead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingNext, setLoadingNext] = useState(false);
+  const [nextSurahId, setNextSurahId] = useState<number>(surahId + 1);
   const [error, setError] = useState<string | null>(null);
+
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const loadData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const [surahData, lastReadData] = await Promise.all([
-        fetchSurahDetailClient(surahId),
-        getLastRead()
-      ]);
-      setData(surahData);
+      const lastReadData = await getLastRead();
       setLastRead(lastReadData);
-    } catch (err: any) {
-      console.error('Error fetching surah detail client-side:', err);
-      setError(err.message || 'Error loading Surah.');
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching last read:', err);
     }
   };
 
   useEffect(() => {
     if (surahId) {
-      loadData();
+      const resetAndLoad = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const [surahData, lastReadData] = await Promise.all([
+            fetchSurahDetailClient(surahId),
+            getLastRead()
+          ]);
+          setSurahs([surahData]);
+          setLastRead(lastReadData);
+          setNextSurahId(surahId + 1);
+        } catch (err: any) {
+          console.error('Error fetching surah detail client-side:', err);
+          setError(err.message || 'Error loading Surah.');
+        } finally {
+          setLoading(false);
+        }
+      };
+      resetAndLoad();
     }
   }, [surahId]);
+
+  const loadNextSurah = async () => {
+    if (loadingNext || nextSurahId > 114) return;
+    setLoadingNext(true);
+    try {
+      const nextData = await fetchSurahDetailClient(nextSurahId);
+      setSurahs(prev => [...prev, nextData]);
+      setNextSurahId(prev => prev + 1);
+    } catch (err) {
+      console.error('Failed to load next surah:', err);
+    } finally {
+      setLoadingNext(false);
+    }
+  };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !loadingNext && nextSurahId <= 114 && surahs.length > 0) {
+        loadNextSurah();
+      }
+    }, { threshold: 0.1 });
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [nextSurahId, loadingNext, surahs.length]);
 
   if (loading) {
     return (
@@ -78,7 +119,7 @@ export default function SurahDetailPage() {
     );
   }
 
-  if (error || !data) {
+  if (error || surahs.length === 0) {
     return (
       <div className="flex justify-center mt-20 text-red-500 font-semibold">
         {error || 'Error loading Surah.'}
@@ -86,46 +127,60 @@ export default function SurahDetailPage() {
     );
   }
 
-  const { arabic, tajweed, english, urdu } = data;
-
   return (
-    <div className="space-y-8 max-w-4xl mx-auto pb-32">
+    <div className="space-y-12 max-w-4xl mx-auto pb-32">
       <SurahScrollTracker 
         surahNumber={surahId}
         lastReadAyahNumber={lastRead && lastRead.surahNumber === surahId ? lastRead.ayahNumber : null}
       />
-      <div className="text-center space-y-4 py-8 border-b border-emerald-100 dark:border-emerald-900">
-        <h1 className="text-4xl md:text-6xl font-arabic text-emerald-600 dark:text-emerald-400" style={{ fontFamily: 'Amiri, serif' }}>
-          {arabic.name}
-        </h1>
-        <h2 className="text-xl font-medium">{arabic.englishName} ({arabic.englishNameTranslation})</h2>
-        <p className="text-muted-foreground text-sm">{arabic.revelationType} • {arabic.numberOfAyahs} Ayahs</p>
-      </div>
+      
+      {surahs.map((surahData) => {
+        const { arabic, tajweed, english, urdu } = surahData;
+        const currentSurahNumber = arabic.number;
 
-      <QuranNavigator currentSurahNumber={surahId} />
+        return (
+          <div key={currentSurahNumber} className="space-y-8">
+            <div className="text-center space-y-4 py-8 border-b border-emerald-100 dark:border-emerald-900 mt-8">
+              <h1 className="text-4xl md:text-6xl font-arabic text-emerald-600 dark:text-emerald-400" style={{ fontFamily: 'Amiri, serif' }}>
+                {arabic.name}
+              </h1>
+              <h2 className="text-xl font-medium">{arabic.englishName} ({arabic.englishNameTranslation})</h2>
+              <p className="text-muted-foreground text-sm">{arabic.revelationType} • {arabic.numberOfAyahs} Ayahs</p>
+            </div>
 
-      <div className="space-y-6">
-        {arabic.ayahs.map((ayah: any, index: number) => {
-          const engAyah = english.ayahs[index];
-          const urduAyah = urdu.ayahs[index];
-          const isLastReadAyah = lastRead && lastRead.surahNumber === surahId && lastRead.ayahNumber === ayah.numberInSurah;
+            <QuranNavigator currentSurahNumber={currentSurahNumber} />
 
-          return (
-            <AyahBlock
-              key={ayah.number}
-              surahNumber={surahId}
-              ayahNumber={ayah.numberInSurah}
-              surahName={english.englishName}
-              arabicText={ayah.text}
-              translationText={engAyah.text}
-              urduText={urduAyah.text}
-              tajweedText={tajweed ? tajweed.ayahs[index].text : undefined}
-              isLastRead={!!isLastReadAyah}
-              onLastReadUpdated={loadData}
-            />
-          );
-        })}
-      </div>
+            <div className="space-y-6">
+              {arabic.ayahs.map((ayah: any, index: number) => {
+                const engAyah = english.ayahs[index];
+                const urduAyah = urdu.ayahs[index];
+                const isLastReadAyah = lastRead && lastRead.surahNumber === currentSurahNumber && lastRead.ayahNumber === ayah.numberInSurah;
+
+                return (
+                  <AyahBlock
+                    key={ayah.number}
+                    surahNumber={currentSurahNumber}
+                    ayahNumber={ayah.numberInSurah}
+                    surahName={english.englishName}
+                    arabicText={ayah.text}
+                    translationText={engAyah.text}
+                    urduText={urduAyah.text}
+                    tajweedText={tajweed ? tajweed.ayahs[index].text : undefined}
+                    isLastRead={!!isLastReadAyah}
+                    onLastReadUpdated={loadData}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {nextSurahId <= 114 && (
+        <div ref={loaderRef} className="flex justify-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        </div>
+      )}
     </div>
   );
 }

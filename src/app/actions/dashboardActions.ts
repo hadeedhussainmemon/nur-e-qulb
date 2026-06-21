@@ -21,29 +21,17 @@ export async function getDashboardData(localTodayDateString: string) {
 
     await connectToDatabase();
 
-    // Fetch all on the server. Since we already have the session,
-    // this avoids parallel getServerSession calls from multiple HTTP requests.
-    const [
-      streaks,
-      log,
-      readData,
-      fastingData,
-      bookmarks,
-      progress,
-      wazeefahs,
-      familyData,
-      approvedWazeefahs
-    ] = await Promise.all([
-      getPrayerStreaks(localTodayDateString).catch(() => ({ currentStreak: 0, fajrStreak: 0 })),
-      getTodayPrayerLog(localTodayDateString).catch(() => null),
-      getLastRead().catch(() => null),
-      getFastingSummary().catch(() => ({ totalFasts: 0 })),
-      getQuranBookmarks().catch(() => []),
-      getQuranProgress().catch(() => null),
-      getUserWazeefahs().catch(() => []),
-      getFamilyDetails().catch(() => null),
-      getApprovedWazeefahs().catch(() => [])
-    ]);
+    // Fetch all sequentially on the server. Since they are run sequentially,
+    // only one getServerSession is executing at any time, preventing parallel session locks.
+    const streaks = await getPrayerStreaks(localTodayDateString).catch(() => ({ currentStreak: 0, fajrStreak: 0 }));
+    const log = await getTodayPrayerLog(localTodayDateString).catch(() => null);
+    const readData = await getLastRead().catch(() => null);
+    const fastingData = await getFastingSummary().catch(() => ({ totalFasts: 0 }));
+    const bookmarks = await getQuranBookmarks().catch(() => []);
+    const progress = await getQuranProgress().catch(() => null);
+    const wazeefahs = await getUserWazeefahs().catch(() => []);
+    const familyData = await getFamilyDetails().catch(() => null);
+    const approvedWazeefahs = await getApprovedWazeefahs().catch(() => []);
 
     return {
       success: true,

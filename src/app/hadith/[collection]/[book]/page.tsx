@@ -22,9 +22,10 @@ async function fetchHadithsByCategoryClient(collection: string, bookNumber: stri
   const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
   if (!res.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
   const data = await res.json();
-  const filteredHadiths = data.hadiths.filter(
-    (h: any) => h.booknumber && h.booknumber.toString() === bookNumber.toString()
-  );
+  const filteredHadiths = data.hadiths.filter((h: any) => {
+    const bNum = h.booknumber || (h.reference && h.reference.book);
+    return bNum && bNum.toString() === bookNumber.toString();
+  });
   return {
     metadata: data.metadata,
     hadiths: filteredHadiths,
@@ -108,7 +109,7 @@ export default function HadithCategoryPage() {
             <HadithBlock
               key={hadith.hadithnumber}
               collectionId={collection}
-              bookNumber={hadith.booknumber || book}
+              bookNumber={hadith.booknumber || (hadith.reference && hadith.reference.book) || book}
               hadithNumber={hadith.hadithnumber}
               text={hadith.text}
               grades={hadith.grades || []}

@@ -1,17 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, Calendar, BookOpen } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, 
+  BookOpen, Compass, Heart, Calendar, RotateCcw 
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { PublicHome } from '@/components/home/PublicHome';
 import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
-import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
-import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import Link from 'next/link';
 
 // Helper to convert 24-hour format (HH:MM) to 12-hour format (h:mm AM/PM)
@@ -42,14 +41,12 @@ export default function Dashboard() {
   const [todayLog, setTodayLog] = useState<any>(null);
   const [todayCompletion, setTodayCompletion] = useState(0);
   const [userWazeefahs, setUserWazeefahs] = useState<any[]>([]);
-  const [lastRead, setLastRead] = useState<any>(null);
-  const [quranProgress, setQuranProgress] = useState<any>(null);
 
   // Tasbih Widget State
   const TASBIH_ADHKARS = [
-    { id: 'subhanallah',   arabic: 'سُبْحَانَ اللَّه',  label: 'Subhān Allāh',  target: 33  },
-    { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّه', label: 'Al-Ḥamdu Lillāh', target: 33  },
-    { id: 'allahuakbar',   arabic: 'اللَّهُ أَكْبَر',   label: 'Allāhu Akbar',   target: 34  },
+    { id: 'subhanallah',   arabic: 'سُبْحَانَ اللَّه',  label: 'Subhan Allah',  target: 33  },
+    { id: 'alhamdulillah', arabic: 'الْحَمْدُ لِلَّه', label: 'Al-Hamdu Lillah', target: 33  },
+    { id: 'allahuakbar',   arabic: 'اللَّهُ أَكْبَر',   label: 'Allahu Akbar',   target: 34  },
   ];
   const [tasbihIdx, setTasbihIdx] = useState(0);
   const [tasbihCount, setTasbihCount] = useState(0);
@@ -92,6 +89,11 @@ export default function Dashboard() {
     });
   }, [tasbihIdx, playTasbihClick]);
 
+  const handleResetTasbih = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTasbihCount(0);
+  }, []);
+
   const localTodayDateString = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
 
   // Sync city/country if session loads later
@@ -123,8 +125,6 @@ export default function Dashboard() {
             setTodayCompletion(data.prayerLog.completionPercentage || 0);
           }
           setUserWazeefahs(data.userWazeefahs || []);
-          setLastRead(data.lastRead || null);
-          setQuranProgress(data.quranProgress || null);
         }
       } catch (error) {
         console.error('Error loading stats:', error);
@@ -199,160 +199,145 @@ export default function Dashboard() {
   const statusVal = todayLog?.[activePrayerName.toLowerCase()] || 'pending';
   const isDone = statusVal === 'completed' || statusVal === 'excused';
 
+  // Format Hijri Date & Gregorian Date
+  const hijriStr = timesData 
+    ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}` 
+    : '6 Muharram 1448';
+  
+  const gregorianStr = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+
+  const nextPrayerTimeStr = timesData && nextPrayer 
+    ? formatTime12(timesData.data.timings[nextPrayer.name as keyof typeof timesData.data.timings])
+    : '1:54 PM';
+
   return (
-    <div className="space-y-6 pb-32">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 pb-24 max-w-6xl mx-auto px-1 md:px-4">
+      {/* Top Welcome / Header section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-            As-salamu alaykum, {username}!
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+            As-salamu alaykum, <span className="text-emerald-400">{username}!</span>
           </h2>
-          <p className="text-muted-foreground mt-0.5 text-sm font-medium">
-            {timesData ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}` : 'Loading Hijri Date...'} • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          <p className="text-muted-foreground mt-0.5 text-xs md:text-sm font-medium">
+            {hijriStr} • {gregorianStr}
           </p>
         </div>
-        <Card className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 shadow-md shrink-0 py-2 px-4">
+        
+        {/* Next Prayer Floating Widget */}
+        <Card className="bg-emerald-950/40 border border-emerald-500/20 text-white shadow-lg shadow-emerald-500/5 shrink-0 py-2 px-4 rounded-xl min-w-[200px]">
           <div className="flex items-center gap-3">
-            <Clock className="w-4 h-4 text-emerald-100" />
+            <div className="p-2 rounded-full bg-emerald-500/15 text-emerald-400">
+              <Clock className="w-4 h-4" />
+            </div>
             <div>
-              <p className="text-[10px] font-medium text-emerald-100 uppercase tracking-wider">Next: {nextPrayer?.name || 'Loading...'}</p>
-              <p className="text-lg font-bold leading-none mt-0.5">
+              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                NEXT: {nextPrayer?.name || 'Loading...'}
+              </p>
+              <p className="text-lg font-bold leading-tight mt-0.5 font-mono">
                 {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '--:--'}
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                {nextPrayerTimeStr} • Insha'Allah
               </p>
             </div>
           </div>
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Current Active Prayer Focus Widget */}
-        <div>
-          <h3 className="text-base font-semibold mb-3">Active Prayer</h3>
-          {timesLoading || loadingDb ? (
-            <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
-          ) : (
-            <Card className="border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 animate-in fade-in zoom-in duration-300">
-              <CardContent className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-base">{activePrayerName}</span>
-                      <span className="text-xs text-muted-foreground">({formatTime12(start)} - {formatTime12(end)})</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Current active prayer time window
-                    </p>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => handleTogglePrayer(activePrayerName)}
-                  className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
-                    isDone 
-                      ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
-                      : 'border-emerald-500/30 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:bg-emerald-500/10'
-                  }`}
-                >
-                  {statusVal === 'completed' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Offered</span>
-                    </>
-                  ) : statusVal === 'excused' ? (
-                    <span>Excused</span>
-                  ) : (
-                    <span>Mark Offered</span>
-                  )}
-                </button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      {/* Active Prayer Card */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold text-slate-300 tracking-wider uppercase">Active Prayer</h3>
+        {timesLoading || loadingDb ? (
+          <div className="h-20 bg-slate-900/50 border border-slate-800 animate-pulse rounded-xl" />
+        ) : (
+          <Card className="relative overflow-hidden border-emerald-500/30 bg-emerald-950/20 dark:bg-emerald-950/10 shadow-sm ring-1 ring-emerald-500/20 rounded-xl">
+            {/* Mosque Silhouette SVG Background */}
+            <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.06] pointer-events-none text-emerald-400">
+              <svg className="h-full w-full object-cover" viewBox="0 0 100 60" fill="currentColor">
+                <path d="M 10 60 L 10 20 Q 10 15 15 15 Q 20 15 20 20 L 20 60 Z" />
+                <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
+                <path d="M 22 60 L 22 40 Q 22 35 27 35 Q 32 35 32 40 L 32 60 Z" />
+                <circle cx="55" cy="5" r="1.5" />
+                <path d="M 54.5 3 L 55.5 3 M 55 2.5 L 55 3.5" stroke="currentColor" strokeWidth="0.5" />
+              </svg>
+            </div>
 
-        {/* Quran Progress Widget */}
-        <div>
-          <h3 className="text-base font-semibold mb-3">Quran Progress</h3>
-          {loadingDb ? (
-            <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
-          ) : (
-            <Card className="border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-300">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center text-sm font-semibold mb-1">
-                      <span>Overall Progress</span>
-                      <span className="text-emerald-650 dark:text-emerald-450 font-bold">
-                        {quranProgress?.overallPercentage || 0}%
-                      </span>
-                    </div>
-                    <Progress value={quranProgress?.overallPercentage || 0} className="h-1.5 [&>div]:bg-emerald-500" />
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {quranProgress ? `${quranProgress.juzProgress.filter((j: any) => j.completed).length} of 30 Juz completed` : '0 of 30 Juz completed'}
-                    </p>
-                  </div>
+            <CardContent className="p-4 flex items-center justify-between gap-4 relative z-10">
+              <div className="flex items-center gap-3.5">
+                {/* Clock / Pulse Icon wrapper */}
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
-
-                {lastRead ? (
-                  <Link href={`/quran/${lastRead.surahNumber}#ayah-${lastRead.ayahNumber}`} className="block mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 hover:opacity-85 transition-opacity">
-                    <div className="flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
-                      <div className="min-w-0">
-                        <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Last Read Checkpoint</p>
-                        <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 mt-0.5 truncate">
-                          Surah {lastRead.surahNumber} • Ayah {lastRead.ayahNumber}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                        <span>Resume</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  </Link>
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+                    <span className="font-bold text-base text-white">{activePrayerName}</span>
+                    <span className="text-xs font-semibold text-emerald-400">
+                      {formatTime12(start)} - {formatTime12(end)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Current active prayer time window
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => handleTogglePrayer(activePrayerName)}
+                className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  isDone 
+                    ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
+                    : 'border-emerald-500/40 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/15'
+                }`}
+              >
+                {statusVal === 'completed' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Offered</span>
+                  </>
+                ) : statusVal === 'excused' ? (
+                  <span>Excused</span>
                 ) : (
-                  <Link href="/quran" className="block mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 hover:opacity-85 transition-opacity">
-                    <div className="flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 text-center">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 w-full">
-                        Start Reading Quran
-                      </span>
-                    </div>
-                  </Link>
+                  <span>Mark Offered</span>
                 )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              </button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
+      {/* Grid: Tasbeeh Counter & Active Wazeefahs */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Tasbeeh Mini Widget */}
-        <Card className="border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-1.5 pt-3 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
-                <CircleDot className="w-3.5 h-3.5 text-purple-500" /> Tasbeeh Counter
-              </CardTitle>
-              <Link href="/tasbih" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-                Full Counter <ArrowRight className="w-2.5 h-2.5" />
-              </Link>
+        {/* Tasbeeh Counter Card */}
+        <Card className="border-slate-800 bg-slate-900/20 rounded-xl">
+          <div className="p-4 pb-2 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Tasbeeh Counter
+              </h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Click the bead to count your dhikr</p>
             </div>
-            <CardDescription className="text-[10px] mt-0">Click the bead to count your dhikr</CardDescription>
-          </CardHeader>
-          <CardContent className="pb-3 px-4">
+            <Link href="/tasbih" className="text-[10px] text-purple-400 hover:underline flex items-center gap-0.5 font-medium">
+              View All <ArrowRight className="w-2.5 h-2.5" />
+            </Link>
+          </div>
+          
+          <CardContent className="p-4 pt-1">
             <div className="flex flex-col gap-4">
               {/* Adhkar selector chips */}
-              <div className="flex gap-1.5 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {TASBIH_ADHKARS.map((d, i) => (
                   <button
                     key={d.id}
                     onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
+                    className={`px-3 py-1 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${
                       i === tasbihIdx
-                        ? 'bg-purple-50 text-purple-600 dark:text-purple-400 dark:bg-purple-950/20 border-purple-500'
-                        : 'border-slate-200 dark:border-slate-800 text-muted-foreground hover:border-purple-500'
+                        ? 'bg-purple-600/20 text-purple-400 border-purple-500/40 shadow-sm'
+                        : 'border-slate-800 text-muted-foreground hover:border-slate-700'
                     }`}
                   >
                     {d.label}
@@ -360,30 +345,31 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-4 justify-between sm:justify-start">
-                {/* Bead tap button */}
-                <button
-                  onPointerDown={handleTasbihTap}
-                  className={`relative w-14 h-14 rounded-full flex flex-col items-center justify-center
-                    bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-md
-                    transition-all duration-100 shrink-0
-                    ${tasbihPressed ? 'scale-95 shadow-sm' : 'scale-100 hover:scale-105'}`}
-                  aria-label="Tap bead"
-                >
-                  <CircleDot className="w-3 h-3 opacity-60 mb-0.5" />
-                  <span className="text-lg font-bold font-mono leading-none">{tasbihCount}</span>
-                  <span className="text-[8px] opacity-60">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
-                </button>
+              <div 
+                onClick={handleTasbihTap}
+                className="flex items-center gap-5 bg-slate-900/40 border border-slate-800 p-4 rounded-xl cursor-pointer hover:bg-slate-900/60 transition-colors select-none"
+              >
+                {/* Bead count circle */}
+                <div className="relative w-16 h-16 rounded-full flex flex-col items-center justify-center bg-purple-950/30 text-purple-400 border border-purple-500/20 shrink-0">
+                  {/* Reset button inside circle top */}
+                  <button 
+                    onClick={handleResetTasbih}
+                    className="absolute top-1 p-0.5 rounded-full bg-slate-800/40 hover:bg-slate-800 text-purple-400 hover:text-white transition-colors"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" />
+                  </button>
+                  <span className="text-xl font-bold font-mono leading-none mt-2">{tasbihCount}</span>
+                  <span className="text-[8px] opacity-60 mt-0.5">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
+                </div>
 
                 {/* Stats */}
-                <div className="flex gap-4 text-left">
-                  <div>
-                    <p className="font-arabic text-lg leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
-                    <p className="text-[9px] text-muted-foreground">Active Dhikr</p>
-                  </div>
-                  <div className="border-l border-slate-100 dark:border-slate-800 pl-3">
-                    <p className="text-lg font-bold font-mono text-purple-600 leading-tight">{tasbihTotal}</p>
-                    <p className="text-[9px] text-muted-foreground">Total Today</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-arabic text-lg text-white leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Active Dhikr</p>
+                  
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-base font-bold font-mono text-purple-400 leading-none">{tasbihTotal}</span>
+                    <span className="text-[9px] text-muted-foreground">Total Today</span>
                   </div>
                 </div>
               </div>
@@ -391,35 +377,39 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Wazeefah & Adhkar Routines */}
-        <Card className="border-slate-200 dark:border-slate-800">
-          <CardHeader className="pb-1.5 pt-3 px-4 flex flex-row items-center justify-between space-y-0">
+        {/* Active Wazeefahs Card */}
+        <Card className="border-slate-800 bg-slate-900/20 rounded-xl">
+          <div className="p-4 pb-2 flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-                <MoonStar className="w-3.5 h-3.5 text-blue-500" /> Active Wazeefahs
-              </CardTitle>
-              <CardDescription className="text-[10px] mt-0">Your scheduled routines</CardDescription>
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Active Wazeefahs
+              </h3>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Your scheduled routines</p>
             </div>
-            <Link href="/wazeefahs" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+            <Link href="/wazeefahs" className="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5 font-medium">
               Manage <ArrowRight className="w-2.5 h-2.5" />
             </Link>
-          </CardHeader>
-          <CardContent className="pb-3 px-4">
-            <div className="space-y-2 mt-2">
-              {loadingDb ? (
-                <div className="space-y-2">
-                  <div className="h-8 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-lg" />
-                  <div className="h-8 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-lg" />
+          </div>
+
+          <CardContent className="p-4 flex flex-col items-center justify-center min-h-[140px] text-center">
+            {loadingDb ? (
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            ) : userWazeefahs.length === 0 ? (
+              <div className="flex flex-col items-center gap-2.5">
+                {/* Blue calendar icon graphic */}
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-md">
+                  <Calendar className="w-5 h-5" />
                 </div>
-              ) : userWazeefahs.length === 0 ? (
-                <div className="text-center py-4 text-[10px] text-muted-foreground space-y-1.5">
-                  <p>No active scheduled wazeefahs.</p>
-                  <Link href="/wazeefahs" className="inline-block text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                <p className="text-[11px] text-muted-foreground">No active scheduled wazeefahs.</p>
+                <Link href="/wazeefahs">
+                  <button className="border border-emerald-500 bg-transparent text-emerald-400 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-colors cursor-pointer">
                     Create Routine
-                  </Link>
-                </div>
-              ) : (
-                userWazeefahs.slice(0, 2).map((uw: any) => {
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <div className="w-full space-y-2">
+                {userWazeefahs.slice(0, 2).map((uw: any) => {
                   const todayCompletion = uw.completions.find((c: any) => c.date === localTodayDateString);
                   const count = todayCompletion ? todayCompletion.count : 0;
                   const isCompleted = count >= uw.targetCount;
@@ -433,24 +423,24 @@ export default function Dashboard() {
                   };
 
                   return (
-                    <div key={uw._id} className="flex justify-between items-center group py-1 border-b border-slate-50 dark:border-slate-900/50 last:border-0">
+                    <div key={uw._id} className="flex justify-between items-center group py-1.5 px-3 rounded-lg bg-slate-900/40 border border-slate-800/80">
                       <div className="flex items-center gap-2 min-w-0">
                         <button
                           onClick={handleCheckClick}
-                          className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                             isCompleted
                               ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'border-slate-350 dark:border-slate-700 hover:border-emerald-500'
+                              : 'border-slate-650 hover:border-emerald-500'
                           }`}
                         >
                           {isCompleted && (
-                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
                               <path d="M0 11l2-2 5 5L18 3l2 2L7 18z" />
                             </svg>
                           )}
                         </button>
-                        <div className="min-w-0">
-                          <p className={`font-semibold text-xs truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                        <div className="min-w-0 text-left">
+                          <p className={`font-semibold text-xs text-white truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                             {uw.title}
                           </p>
                           <p className="text-[9px] text-muted-foreground">
@@ -458,19 +448,83 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 ${isCompleted ? 'border-emerald-500/20 text-emerald-600' : ''}`}>
+                      <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-slate-800 ${isCompleted ? 'border-emerald-500/20 text-emerald-600' : 'text-slate-400'}`}>
                         {isCompleted ? 'Done' : 'Pending'}
                       </Badge>
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Daily Ayah & Hadith Section */}
+      {/* Grid: Quick Access & Islamic Calendar & Daily Inspiration */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Quick Access Card */}
+        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-3">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Quick Access
+          </h3>
+          <div className="flex justify-around items-center pt-2">
+            {[
+              { label: 'Quran', icon: BookOpen, href: '/quran', color: 'text-emerald-450 hover:text-emerald-350' },
+              { label: 'Namaz', icon: Clock, href: '/prayers', color: 'text-teal-450 hover:text-teal-350' },
+              { label: 'Qibla', icon: Compass, href: '/qibla', color: 'text-amber-450 hover:text-amber-350' },
+              { label: 'Tasbeeh', icon: Heart, href: '/dua', color: 'text-purple-450 hover:text-purple-350' },
+              { label: 'Calendar', icon: Calendar, href: '/islamic-calendar', color: 'text-cyan-450 hover:text-cyan-350' }
+            ].map((act) => (
+              <Link href={act.href} key={act.label} className="flex flex-col items-center gap-1 hover:opacity-85 transition-opacity">
+                <div className={`p-2 rounded-xl bg-slate-900 border border-slate-800 ${act.color}`}>
+                  <act.icon className="w-4 h-4" />
+                </div>
+                <span className="text-[9px] text-muted-foreground font-medium">{act.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+
+        {/* Islamic Calendar Card */}
+        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Islamic Calendar
+            </h3>
+            <p className="text-base font-bold text-emerald-400">{hijriStr}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{gregorianStr}</p>
+          </div>
+          <div className="pt-4 flex justify-end">
+            <Link href="/islamic-calendar">
+              <button className="border border-slate-700 bg-transparent text-slate-300 hover:text-white px-3 py-1 rounded-lg text-xs font-semibold hover:bg-slate-800/50 transition-colors cursor-pointer">
+                View Calendar
+              </button>
+            </Link>
+          </div>
+        </Card>
+
+        {/* Daily Inspiration / Hadith Card */}
+        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.03] pointer-events-none text-emerald-400">
+            <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
+              <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
+            </svg>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Daily Inspiration
+            </h3>
+            <p className="text-xs text-slate-200 leading-relaxed italic">
+              "And seek help through patience and prayer. And indeed, it is difficult except for the humble."
+            </p>
+          </div>
+          <p className="text-[10px] text-emerald-400 font-semibold text-right mt-2 relative z-10">
+            — Quran 2:45
+          </p>
+        </Card>
+      </div>
+
+      {/* Daily Ayah & Hadith widgets */}
       <div className="grid md:grid-cols-2 gap-6 pt-2">
         <DailyAyahWidget />
         <DailyHadithWidget />

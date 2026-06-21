@@ -158,6 +158,21 @@ export function Sidebar() {
           </Button>
         </div>
       )}
+
+      {/* Quote Card */}
+      <div className="mx-3 mb-4 p-3 bg-slate-950/30 border border-emerald-500/10 rounded-xl relative overflow-hidden shrink-0">
+        <div className="absolute right-0 bottom-0 top-0 w-1/2 opacity-[0.03] pointer-events-none text-emerald-400">
+          <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
+            <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
+          </svg>
+        </div>
+        <p className="text-[10px] text-zinc-400 leading-relaxed italic relative z-10">
+          "Indeed, in the remembrance of Allah do hearts find rest."
+        </p>
+        <p className="text-[9px] text-emerald-400 font-bold text-right mt-1.5 relative z-10">
+          — Quran 13:28
+        </p>
+      </div>
     </div>
   );
 }

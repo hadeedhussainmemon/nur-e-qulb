@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { getUserWazeefahs } from '@/app/actions/userWazeefahActions';
-import { fetchPrayerTimesByCity } from '@/app/actions/prayerActions';
 import { fetchRandomAyah } from '@/app/actions/quranActions';
 import { fetchRandomHadith } from '@/app/actions/hadithActions';
 
@@ -58,27 +56,20 @@ export function WazeefahReminderEngine() {
     }
   }, []);
 
-  // Fetch user's scheduled wazeefahs, profile, settings and prayer times
+  // Fetch user's scheduled wazeefahs, profile, settings and prayer times via API route
   useEffect(() => {
     if (!session?.user?.email) return;
 
     async function initializeEngine() {
       try {
-        // 1. Fetch active scheduled wazeefahs
-        const activeWazeefahs = await getUserWazeefahs();
-        setWazeefahs(activeWazeefahs || []);
+        const res = await fetch('/api/wazeefahs/reminders');
+        if (!res.ok) throw new Error('Failed to fetch reminders configuration');
+        const data = await res.json();
 
-        // 2. Read user location and settings from session
-        const city = (session?.user as any)?.location?.city || 'Makkah';
-        const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
-        setUserLocation({ city, country });
-        setSettings((session?.user as any)?.settings || null);
-
-        // 3. Fetch daily prayer times
-        const timesRes = await fetchPrayerTimesByCity(city, country);
-        if (timesRes?.data?.timings) {
-          setPrayerTimes(timesRes.data.timings);
-        }
+        setWazeefahs(data.wazeefahs || []);
+        setUserLocation(data.location || { city: 'Makkah', country: 'Saudi Arabia' });
+        setSettings(data.settings);
+        setPrayerTimes(data.prayerTimes || {});
       } catch (err) {
         console.error('Failed to initialize Wazeefah Reminder Engine:', err);
       }

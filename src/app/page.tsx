@@ -103,6 +103,27 @@ export default function Dashboard() {
 
   const username = session?.user?.name || 'User';
 
+  // Get timings details for the active current prayer
+  const activePrayerName = currentPrayer && ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(currentPrayer) 
+    ? currentPrayer 
+    : 'Fajr'; // fallback
+
+  const timings = timesData?.data?.timings;
+  let start = '--:--';
+  let end = '--:--';
+
+  if (timings) {
+    start = timings[activePrayerName as keyof typeof timings] || '--:--';
+    if (activePrayerName === 'Fajr') end = timings.Sunrise;
+    else if (activePrayerName === 'Dhuhr') end = timings.Asr;
+    else if (activePrayerName === 'Asr') end = timings.Maghrib || timings.Sunset;
+    else if (activePrayerName === 'Maghrib') end = timings.Isha;
+    else if (activePrayerName === 'Isha') end = timings.Fajr;
+  }
+
+  const statusVal = todayLog?.[activePrayerName.toLowerCase()] || 'pending';
+  const isDone = statusVal === 'completed' || statusVal === 'excused';
+
   return (
     <div className="space-y-6 pb-32">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -127,83 +148,50 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Interactive Prayers list */}
+      {/* Current Active Prayer Focus Widget */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold">Today's Prayers</h3>
-          {todayCompletion > 0 && (
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              {todayCompletion}% Offered
-            </span>
-          )}
-        </div>
+        <h3 className="text-base font-semibold mb-3">Active Prayer</h3>
         {timesLoading || loadingDb ? (
-          <div className="h-20 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
+          <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((prayerName) => {
-              const timings = timesData?.data?.timings;
-              let start = '--:--';
-              let end = '--:--';
-
-              if (timings) {
-                start = timings[prayerName as keyof typeof timings] || '--:--';
-                if (prayerName === 'Fajr') end = timings.Sunrise;
-                else if (prayerName === 'Dhuhr') end = timings.Asr;
-                else if (prayerName === 'Asr') end = timings.Maghrib || timings.Sunset;
-                else if (prayerName === 'Maghrib') end = timings.Isha;
-                else if (prayerName === 'Isha') end = timings.Fajr;
-              }
-
-              const isCurrent = currentPrayer === prayerName;
-              const status = todayLog?.[prayerName.toLowerCase()] || 'pending';
-              const isDone = status === 'completed' || status === 'excused';
-
-              return (
-                <Card key={prayerName} className={`transition-all duration-300 ${
-                  isCurrent 
-                    ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30' 
-                    : 'border-slate-200 dark:border-slate-800'
-                }`}>
-                  <CardContent className="p-3 flex flex-col items-center justify-between text-center min-h-[110px]">
-                    <div className="w-full">
-                      <div className="flex items-center justify-center gap-1.5 mb-1">
-                        <span className="font-bold text-sm">{prayerName}</span>
-                        {isCurrent && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground flex justify-around w-full mt-1 border-t border-slate-100 dark:border-slate-800 pt-1">
-                        <span>{start}</span>
-                        <span>-</span>
-                        <span>{end}</span>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => handleTogglePrayer(prayerName)}
-                      className={`mt-2.5 w-full py-1 rounded-md text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${
-                        isDone 
-                          ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
-                          : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 dark:hover:border-emerald-500'
-                      }`}
-                    >
-                      {status === 'completed' ? (
-                        <>
-                          <Check className="w-3 h-3" />
-                          <span>Offered</span>
-                        </>
-                      ) : status === 'excused' ? (
-                        <span>Excused</span>
-                      ) : (
-                        <span>Mark Offered</span>
-                      )}
-                    </button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          <Card className="max-w-md border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30">
+            <CardContent className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base">{activePrayerName}</span>
+                    <span className="text-xs text-muted-foreground">({start} - {end})</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Current active prayer time window
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => handleTogglePrayer(activePrayerName)}
+                className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
+                  isDone 
+                    ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
+                    : 'border-emerald-500/30 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:bg-emerald-500/10'
+                }`}
+              >
+                {statusVal === 'completed' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Offered</span>
+                  </>
+                ) : statusVal === 'excused' ? (
+                  <span>Excused</span>
+                ) : (
+                  <span>Mark Offered</span>
+                )}
+              </button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

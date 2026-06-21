@@ -17,6 +17,7 @@ export interface IUser extends Document {
   themePreference: 'light' | 'dark' | 'system';
   onboardingCompleted: boolean;
   lastPrayerSyncDate?: string;
+  hijriAdjustment?: number;
   settingsId?: mongoose.Types.ObjectId;
   role: 'user' | 'admin';
   familyId?: mongoose.Types.ObjectId;
@@ -40,6 +41,7 @@ const UserSchema = new Schema<IUser>(
     themePreference: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
     onboardingCompleted: { type: Boolean, default: false },
     lastPrayerSyncDate: { type: String },
+    hijriAdjustment: { type: Number, default: 0 },
     settingsId: { type: Schema.Types.ObjectId, ref: 'Settings' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     familyId: { type: Schema.Types.ObjectId, ref: 'FamilyGroup' },

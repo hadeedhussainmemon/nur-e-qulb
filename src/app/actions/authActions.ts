@@ -171,7 +171,7 @@ export async function updateUserLocation(city: string, country: string) {
   }
 }
 
-export async function updateUserProfile(name: string, gender: 'male' | 'female' | 'other', city: string, country: string) {
+export async function updateUserProfile(name: string, gender: 'male' | 'female' | 'other', city: string, country: string, hijriAdjustment: number = 0) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
@@ -179,7 +179,7 @@ export async function updateUserProfile(name: string, gender: 'male' | 'female' 
     await connectToDatabase();
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
-      { name, gender, location: { city, country, latitude: 0, longitude: 0 } },
+      { name, gender, location: { city, country, latitude: 0, longitude: 0 }, hijriAdjustment },
       { new: true }
     ).lean();
 

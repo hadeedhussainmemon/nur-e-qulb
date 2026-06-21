@@ -37,6 +37,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
   const [country, setCountry] = useState(() => (session?.user as any)?.location?.country || 'Saudi Arabia');
+  const [hijriAdjustment, setHijriAdjustment] = useState(() => (session?.user as any)?.hijriAdjustment || 0);
   const [loadingDb, setLoadingDb] = useState(true);
   const [hijriDate, setHijriDate] = useState<string>('');
 
@@ -109,7 +110,7 @@ export default function Dashboard() {
         const dd = String(today.getDate()).padStart(2, '0');
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const yyyy = today.getFullYear();
-        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}`);
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}?adjustment=${hijriAdjustment}`);
         if (res.ok) {
           const json = await res.json();
           const h = json?.data?.hijri;
@@ -127,6 +128,10 @@ export default function Dashboard() {
       if (loc?.city) {
         setCity(loc.city);
         setCountry(loc.country || 'Saudi Arabia');
+      }
+      const adj = (session.user as any).hijriAdjustment;
+      if (typeof adj === 'number') {
+        setHijriAdjustment(adj);
       }
     }
   }, [session]);

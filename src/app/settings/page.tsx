@@ -39,6 +39,7 @@ export default function SettingsPage() {
   // Preference States
   const [madhab, setMadhab] = useState(() => (session?.user as any)?.settings?.madhab || 'Hanafi');
   const [calculationMethod, setCalculationMethod] = useState(() => (session?.user as any)?.settings?.prayerCalculationMethod || 'ISNA');
+  const [hijriAdjustment, setHijriAdjustment] = useState<number>(() => (session?.user as any)?.hijriAdjustment || 0);
   const [activeTheme, setActiveTheme] = useState(() => (session?.user as any)?.settings?.theme || 'default');
 
   // Sync state if session loads after initial render
@@ -51,6 +52,8 @@ export default function SettingsPage() {
         setCity(loc.city || 'Makkah');
         setCountry(loc.country || 'Saudi Arabia');
       }
+      const adj = (session.user as any).hijriAdjustment;
+      if (typeof adj === 'number') setHijriAdjustment(adj);
       const s = (session.user as any).settings;
       if (s) {
         setMadhab(s.madhab || 'Hanafi');
@@ -78,6 +81,9 @@ export default function SettingsPage() {
           if (user.location) {
             setCity(user.location.city || 'Makkah');
             setCountry(user.location.country || 'Saudi Arabia');
+          }
+          if (typeof user.hijriAdjustment === 'number') {
+            setHijriAdjustment(user.hijriAdjustment);
           }
 
           if (user.settingsId) {
@@ -152,8 +158,8 @@ export default function SettingsPage() {
     setSuccessMsg(null);
 
     try {
-      // Save profile
-      const profileRes = await updateUserProfile(name, gender as 'male' | 'female' | 'other', city, country);
+      // Save profile and hijriAdjustment
+      const profileRes = await updateUserProfile(name, gender as 'male' | 'female' | 'other', city, country, hijriAdjustment);
       if (!profileRes.success) {
         alert('Failed to save profile: ' + profileRes.error);
         setSaving(false);
@@ -336,6 +342,22 @@ export default function SettingsPage() {
                 <option value="Makkah">Umm al-Qura University, Makkah</option>
                 <option value="Egypt">Egyptian General Authority of Survey</option>
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Islamic Date Correction</label>
+              <select
+                value={hijriAdjustment}
+                onChange={(e) => setHijriAdjustment(parseInt(e.target.value, 10))}
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-800 bg-background px-3 py-2 text-sm focus:ring-emerald-500 focus:outline-none"
+              >
+                <option value="-2">-2 Days</option>
+                <option value="-1">-1 Day</option>
+                <option value="0">0 (No Adjustment)</option>
+                <option value="1">+1 Day</option>
+                <option value="2">+2 Days</option>
+              </select>
+              <p className="text-[10px] text-slate-400">Adjust the Hijri calendar if it differs from your local moon sighting.</p>
             </div>
           </CardContent>
         </Card>

@@ -78,6 +78,7 @@ export const authOptions: NextAuthOptions = {
           token.role = (dbUser as any).role || 'user';
           token.gender = (dbUser as any).gender || 'other';
           token.onboardingCompleted = (dbUser as any).onboardingCompleted ?? false;
+          token.hijriAdjustment = (dbUser as any).hijriAdjustment ?? 0;
           token.location = (dbUser as any).location ? {
             city: (dbUser as any).location.city,
             country: (dbUser as any).location.country,
@@ -91,6 +92,7 @@ export const authOptions: NextAuthOptions = {
           token.role = (user as any).role || 'user';
           token.gender = 'other';
           token.onboardingCompleted = false;
+          token.hijriAdjustment = 0;
           token.location = null;
           token.settings = null;
         }
@@ -106,6 +108,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).location = token.location;
         (session.user as any).settings = token.settings;
         (session.user as any).onboardingCompleted = token.onboardingCompleted ?? false;
+        (session.user as any).hijriAdjustment = token.hijriAdjustment ?? 0;
       }
       return session;
     },

@@ -16,14 +16,8 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
 import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import { useSession } from 'next-auth/react';
-import { logWazeefahProgress, subscribeToWazeefah, getUserWazeefahs } from '@/app/actions/userWazeefahActions';
-import { togglePrayerStatus, getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
-import { getLastRead } from '@/app/actions/lastReadActions';
-import { getFastingSummary } from '@/app/actions/fastingActions';
-import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
-import { getQuranProgress } from '@/app/actions/quranProgressActions';
-import { getFamilyDetails } from '@/app/actions/familyActions';
-import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
+import { logWazeefahProgress, subscribeToWazeefah } from '@/app/actions/userWazeefahActions';
+import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 
 import { PublicHome } from '@/components/home/PublicHome';
 
@@ -127,60 +121,8 @@ export default function Dashboard() {
   const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
 
   useEffect(() => {
-    async function loadStats() {
-      try {
-        // Run sequentially on the client to avoid concurrent server request locks
-        const streaks = await getPrayerStreaks(localTodayDateString).catch(() => ({ currentStreak: 0, fajrStreak: 0 }));
-        if (streaks) {
-          setPrayerStreak(streaks.currentStreak || 0);
-          setFajrStreak(streaks.fajrStreak || 0);
-        }
-
-        const log = await getTodayPrayerLog(localTodayDateString).catch(() => null);
-        if (log) {
-          setTodayLog(log);
-          setTodayCompletion(log.completionPercentage || 0);
-        }
-
-        const readData = await getLastRead().catch(() => null);
-        setLastRead(readData);
-
-        const fastingData = await getFastingSummary().catch(() => ({ totalFasts: 0 }));
-        if (fastingData) {
-          setTotalFasts(fastingData.totalFasts || 0);
-        }
-
-        const bookmarks = await getQuranBookmarks().catch(() => []);
-        setBookmarksCount(bookmarks ? bookmarks.length : 0);
-
-        const progress = await getQuranProgress().catch(() => null);
-        setQuranProgress(progress);
-
-        const wazeefahs = await getUserWazeefahs().catch(() => []);
-        setUserWazeefahs(wazeefahs || []);
-
-        const familyData = await getFamilyDetails().catch(() => null);
-        setFamily(familyData);
-
-        const approvedWazeefahs = await getApprovedWazeefahs().catch(() => []);
-        if (approvedWazeefahs && approvedWazeefahs.length > 0) {
-          const userWazeefahIds = wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
-          const unsubscribed = approvedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
-          const pool = unsubscribed.length > 0 ? unsubscribed : approvedWazeefahs;
-          const randomWaz = pool[Math.floor(Math.random() * pool.length)];
-          setSuggestedWazeefah(randomWaz);
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard stats from DB', err);
-      } finally {
-        setLoadingDb(false);
-      }
-    }
-
-    if (status === 'authenticated') {
-      loadStats();
-    }
-  }, [status]);
+    setLoadingDb(false);
+  }, []);
 
   const handleTogglePrayer = async (prayerName: string) => {
     const currentStatus = todayLog?.[prayerName.toLowerCase()] || 'pending';

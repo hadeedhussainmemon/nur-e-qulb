@@ -278,8 +278,8 @@ export default function Dashboard() {
             <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
           ) : (
             <Card className="border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-300">
-              <CardContent className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-full min-w-0">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <BookOpen className="w-5 h-5" />
                   </div>
@@ -291,17 +291,34 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <Progress value={quranProgress?.overallPercentage || 0} className="h-1.5 [&>div]:bg-emerald-500" />
-                    <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
-                      {quranProgress ? `${quranProgress.juzProgress.filter((j: any) => j.completed).length} of 30 Juz` : 'Not started yet'}
-                      {lastRead && ` • Last: Surah ${lastRead.surahNumber}:${lastRead.ayahNumber}`}
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {quranProgress ? `${quranProgress.juzProgress.filter((j: any) => j.completed).length} of 30 Juz completed` : '0 of 30 Juz completed'}
                     </p>
                   </div>
                 </div>
-                {lastRead && (
-                  <Link href={`/quran/${lastRead.surahNumber}#ayah-${lastRead.ayahNumber}`} className="shrink-0">
-                    <button className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors">
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+
+                {lastRead ? (
+                  <Link href={`/quran/${lastRead.surahNumber}#ayah-${lastRead.ayahNumber}`} className="block mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 hover:opacity-85 transition-opacity">
+                    <div className="flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Last Read Checkpoint</p>
+                        <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                          Surah {lastRead.surahNumber} • Ayah {lastRead.ayahNumber}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span>Resume</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <Link href="/quran" className="block mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 hover:opacity-85 transition-opacity">
+                    <div className="flex items-center justify-between bg-emerald-500/5 dark:bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 text-center">
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 w-full">
+                        Start Reading Quran
+                      </span>
+                    </div>
                   </Link>
                 )}
               </CardContent>

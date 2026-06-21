@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, 
   BookOpen, Compass, Heart, Calendar, RotateCcw 

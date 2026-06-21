@@ -9,6 +9,22 @@ import { PublicHome } from '@/components/home/PublicHome';
 import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 import Link from 'next/link';
 
+// Helper to convert 24-hour format (HH:MM) to 12-hour format (h:mm AM/PM)
+function formatTime12(timeStr: string): string {
+  if (!timeStr || timeStr === '--:--') return '--:--';
+  if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+  
+  const [hoursStr, minutesStr] = timeStr.split(':');
+  let hours = parseInt(hoursStr, 10);
+  const minutes = minutesStr;
+  if (isNaN(hours)) return timeStr;
+  
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours}:${minutes} ${ampm}`;
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
@@ -211,7 +227,7 @@ export default function Dashboard() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-base">{activePrayerName}</span>
-                    <span className="text-xs text-muted-foreground">({start} - {end})</span>
+                    <span className="text-xs text-muted-foreground">({formatTime12(start)} - {formatTime12(end)})</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Current active prayer time window
@@ -244,30 +260,30 @@ export default function Dashboard() {
       </div>
 
       {/* Tasbeeh Mini Widget */}
-      <Card className="border-slate-200 dark:border-slate-800">
-        <CardHeader className="pb-2">
+      <Card className="border-slate-200 dark:border-slate-800 max-w-lg">
+        <CardHeader className="pb-1.5 pt-3 px-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <CircleDot className="w-4 h-4 text-purple-500" /> Tasbeeh Counter
+            <CardTitle className="flex items-center gap-1.5 text-sm font-semibold">
+              <CircleDot className="w-3.5 h-3.5 text-purple-500" /> Tasbeeh Counter
             </CardTitle>
-            <Link href="/tasbih" className="text-xs text-primary hover:underline flex items-center gap-1">
-              Full Counter <ArrowRight className="w-3 h-3" />
+            <Link href="/tasbih" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+              Full Counter <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
-          <CardDescription className="text-xs">Click the bead to count your dhikr</CardDescription>
+          <CardDescription className="text-[10px] mt-0">Click the bead to count your dhikr</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
+        <CardContent className="pb-3 px-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
             {/* Adhkar selector chips */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
               {TASBIH_ADHKARS.map((d, i) => (
                 <button
                   key={d.id}
                   onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
                     i === tasbihIdx
-                      ? 'bg-purple-600 text-white border-transparent shadow'
-                      : 'border-slate-200 dark:border-slate-700 text-muted-foreground hover:border-purple-500'
+                      ? 'bg-purple-650 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/20 border-purple-500'
+                      : 'border-slate-200 dark:border-slate-800 text-muted-foreground hover:border-purple-500'
                   }`}
                 >
                   {d.label}
@@ -275,29 +291,31 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Bead tap button */}
-            <button
-              onPointerDown={handleTasbihTap}
-              className={`relative w-20 h-20 rounded-full flex flex-col items-center justify-center
-                bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg
-                transition-all duration-100 shrink-0
-                ${tasbihPressed ? 'scale-95 shadow-sm' : 'scale-100 hover:scale-105'}`}
-              aria-label="Tap bead"
-            >
-              <CircleDot className="w-4 h-4 opacity-60 mb-0.5" />
-              <span className="text-2xl font-bold font-mono leading-none">{tasbihCount}</span>
-              <span className="text-[9px] opacity-60">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
-            </button>
+            <div className="flex items-center gap-4 w-full justify-between sm:justify-start">
+              {/* Bead tap button */}
+              <button
+                onPointerDown={handleTasbihTap}
+                className={`relative w-14 h-14 rounded-full flex flex-col items-center justify-center
+                  bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-md
+                  transition-all duration-100 shrink-0
+                  ${tasbihPressed ? 'scale-95 shadow-sm' : 'scale-100 hover:scale-105'}`}
+                aria-label="Tap bead"
+              >
+                <CircleDot className="w-3 h-3 opacity-60 mb-0.5" />
+                <span className="text-lg font-bold font-mono leading-none">{tasbihCount}</span>
+                <span className="text-[8px] opacity-60">/{TASBIH_ADHKARS[tasbihIdx].target}</span>
+              </button>
 
-            {/* Stats */}
-            <div className="flex gap-4 text-center">
-              <div>
-                <p className="font-arabic text-xl leading-relaxed">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Active Dhikr</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold font-mono text-purple-600">{tasbihTotal}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Total Today</p>
+              {/* Stats */}
+              <div className="flex gap-4 text-left">
+                <div>
+                  <p className="font-arabic text-lg leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                  <p className="text-[9px] text-muted-foreground">Active Dhikr</p>
+                </div>
+                <div className="border-l border-slate-100 dark:border-slate-800 pl-3">
+                  <p className="text-lg font-bold font-mono text-purple-600 leading-tight">{tasbihTotal}</p>
+                  <p className="text-[9px] text-muted-foreground">Total Today</p>
+                </div>
               </div>
             </div>
           </div>

@@ -10,6 +10,8 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { PublicHome } from '@/components/home/PublicHome';
 import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
+import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
+import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import Link from 'next/link';
 
 // Helper to convert 24-hour format (HH:MM) to 12-hour format (h:mm AM/PM)
@@ -228,7 +230,7 @@ export default function Dashboard() {
           {timesLoading || loadingDb ? (
             <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
           ) : (
-            <Card className="border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30">
+            <Card className="border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30 animate-in fade-in zoom-in duration-300">
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
@@ -275,7 +277,7 @@ export default function Dashboard() {
           {loadingDb ? (
             <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
           ) : (
-            <Card className="border-slate-200 dark:border-slate-800">
+            <Card className="border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-300">
               <CardContent className="p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 w-full min-w-0">
                   <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -332,7 +334,7 @@ export default function Dashboard() {
                     onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
                     className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
                       i === tasbihIdx
-                        ? 'bg-purple-55 text-purple-600 dark:text-purple-400 dark:bg-purple-950/20 border-purple-500'
+                        ? 'bg-purple-50 text-purple-600 dark:text-purple-400 dark:bg-purple-950/20 border-purple-500'
                         : 'border-slate-200 dark:border-slate-800 text-muted-foreground hover:border-purple-500'
                     }`}
                   >
@@ -449,6 +451,12 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Daily Ayah & Hadith Section */}
+      <div className="grid md:grid-cols-2 gap-6 pt-2">
+        <DailyAyahWidget />
+        <DailyHadithWidget />
       </div>
     </div>
   );

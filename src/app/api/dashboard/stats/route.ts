@@ -210,6 +210,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch independent queries in parallel
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+
     const [
       lastRead,
       totalFasts,

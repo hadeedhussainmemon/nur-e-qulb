@@ -127,8 +127,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // 1. Sync missed prayers & fetch today's prayer log
-    await syncPastMissedPrayers(user);
+    // 1. Sync missed prayers ONLY if not already synced today (Caching mechanism)
+    if (user.lastPrayerSyncDate !== dateStr) {
+      await syncPastMissedPrayers(user);
+      await User.updateOne({ _id: user._id }, { $set: { lastPrayerSyncDate: dateStr } });
+    }
+
     const isPeriodDay = await checkIsPeriodDate(user._id, dateStr);
     let prayerLog = await PrayerLog.findOne({ userId: user._id, date: dateStr });
     if (!prayerLog) {

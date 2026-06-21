@@ -1,16 +1,57 @@
-import React from 'react';
-import Link from 'next/link';
-import { fetchHadithCategories } from '@/app/actions/hadithActions';
-import { BookOpen, BookMarked, ArrowRight } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+'use client';
 
-export default async function HadithCollectionPage({ params }: { params: { collection: string } }) {
-  const data = await fetchHadithCategories(params.collection);
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { BookOpen, ArrowRight, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+const BASE_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
+
+async function fetchHadithCategoriesClient(collection: string) {
+  const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
+  if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
+  
+  const data = await res.json();
+  
+  return {
+    metadata: data.metadata,
+    sections: data.metadata.sections || data.metadata.section,
+    sectionDetails: data.metadata.sectionDetails,
+  };
+}
+
+export default function HadithCollectionPage({ params }: { params: { collection: string } }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await fetchHadithCategoriesClient(params.collection);
+        if (res) {
+          setData(res);
+        }
+      } catch (err) {
+        console.error('Failed to load categories client-side:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCategories();
+  }, [params.collection]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center mt-20 gap-3">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+        <p className="text-muted-foreground text-sm">Loading book index...</p>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
       <div className="flex justify-center mt-20 text-rose-500 font-medium">
-        Error loading Hadith categories.
+        Error loading Hadith categories. Please check your network connection.
       </div>
     );
   }

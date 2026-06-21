@@ -8,7 +8,19 @@ import { getHadithBookmarks } from '@/app/actions/bookmarkActions';
 import { useSession } from 'next-auth/react';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { fetchHadithCategories } from '@/app/actions/hadithActions';
+
+const BASE_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
+
+async function fetchHadithCategoriesClient(collection: string) {
+  const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
+  if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
+  const data = await res.json();
+  return {
+    metadata: data.metadata,
+    sections: data.metadata.sections || data.metadata.section,
+    sectionDetails: data.metadata.sectionDetails,
+  };
+}
 
 const COLLECTIONS = [
   { id: 'bukhari', name: 'Sahih Bukhari', arabic: 'صحيح البخاري', author: 'Imam Bukhari', color: 'border-emerald-500' },
@@ -31,7 +43,7 @@ function CollectionCard({ collection }: { collection: typeof COLLECTIONS[0] }) {
     if (!isExpanded && categories.length === 0) {
       setLoadingCats(true);
       try {
-        const data = await fetchHadithCategories(collection.id);
+        const data = await fetchHadithCategoriesClient(collection.id);
         if (data && data.sections) {
           const cats = Object.keys(data.sections)
             .filter(key => data.sections[key] && data.sections[key].trim() !== '')

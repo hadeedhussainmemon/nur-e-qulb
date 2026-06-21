@@ -16,14 +16,9 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
 import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import { useSession } from 'next-auth/react';
-import { logWazeefahProgress, subscribeToWazeefah, getUserWazeefahs } from '@/app/actions/userWazeefahActions';
-import { togglePrayerStatus, getPrayerStreaks, getTodayPrayerLog } from '@/app/actions/prayerActions';
-import { getLastRead } from '@/app/actions/lastReadActions';
-import { getFastingSummary } from '@/app/actions/fastingActions';
-import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
-import { getQuranProgress } from '@/app/actions/quranProgressActions';
-import { getFamilyDetails } from '@/app/actions/familyActions';
-import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
+import { logWazeefahProgress, subscribeToWazeefah } from '@/app/actions/userWazeefahActions';
+import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
+import { getDashboardData } from '@/app/actions/dashboardActions';
 
 import { PublicHome } from '@/components/home/PublicHome';
 
@@ -129,52 +124,45 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const [
-          streaks,
-          log,
-          readData,
-          fastingData,
-          bookmarks,
-          progress,
-          wazeefahs,
-          familyData,
-          approvedWazeefahs
-        ] = await Promise.all([
-          getPrayerStreaks(localTodayDateString).catch(() => ({ currentStreak: 0, fajrStreak: 0 })),
-          getTodayPrayerLog(localTodayDateString).catch(() => null),
-          getLastRead().catch(() => null),
-          getFastingSummary().catch(() => ({ totalFasts: 0 })),
-          getQuranBookmarks().catch(() => []),
-          getQuranProgress().catch(() => null),
-          getUserWazeefahs().catch(() => []),
-          getFamilyDetails().catch(() => null),
-          getApprovedWazeefahs().catch(() => [])
-        ]);
+        const res = await getDashboardData(localTodayDateString);
+        if (res.success && res.data) {
+          const {
+            streaks,
+            log,
+            readData,
+            fastingData,
+            bookmarks,
+            progress,
+            wazeefahs,
+            familyData,
+            approvedWazeefahs
+          } = res.data;
 
-        if (streaks) {
-          setPrayerStreak(streaks.currentStreak || 0);
-          setFajrStreak(streaks.fajrStreak || 0);
-        }
-        if (log) {
-          setTodayLog(log);
-          setTodayCompletion(log.completionPercentage || 0);
-        }
-        setLastRead(readData);
-        if (fastingData) {
-          setTotalFasts(fastingData.totalFasts || 0);
-        }
-        setBookmarksCount(bookmarks ? bookmarks.length : 0);
-        setQuranProgress(progress);
-        setUserWazeefahs(wazeefahs || []);
-        setFamily(familyData);
+          if (streaks) {
+            setPrayerStreak(streaks.currentStreak || 0);
+            setFajrStreak(streaks.fajrStreak || 0);
+          }
+          if (log) {
+            setTodayLog(log);
+            setTodayCompletion(log.completionPercentage || 0);
+          }
+          setLastRead(readData);
+          if (fastingData) {
+            setTotalFasts(fastingData.totalFasts || 0);
+          }
+          setBookmarksCount(bookmarks ? bookmarks.length : 0);
+          setQuranProgress(progress);
+          setUserWazeefahs(wazeefahs || []);
+          setFamily(familyData);
 
-        // Select a random suggested wazeefah that user is not yet subscribed to
-        if (approvedWazeefahs && approvedWazeefahs.length > 0) {
-          const userWazeefahIds = wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
-          const unsubscribed = approvedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
-          const pool = unsubscribed.length > 0 ? unsubscribed : approvedWazeefahs;
-          const randomWaz = pool[Math.floor(Math.random() * pool.length)];
-          setSuggestedWazeefah(randomWaz);
+          // Select a random suggested wazeefah that user is not yet subscribed to
+          if (approvedWazeefahs && approvedWazeefahs.length > 0) {
+            const userWazeefahIds = wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
+            const unsubscribed = approvedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
+            const pool = unsubscribed.length > 0 ? unsubscribed : approvedWazeefahs;
+            const randomWaz = pool[Math.floor(Math.random() * pool.length)];
+            setSuggestedWazeefah(randomWaz);
+          }
         }
       } catch (err) {
         console.error('Failed to load dashboard stats from DB', err);

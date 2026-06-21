@@ -101,8 +101,10 @@ export function AyahBlock({
     if (!tafsirText) {
       setLoadingTafsir(true);
       try {
-        const text = await fetchAyahTafsir(surahNumber, ayahNumber);
-        setTafsirText(text);
+        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${surahNumber}:${ayahNumber}/ar.jalalayn`);
+        if (!res.ok) throw new Error('Failed to fetch Tafsir');
+        const data = await res.json();
+        setTafsirText(data.data.text);
       } catch (err) {
         setTafsirText('Failed to load Tafsir. Please check your connection.');
       } finally {

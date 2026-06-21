@@ -1,20 +1,86 @@
-export const dynamic = 'force-dynamic';
-import React from 'react';
-import { fetchSurahDetail } from '@/app/actions/quranActions';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { getLastRead } from '@/app/actions/lastReadActions';
 import { AyahBlock } from '@/components/quran/AyahBlock';
 import { QuranNavigator } from '@/components/quran/QuranNavigator';
 import { SurahScrollTracker } from '@/components/quran/SurahScrollTracker';
+import { Loader2 } from 'lucide-react';
 
-export default async function SurahDetailPage({ params }: { params: { surahId: string } }) {
-  const surahId = parseInt(params.surahId, 10);
-  const data = await fetchSurahDetail(surahId);
-  const lastRead = await getLastRead();
+const BASE_URL = 'https://api.alquran.cloud/v1';
 
-  if (!data) {
+async function fetchSurahDetailClient(surahNumber: number) {
+  // Fetch Arabic, Tajweed, English translation, and Urdu translation simultaneously
+  const [arabicRes, tajweedRes, englishRes, urduRes] = await Promise.all([
+    fetch(`${BASE_URL}/surah/${surahNumber}`),
+    fetch(`${BASE_URL}/surah/${surahNumber}/ar.tajweed`),
+    fetch(`${BASE_URL}/surah/${surahNumber}/en.asad`),
+    fetch(`${BASE_URL}/surah/${surahNumber}/ur.jalandhry`),
+  ]);
+
+  if (!arabicRes.ok || !tajweedRes.ok || !englishRes.ok || !urduRes.ok) {
+    throw new Error('Failed to fetch surah details');
+  }
+
+  const arabicData = await arabicRes.json();
+  const tajweedData = await tajweedRes.json();
+  const englishData = await englishRes.json();
+  const urduData = await urduRes.json();
+
+  return {
+    arabic: arabicData.data,
+    tajweed: tajweedData.data,
+    english: englishData.data,
+    urdu: urduData.data,
+  };
+}
+
+export default function SurahDetailPage({ params }: { params: any }) {
+  const resolvedParams = React.use(params) as any;
+  const surahId = parseInt(resolvedParams.surahId, 10);
+
+  const [data, setData] = useState<any>(null);
+  const [lastRead, setLastRead] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [surahData, lastReadData] = await Promise.all([
+        fetchSurahDetailClient(surahId),
+        getLastRead()
+      ]);
+      setData(surahData);
+      setLastRead(lastReadData);
+    } catch (err: any) {
+      console.error('Error fetching surah detail client-side:', err);
+      setError(err.message || 'Error loading Surah.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (surahId) {
+      loadData();
+    }
+  }, [surahId]);
+
+  if (loading) {
     return (
-      <div className="flex justify-center mt-20 text-red-500">
-        Error loading Surah.
+      <div className="flex flex-col items-center justify-center mt-20 gap-3">
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+        <p className="text-muted-foreground text-sm font-medium">Loading Surah chapters...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex justify-center mt-20 text-red-500 font-semibold">
+        {error || 'Error loading Surah.'}
       </div>
     );
   }
@@ -54,6 +120,7 @@ export default async function SurahDetailPage({ params }: { params: { surahId: s
               urduText={urduAyah.text}
               tajweedText={tajweed ? tajweed.ayahs[index].text : undefined}
               isLastRead={!!isLastReadAyah}
+              onLastReadUpdated={loadData}
             />
           );
         })}
@@ -61,4 +128,5 @@ export default async function SurahDetailPage({ params }: { params: { surahId: s
     </div>
   );
 }
+
 

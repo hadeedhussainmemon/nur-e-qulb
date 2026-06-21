@@ -13,6 +13,9 @@ import { PublicHome } from '@/components/home/PublicHome';
 import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
 import Link from 'next/link';
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then((res) => res.json());
 
 // Helper to convert 24-hour format (HH:MM) to 12-hour format (h:mm AM/PM)
 function formatTime12(timeStr: string): string {
@@ -130,31 +133,27 @@ export default function Dashboard() {
 
   const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
 
-  // Fetch db stats for prayers
+  // Fetch db stats for prayers using SWR for automatic client-side caching
+  const { data: statsData, isLoading: statsLoading } = useSWR(
+    status === 'authenticated' ? `/api/dashboard/stats?date=${localTodayDateString}` : null,
+    fetcher,
+    { revalidateOnFocus: true }
+  );
+
   useEffect(() => {
-    async function loadStats() {
-      try {
-        const response = await fetch(`/api/dashboard/stats?date=${localTodayDateString}`, { credentials: 'include' });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.streaks) {
-            setPrayerStreak(data.streaks.currentStreak || 0);
-            setFajrStreak(data.streaks.fajrStreak || 0);
-          }
-          if (data.prayerLog) {
-            setTodayLog(data.prayerLog);
-            setTodayCompletion(data.prayerLog.completionPercentage || 0);
-          }
-          setUserWazeefahs(data.userWazeefahs || []);
-        }
-      } catch (error) {
-        console.error('Error loading stats:', error);
-      } finally {
-        setLoadingDb(false);
+    if (statsData) {
+      if (statsData.streaks) {
+        setPrayerStreak(statsData.streaks.currentStreak || 0);
+        setFajrStreak(statsData.streaks.fajrStreak || 0);
       }
+      if (statsData.prayerLog) {
+        setTodayLog(statsData.prayerLog);
+        setTodayCompletion(statsData.prayerLog.completionPercentage || 0);
+      }
+      setUserWazeefahs(statsData.userWazeefahs || []);
+      setLoadingDb(false);
     }
-    loadStats();
-  }, [localTodayDateString]);
+  }, [statsData]);
 
   const handleTogglePrayer = async (prayerName: string) => {
     const currentStatus = todayLog?.[prayerName.toLowerCase()] || 'pending';

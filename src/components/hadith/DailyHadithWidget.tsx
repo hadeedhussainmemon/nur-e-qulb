@@ -1,10 +1,35 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookMarked } from 'lucide-react';
+import { BookMarked, Loader2 } from 'lucide-react';
 import { fetchRandomHadith } from '@/app/actions/hadithActions';
 
-export async function DailyHadithWidget() {
-  const data = await fetchRandomHadith('bukhari'); // Default to Bukhari for daily widget
+export function DailyHadithWidget() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetchRandomHadith('bukhari'); // Default to Bukhari for daily widget
+        setData(res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="h-48 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+      </Card>
+    );
+  }
 
   if (!data) {
     return (

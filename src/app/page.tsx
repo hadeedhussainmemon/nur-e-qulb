@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, Calendar } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, Calendar, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from 'next-auth/react';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
@@ -39,6 +40,8 @@ export default function Dashboard() {
   const [todayLog, setTodayLog] = useState<any>(null);
   const [todayCompletion, setTodayCompletion] = useState(0);
   const [userWazeefahs, setUserWazeefahs] = useState<any[]>([]);
+  const [lastRead, setLastRead] = useState<any>(null);
+  const [quranProgress, setQuranProgress] = useState<any>(null);
 
   // Tasbih Widget State
   const TASBIH_ADHKARS = [
@@ -118,6 +121,8 @@ export default function Dashboard() {
             setTodayCompletion(data.prayerLog.completionPercentage || 0);
           }
           setUserWazeefahs(data.userWazeefahs || []);
+          setLastRead(data.lastRead || null);
+          setQuranProgress(data.quranProgress || null);
         }
       } catch (error) {
         console.error('Error loading stats:', error);
@@ -216,51 +221,91 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Current Active Prayer Focus Widget */}
-      <div>
-        <h3 className="text-base font-semibold mb-3">Active Prayer</h3>
-        {timesLoading || loadingDb ? (
-          <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
-        ) : (
-          <Card className="max-w-md border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30">
-            <CardContent className="p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-base">{activePrayerName}</span>
-                    <span className="text-xs text-muted-foreground">({formatTime12(start)} - {formatTime12(end)})</span>
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Current Active Prayer Focus Widget */}
+        <div>
+          <h3 className="text-base font-semibold mb-3">Active Prayer</h3>
+          {timesLoading || loadingDb ? (
+            <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
+          ) : (
+            <Card className="border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-sm ring-1 ring-emerald-500/30">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Current active prayer time window
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-base">{activePrayerName}</span>
+                      <span className="text-xs text-muted-foreground">({formatTime12(start)} - {formatTime12(end)})</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Current active prayer time window
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              <button
-                onClick={() => handleTogglePrayer(activePrayerName)}
-                className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
-                  isDone 
-                    ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
-                    : 'border-emerald-500/30 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:bg-emerald-500/10'
-                }`}
-              >
-                {statusVal === 'completed' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Offered</span>
-                  </>
-                ) : statusVal === 'excused' ? (
-                  <span>Excused</span>
-                ) : (
-                  <span>Mark Offered</span>
+                
+                <button
+                  onClick={() => handleTogglePrayer(activePrayerName)}
+                  className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 ${
+                    isDone 
+                      ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
+                      : 'border-emerald-500/30 bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  {statusVal === 'completed' ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Offered</span>
+                    </>
+                  ) : statusVal === 'excused' ? (
+                    <span>Excused</span>
+                  ) : (
+                    <span>Mark Offered</span>
+                  )}
+                </button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Quran Progress Widget */}
+        <div>
+          <h3 className="text-base font-semibold mb-3">Quran Progress</h3>
+          {loadingDb ? (
+            <div className="h-24 bg-slate-100 dark:bg-slate-900 animate-pulse rounded-xl" />
+          ) : (
+            <Card className="border-slate-200 dark:border-slate-800">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 w-full min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center text-sm font-semibold mb-1">
+                      <span>Overall Progress</span>
+                      <span className="text-emerald-650 dark:text-emerald-450 font-bold">
+                        {quranProgress?.overallPercentage || 0}%
+                      </span>
+                    </div>
+                    <Progress value={quranProgress?.overallPercentage || 0} className="h-1.5 [&>div]:bg-emerald-500" />
+                    <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
+                      {quranProgress ? `${quranProgress.juzProgress.filter((j: any) => j.completed).length} of 30 Juz` : 'Not started yet'}
+                      {lastRead && ` • Last: Surah ${lastRead.surahNumber}:${lastRead.ayahNumber}`}
+                    </p>
+                  </div>
+                </div>
+                {lastRead && (
+                  <Link href={`/quran/${lastRead.surahNumber}#ayah-${lastRead.ayahNumber}`} className="shrink-0">
+                    <button className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors">
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </Link>
                 )}
-              </button>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -287,7 +332,7 @@ export default function Dashboard() {
                     onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
                     className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
                       i === tasbihIdx
-                        ? 'bg-purple-50 text-purple-600 dark:text-purple-400 dark:bg-purple-950/20 border-purple-500'
+                        ? 'bg-purple-55 text-purple-600 dark:text-purple-400 dark:bg-purple-950/20 border-purple-500'
                         : 'border-slate-200 dark:border-slate-800 text-muted-foreground hover:border-purple-500'
                     }`}
                   >
@@ -380,7 +425,7 @@ export default function Dashboard() {
                           }`}
                         >
                           {isCompleted && (
-                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
                               <path d="M0 11l2-2 5 5L18 3l2 2L7 18z" />
                             </svg>
                           )}

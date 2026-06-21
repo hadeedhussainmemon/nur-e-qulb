@@ -114,7 +114,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const response = await fetch(`/api/dashboard/stats?date=${localTodayDateString}`);
+        const response = await fetch(`/api/dashboard/stats?date=${localTodayDateString}`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           if (data.streaks) {

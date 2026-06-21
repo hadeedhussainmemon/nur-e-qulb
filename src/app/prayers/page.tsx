@@ -8,13 +8,25 @@ import { Progress } from '@/components/ui/progress';
 import { PrayerHeatmap } from '@/components/prayers/PrayerHeatmap';
 import { Clock, MapPin, AlertCircle, Flame, History, Check, ShieldCheck, Heart, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser } from '@/app/actions/authActions';
+import { useSession } from 'next-auth/react';
 import { getTodayPrayerLog, togglePrayerStatus, getPrayerStreaks, getQazaPrayers, updateQazaPrayer, getPrayerHeatmapData, getPrayersPageData } from '@/app/actions/prayerActions';
 
 export default function PrayerTrackerPage() {
-  const [city, setCity] = useState('Makkah');
-  const [country, setCountry] = useState('Saudi Arabia');
-  const [loadingDb, setLoadingDb] = useState(true);
+  const { data: session } = useSession();
+  const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
+  const [country, setCountry] = useState(() => (session?.user as any)?.location?.country || 'Saudi Arabia');
+  const [loadingDb, setLoadingDb] = useState(false);
+
+  // Sync city/country if session loads later
+  useEffect(() => {
+    if (session?.user) {
+      const loc = (session.user as any).location;
+      if (loc?.city) {
+        setCity(loc.city);
+        setCountry(loc.country || 'Saudi Arabia');
+      }
+    }
+  }, [session]);
 
   // DB States
   const [todayLog, setTodayLog] = useState<any>(null);
@@ -32,6 +44,7 @@ export default function PrayerTrackerPage() {
 
   const loadDatabaseData = async () => {
     try {
+      setLoadingDb(true);
       const data = await getPrayersPageData(localDateStr);
       if (data) {
         if (data.user) {
@@ -117,7 +130,7 @@ export default function PrayerTrackerPage() {
     }
   };
 
-  const isLoading = timesLoading || loadingDb;
+  const isLoading = timesLoading;
 
   return (
     <div className="space-y-8 pb-32">

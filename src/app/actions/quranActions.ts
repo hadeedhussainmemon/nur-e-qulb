@@ -4,7 +4,7 @@ const BASE_URL = 'https://api.alquran.cloud/v1';
 
 export async function fetchSurahList() {
   try {
-    const res = await fetch(`${BASE_URL}/surah`);
+    const res = await fetch(`${BASE_URL}/surah`, { cache: 'force-cache' });
     if (!res.ok) throw new Error('Failed to fetch surah list');
     return await res.json();
   } catch (error) {
@@ -17,10 +17,10 @@ export async function fetchSurahDetail(surahNumber: number) {
   try {
     // Fetch Arabic, Tajweed, English translation, and Urdu translation simultaneously
     const [arabicRes, tajweedRes, englishRes, urduRes] = await Promise.all([
-      fetch(`${BASE_URL}/surah/${surahNumber}`),
-      fetch(`${BASE_URL}/surah/${surahNumber}/ar.tajweed`),
-      fetch(`${BASE_URL}/surah/${surahNumber}/en.asad`),
-      fetch(`${BASE_URL}/surah/${surahNumber}/ur.jalandhry`),
+      fetch(`${BASE_URL}/surah/${surahNumber}`, { cache: 'force-cache' }),
+      fetch(`${BASE_URL}/surah/${surahNumber}/ar.tajweed`, { cache: 'force-cache' }),
+      fetch(`${BASE_URL}/surah/${surahNumber}/en.asad`, { cache: 'force-cache' }),
+      fetch(`${BASE_URL}/surah/${surahNumber}/ur.jalandhry`, { cache: 'force-cache' }),
     ]);
 
     if (!arabicRes.ok || !tajweedRes.ok || !englishRes.ok || !urduRes.ok) {
@@ -69,7 +69,7 @@ export async function fetchRandomAyah() {
 
 export async function fetchAyahTafsir(surahNumber: number, ayahNumber: number): Promise<string> {
   try {
-    const res = await fetch(`${BASE_URL}/ayah/${surahNumber}:${ayahNumber}/ar.jalalayn`);
+    const res = await fetch(`${BASE_URL}/ayah/${surahNumber}:${ayahNumber}/ar.jalalayn`, { cache: 'force-cache' });
     if (!res.ok) throw new Error('Failed to fetch Tafsir');
     const data = await res.json();
     return data.data.text;

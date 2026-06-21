@@ -2,14 +2,23 @@
 
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { getCurrentUser, updateUserLocation } from '@/app/actions/authActions';
+import { updateUserLocation } from '@/app/actions/authActions';
 
 export function applyTheme(theme: string) {
   if (typeof window === 'undefined') return;
   const root = document.documentElement;
+  const body = document.body;
+  
   root.classList.remove('theme-gold', 'theme-rose', 'theme-indigo');
+  if (body) {
+    body.classList.remove('theme-gold', 'theme-rose', 'theme-indigo');
+  }
+  
   if (theme && theme !== 'default') {
     root.classList.add(`theme-${theme}`);
+    if (body) {
+      body.classList.add(`theme-${theme}`);
+    }
   }
 }
 
@@ -22,24 +31,14 @@ export function ThemeSyncEngine() {
     applyTheme(savedTheme);
   }, []);
 
-  // Fetch from DB if session is active to sync theme
+  // Sync theme from active session config directly (fast 0ms sync)
   useEffect(() => {
     if (!session) return;
-
-    async function syncThemeFromDb() {
-      try {
-        const user = await getCurrentUser();
-        if (user?.settingsId?.theme) {
-          const dbTheme = user.settingsId.theme;
-          localStorage.setItem('nur-theme', dbTheme);
-          applyTheme(dbTheme);
-        }
-      } catch (error) {
-        console.error('Failed to sync theme from DB:', error);
-      }
+    const sessionTheme = (session.user as any)?.settings?.theme;
+    if (sessionTheme) {
+      localStorage.setItem('nur-theme', sessionTheme);
+      applyTheme(sessionTheme);
     }
-
-    syncThemeFromDb();
   }, [session]);
 
   // Auto-detect and recheck location once per tab/browser session on startup

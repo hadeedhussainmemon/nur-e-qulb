@@ -4,7 +4,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Calendar, Compass, Heart, MoonStar, Target, Clock, Loader2, ArrowRight, ShieldCheck, Award, Lock, CircleDot } from 'lucide-react';
+import { 
+  BookOpen, Calendar, Compass, Heart, MoonStar, Target, Clock, 
+  Loader2, ArrowRight, ShieldCheck, Award, Lock, CircleDot, 
+  Users, Sparkles, Plus, Check, Star 
+} from 'lucide-react';
 import Link from 'next/link';
 
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
@@ -12,15 +16,27 @@ import { DailyAyahWidget } from '@/components/quran/DailyAyahWidget';
 import { DailyHadithWidget } from '@/components/hadith/DailyHadithWidget';
 import { useSession } from 'next-auth/react';
 import { getDashboardData } from '@/app/actions/authActions';
-import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
+import { logWazeefahProgress, subscribeToWazeefah } from '@/app/actions/userWazeefahActions';
+import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerActions';
 
 import { PublicHome } from '@/components/home/PublicHome';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
-  const [city, setCity] = useState('Makkah');
-  const [country, setCountry] = useState('Saudi Arabia');
+  const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
+  const [country, setCountry] = useState(() => (session?.user as any)?.location?.country || 'Saudi Arabia');
   const [loadingDb, setLoadingDb] = useState(true);
+
+  // Sync city/country if session loads later
+  useEffect(() => {
+    if (session?.user) {
+      const loc = (session.user as any).location;
+      if (loc?.city) {
+        setCity(loc.city);
+        setCountry(loc.country || 'Saudi Arabia');
+      }
+    }
+  }, [session]);
 
   if (status === 'loading') {
     return (
@@ -38,7 +54,13 @@ export default function Dashboard() {
   const [prayerStreak, setPrayerStreak] = useState(0);
   const [fajrStreak, setFajrStreak] = useState(0);
   const [todayCompletion, setTodayCompletion] = useState(0);
+  const [todayLog, setTodayLog] = useState<any>(null);
   
+  // Family & Suggestions
+  const [family, setFamily] = useState<any>(null);
+  const [suggestedWazeefah, setSuggestedWazeefah] = useState<any>(null);
+  const [addingWazeefah, setAddingWazeefah] = useState(false);
+
   // Custom checkpoints & achievements
   const [lastRead, setLastRead] = useState<any>(null);
   const [totalFasts, setTotalFasts] = useState(0);
@@ -112,6 +134,7 @@ export default function Dashboard() {
             setFajrStreak(data.streaks.fajrStreak || 0);
           }
           if (data.log) {
+            setTodayLog(data.log);
             setTodayCompletion(data.log.completionPercentage || 0);
           }
           setLastRead(data.readData);
@@ -121,6 +144,16 @@ export default function Dashboard() {
           setBookmarksCount(data.bookmarksCount || 0);
           setQuranProgress(data.quranProgress);
           setUserWazeefahs(data.wazeefahs || []);
+          setFamily(data.family);
+
+          // Select a random suggested wazeefah that user is not yet subscribed to
+          if (data.suggestedWazeefahs && data.suggestedWazeefahs.length > 0) {
+            const userWazeefahIds = data.wazeefahs?.map((uw: any) => uw.wazeefahId) || [];
+            const unsubscribed = data.suggestedWazeefahs.filter((w: any) => !userWazeefahIds.includes(w._id));
+            const pool = unsubscribed.length > 0 ? unsubscribed : data.suggestedWazeefahs;
+            const randomWaz = pool[Math.floor(Math.random() * pool.length)];
+            setSuggestedWazeefah(randomWaz);
+          }
         }
       } catch (err) {
         console.error('Failed to load dashboard stats from DB', err);
@@ -133,6 +166,54 @@ export default function Dashboard() {
       loadStats();
     }
   }, [status]);
+
+  const handleTogglePrayer = async (prayerName: string) => {
+    const currentStatus = todayLog?.[prayerName.toLowerCase()] || 'pending';
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+
+    // Optimistic Update
+    setTodayLog((prev: any) => {
+      if (!prev) return null;
+      const updatedLog = { ...prev, [prayerName.toLowerCase()]: newStatus };
+      
+      const list = [updatedLog.fajr, updatedLog.dhuhr, updatedLog.asr, updatedLog.maghrib, updatedLog.isha];
+      const done = list.filter(p => p === 'completed' || p === 'excused').length;
+      setTodayCompletion(Math.round((done / 5) * 100));
+      return updatedLog;
+    });
+
+    try {
+      const result = await togglePrayerStatus(localTodayDateString, prayerName, newStatus);
+      if (result.success) {
+        setTodayLog(result.log);
+        setTodayCompletion(result.log.completionPercentage);
+        
+        const newStreaks = await getPrayerStreaks(localTodayDateString);
+        setPrayerStreak(newStreaks.currentStreak || 0);
+        setFajrStreak(newStreaks.fajrStreak || 0);
+      }
+    } catch (error) {
+      console.error('Error toggling prayer:', error);
+    }
+  };
+
+  const handleAddSuggestedWazeefah = async () => {
+    if (!suggestedWazeefah || addingWazeefah) return;
+    setAddingWazeefah(true);
+    try {
+      const res = await subscribeToWazeefah(suggestedWazeefah._id, 33, '09:00');
+      if (res.success) {
+        setUserWazeefahs((prev) => [res.userWazeefah, ...prev]);
+        setSuggestedWazeefah(null); // Clear suggestion after adding
+      } else {
+        alert(res.error || 'Failed to add Wazeefah');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Error subscribing to Wazeefah');
+    } finally {
+      setAddingWazeefah(false);
+    }
+  };
 
   if (loadingDb) {
     return (
@@ -188,7 +269,7 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
             As-salamu alaykum, {username}!
           </h2>
-          <p className="text-muted-foreground mt-1 text-lg">
+          <p className="text-muted-foreground mt-1 text-lg font-medium">
             {timesData ? `${timesData.data.date.hijri.day} ${timesData.data.date.hijri.month.en} ${timesData.data.date.hijri.year}` : 'Loading Hijri Date...'} • {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
@@ -198,7 +279,7 @@ export default function Dashboard() {
               <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-medium text-emerald-50">Next Prayer: {nextPrayer?.name || 'Loading...'}</p>
+              <p className="text-sm font-medium text-emerald-55">Next Prayer: {nextPrayer?.name || 'Loading...'}</p>
               <p className="text-2xl font-bold">
                 {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '--:--'}
               </p>
@@ -231,6 +312,7 @@ export default function Dashboard() {
         </Link>
       )}
 
+      {/* Interactive Prayers list */}
       <div>
         <h3 className="text-xl font-semibold mb-4">Today's Prayers</h3>
         {timesLoading ? (
@@ -253,11 +335,13 @@ export default function Dashboard() {
 
               const isNext = nextPrayer?.name === prayerName;
               const isCurrent = currentPrayer === prayerName;
+              const status = todayLog?.[prayerName.toLowerCase()] || 'pending';
+              const isDone = status === 'completed' || status === 'excused';
 
               return (
                 <Card key={prayerName} className={`border-l-4 ${
-                  isCurrent ? 'border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/20' :
-                  isNext ? 'border-l-amber-500 ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-slate-950' :
+                  isCurrent ? 'border-l-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/10' :
+                  isNext ? 'border-l-amber-500 ring-1 ring-amber-500' :
                   'border-l-slate-300 dark:border-l-slate-700'
                 }`}>
                   <CardContent className="p-4 flex flex-col items-center text-center">
@@ -272,8 +356,18 @@ export default function Dashboard() {
                         <span className="font-bold text-slate-800 dark:text-slate-200">{end}</span>
                       </div>
                     </div>
-                    {isCurrent && <Badge className="mt-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-transparent">Current</Badge>}
-                    {isNext && <Badge variant="outline" className="mt-3 text-amber-600 border-amber-600">Next</Badge>}
+                    
+                    <button
+                      onClick={() => handleTogglePrayer(prayerName)}
+                      className={`mt-4 w-full py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center justify-center gap-1 ${
+                        isDone 
+                          ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
+                          : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500 dark:hover:border-emerald-500'
+                      }`}
+                    >
+                      {status === 'completed' && <Check className="w-3.5 h-3.5" />}
+                      {status === 'completed' ? 'Completed' : status === 'excused' ? 'Excused' : 'Mark Done'}
+                    </button>
                   </CardContent>
                 </Card>
               );
@@ -335,7 +429,7 @@ export default function Dashboard() {
                 <span>Prayer Completion</span>
                 <span className="font-medium text-emerald-600">{todayCompletion}%</span>
               </div>
-              <Progress value={todayCompletion} className="h-1.5" />
+              <Progress value={todayCompletion} className="h-1.5 animate-pulse" />
               
               <div className="flex justify-between items-center text-sm">
                 <span>Prayer Streak</span>
@@ -346,7 +440,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
+        {/* Wazeefah & Adhkar Routines */}
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Wazeefahs</CardTitle>
             <MoonStar className="h-4 w-4 text-blue-500" />
@@ -400,7 +495,7 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={isCompleted ? 'border-emerald-550/20 text-emerald-600' : ''}>
+                      <Badge variant="outline" className={isCompleted ? 'border-emerald-500/20 text-emerald-600' : ''}>
                         {isCompleted ? 'Done' : 'Pending'}
                       </Badge>
                     </div>
@@ -415,6 +510,92 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Suggested Wazeefah & Family Circle Row */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Wazeefah Suggestion Widget */}
+        <Card className="bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-indigo-500/10 shadow-sm relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-indigo-700 dark:text-indigo-400">
+                <Sparkles className="w-4 h-4 text-indigo-500" /> Suggested Wazeefah
+              </CardTitle>
+            </div>
+            <CardDescription>Expand your daily Adhkar routines</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-2 flex flex-col justify-between h-[120px]">
+            {suggestedWazeefah ? (
+              <>
+                <div>
+                  <h4 className="font-bold text-base text-slate-800 dark:text-slate-200">{suggestedWazeefah.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{suggestedWazeefah.description}</p>
+                </div>
+                <div className="flex justify-between items-center text-xs border-t border-slate-100 dark:border-slate-800/60 pt-2">
+                  <span className="text-muted-foreground">Target: {suggestedWazeefah.targetCount || 33} times</span>
+                  <Button 
+                    onClick={handleAddSuggestedWazeefah} 
+                    disabled={addingWazeefah}
+                    size="sm"
+                    className="bg-indigo-650 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 font-bold text-xs h-7 rounded-lg shrink-0 px-3 flex items-center gap-1 shadow-none"
+                  >
+                    {addingWazeefah ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                    Add to Routine
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-6 text-xs text-muted-foreground italic">
+                All suggested Wazeefahs are already added to your routine!
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Family Analytics Widget */}
+        <Card className="border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-500" /> Family Circle
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">{family ? family.name : 'Grow spiritually with family'}</CardDescription>
+            </div>
+            {family && (
+              <Link href="/family" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                Manage Circle
+              </Link>
+            )}
+          </CardHeader>
+          <CardContent className="pt-2">
+            {family ? (
+              <div className="space-y-3 max-h-[120px] overflow-y-auto pr-1">
+                {family.members.map((member: any) => {
+                  const todayComp = member.analytics?.todayCompletion ?? 0;
+                  const weekCount = member.analytics?.weekCompleted ?? 0;
+                  return (
+                    <div key={member._id} className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate w-32">{member.name}</span>
+                        <span className="text-muted-foreground text-[10px]">
+                          Today: {todayComp}% | 7d: {weekCount} prayers
+                        </span>
+                      </div>
+                      <Progress value={todayComp} className="h-1.5 [&>div]:bg-indigo-500 bg-indigo-100 dark:bg-indigo-950/20" />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-xs text-muted-foreground space-y-2">
+                <p>Not in a family circle yet.</p>
+                <Link href="/family" className="inline-block px-3 py-1 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg hover:underline">
+                  Join/Create Circle
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

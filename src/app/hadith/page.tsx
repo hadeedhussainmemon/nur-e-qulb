@@ -111,7 +111,7 @@ export default function HadithIndexPage() {
   const [activeTab, setActiveTab] = useState<'collections' | 'bookmarks'>('collections');
   const [searchQuery, setSearchQuery] = useState('');
   const [bookmarks, setBookmarks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const loadBookmarks = async () => {
     setLoading(true);
@@ -130,8 +130,6 @@ export default function HadithIndexPage() {
   useEffect(() => {
     if (session) {
       loadBookmarks();
-    } else {
-      setLoading(false);
     }
   }, [session]);
 
@@ -149,15 +147,6 @@ export default function HadithIndexPage() {
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
-        <p className="text-muted-foreground text-sm">Opening Hadith Library...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 pb-32">

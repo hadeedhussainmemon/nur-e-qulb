@@ -12,17 +12,17 @@ import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
 import { useSession } from 'next-auth/react';
 
 export default function SettingsPage() {
-  const { data: session, update: updateSession } = useSession();
-  const [loading, setLoading] = useState(true);
+  const { data: session, status, update: updateSession } = useSession();
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // User details
-  const [name, setName] = useState<string>('');
-  const [gender, setGender] = useState<string>('other');
-  const [city, setCity] = useState('Makkah');
-  const [country, setCountry] = useState('Saudi Arabia');
+  const [name, setName] = useState(() => session?.user?.name || '');
+  const [gender, setGender] = useState(() => (session?.user as any)?.gender || 'other');
+  const [city, setCity] = useState(() => (session?.user as any)?.location?.city || 'Makkah');
+  const [country, setCountry] = useState(() => (session?.user as any)?.location?.country || 'Saudi Arabia');
 
   // Mode States
   const [womenMode, setWomenMode] = useState(false);
@@ -33,9 +33,35 @@ export default function SettingsPage() {
   const [dailyHadith, setDailyHadith] = useState(true);
 
   // Preference States
-  const [madhab, setMadhab] = useState('Hanafi');
-  const [calculationMethod, setCalculationMethod] = useState('ISNA');
-  const [activeTheme, setActiveTheme] = useState('default');
+  const [madhab, setMadhab] = useState(() => (session?.user as any)?.settings?.madhab || 'Hanafi');
+  const [calculationMethod, setCalculationMethod] = useState(() => (session?.user as any)?.settings?.prayerCalculationMethod || 'ISNA');
+  const [activeTheme, setActiveTheme] = useState(() => (session?.user as any)?.settings?.theme || 'default');
+
+  // Sync state if session loads after initial render
+  useEffect(() => {
+    if (session?.user) {
+      setName(session.user.name || '');
+      setGender((session.user as any).gender || 'other');
+      const loc = (session.user as any).location;
+      if (loc) {
+        setCity(loc.city || 'Makkah');
+        setCountry(loc.country || 'Saudi Arabia');
+      }
+      const s = (session.user as any).settings;
+      if (s) {
+        setMadhab(s.madhab || 'Hanafi');
+        setCalculationMethod(s.prayerCalculationMethod || 'ISNA');
+        setActiveTheme(s.theme || 'default');
+        if (s.notifications) {
+          setFridayMode(s.notifications.fridayReminders !== false);
+          setRamadanMode(s.notifications.ramadanReminders === true);
+          setPrayerReminders(s.notifications.prayerReminders !== false);
+          setDailyAyah(s.notifications.dailyAyah !== false);
+          setDailyHadith(s.notifications.dailyHadith !== false);
+        }
+      }
+    }
+  }, [session]);
 
   useEffect(() => {
     async function loadSettings() {
@@ -65,22 +91,17 @@ export default function SettingsPage() {
             }
           }
         }
-
-        if (user?.gender === 'female') {
-          const periodActive = await isPeriodActive();
-          setWomenMode(periodActive);
-        }
       } catch (err) {
-        console.error('Failed to load settings', err);
+        console.error('Failed to load settings from DB:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    if (session) {
+    if (status === 'authenticated') {
       loadSettings();
     }
-  }, [session]);
+  }, [status]);
 
   const handleDetectLocation = () => {
     setDetecting(true);
@@ -174,14 +195,7 @@ export default function SettingsPage() {
     await togglePeriodState(checked, todayStr);
   };
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
-        <p className="text-muted-foreground text-sm">Loading your settings...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">

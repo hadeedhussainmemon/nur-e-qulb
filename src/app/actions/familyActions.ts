@@ -6,6 +6,8 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { FamilyGroup } from '@/models/FamilyGroup';
 import { revalidatePath } from 'next/cache';
+import { PrayerLog } from '@/models/PrayerLog';
+import mongoose from 'mongoose';
 
 // Helper to generate a unique 6-character alphanumeric code
 function generateJoinCode() {
@@ -27,7 +29,43 @@ export async function getFamilyDetails() {
     if (!user || !user.familyId) return null;
 
     const group = await FamilyGroup.findById(user.familyId).populate('members', 'name email role');
-    return JSON.parse(JSON.stringify(group));
+    if (!group) return null;
+
+    const localTodayDateString = new Date().toLocaleDateString('en-CA');
+    const enrichedMembers = await Promise.all(group.members.map(async (member: any) => {
+      // 1. Get today's prayer completion
+      const log = await PrayerLog.findOne({ userId: member._id, date: localTodayDateString }).lean();
+      let todayCompletion = 0;
+      if (log) {
+        const prayers = [log.fajr, log.dhuhr, log.asr, log.maghrib, log.isha];
+        const done = prayers.filter(p => p === 'completed' || p === 'excused').length;
+        todayCompletion = Math.round((done / 5) * 100);
+      }
+
+      // 2. Fetch last 7 days of logs to get a weekly completion count
+      const lastWeekLogs = await PrayerLog.find({
+        userId: member._id,
+        date: { $lte: localTodayDateString }
+      }).sort({ date: -1 }).limit(7).lean();
+      
+      let weekCompleted = 0;
+      lastWeekLogs.forEach((wl: any) => {
+        const prayers = [wl.fajr, wl.dhuhr, wl.asr, wl.maghrib, wl.isha];
+        weekCompleted += prayers.filter(p => p === 'completed').length;
+      });
+
+      return {
+        ...JSON.parse(JSON.stringify(member)),
+        analytics: {
+          todayCompletion,
+          weekCompleted,
+        }
+      };
+    }));
+
+    const result = JSON.parse(JSON.stringify(group));
+    result.members = enrichedMembers;
+    return result;
   } catch (error) {
     console.error('Error fetching family details:', error);
     return null;

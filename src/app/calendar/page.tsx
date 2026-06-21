@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { getCurrentUser } from '@/app/actions/authActions';
+import { useSession } from 'next-auth/react';
 import { fetchPrayerTimesByCity } from '@/app/actions/prayerActions';
 
 // Mock calculation for demo purposes.
@@ -16,18 +16,35 @@ const HIJRI_MONTHS = [
 ];
 
 export default function CalendarPage() {
+  const { data: session } = useSession();
   const [daysToHajj, setDaysToHajj] = useState(0);
   const [daysToRamadan, setDaysToRamadan] = useState(0);
   const [hijriDateString, setHijriDateString] = useState("Loading Hijri Date..."); // Dynamic date
-  const [locationStr, setLocationStr] = useState("Makkah, Saudi Arabia");
+  
+  const [locationStr, setLocationStr] = useState(() => {
+    if (session?.user) {
+      const loc = (session.user as any).location;
+      if (loc?.city) {
+        return `${loc.city}, ${loc.country || 'Saudi Arabia'}`;
+      }
+    }
+    return "Makkah, Saudi Arabia";
+  });
+
+  useEffect(() => {
+    if (session?.user) {
+      const loc = (session.user as any).location;
+      if (loc?.city) {
+        setLocationStr(`${loc.city}, ${loc.country || 'Saudi Arabia'}`);
+      }
+    }
+  }, [session]);
 
   useEffect(() => {
     async function loadIslamicDate() {
       try {
-        const user = await getCurrentUser();
-        const city = user?.location?.city || 'Makkah';
-        const country = user?.location?.country || 'Saudi Arabia';
-        setLocationStr(`${city}, ${country}`);
+        const city = (session?.user as any)?.location?.city || 'Makkah';
+        const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
         
         const times = await fetchPrayerTimesByCity(city, country);
         if (times?.data?.date?.hijri) {
@@ -57,7 +74,7 @@ export default function CalendarPage() {
     const msPerDay = 1000 * 60 * 60 * 24;
     setDaysToRamadan(Math.ceil((nextRamadan.getTime() - now.getTime()) / msPerDay));
     setDaysToHajj(Math.ceil((nextHajj.getTime() - now.getTime()) / msPerDay));
-  }, []);
+  }, [session]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">

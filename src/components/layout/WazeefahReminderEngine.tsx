@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { getUserWazeefahs } from '@/app/actions/userWazeefahActions';
 import { fetchPrayerTimesByCity } from '@/app/actions/prayerActions';
-import { getCurrentUser } from '@/app/actions/authActions';
 import { fetchRandomAyah } from '@/app/actions/quranActions';
 import { fetchRandomHadith } from '@/app/actions/hadithActions';
 
@@ -69,12 +68,11 @@ export function WazeefahReminderEngine() {
         const activeWazeefahs = await getUserWazeefahs();
         setWazeefahs(activeWazeefahs || []);
 
-        // 2. Fetch user profile for city/country and settings
-        const user = await getCurrentUser();
-        const city = user?.location?.city || 'Makkah';
-        const country = user?.location?.country || 'Saudi Arabia';
+        // 2. Read user location and settings from session
+        const city = (session?.user as any)?.location?.city || 'Makkah';
+        const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
         setUserLocation({ city, country });
-        setSettings(user?.settingsId || null);
+        setSettings((session?.user as any)?.settings || null);
 
         // 3. Fetch daily prayer times
         const timesRes = await fetchPrayerTimesByCity(city, country);

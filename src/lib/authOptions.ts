@@ -69,23 +69,32 @@ export const authOptions: NextAuthOptions = {
       await connectToDatabase();
       
       if (token.email) {
-        const dbUser = await User.findOne({ email: token.email });
+        const dbUser = await User.findOne({ email: token.email }).populate('settingsId').lean();
         if (dbUser) {
           token.id = dbUser._id.toString();
           token.name = dbUser.name;
           token.role = dbUser.role || 'user';
           token.gender = dbUser.gender || 'other';
+          token.location = dbUser.location ? {
+            city: dbUser.location.city,
+            country: dbUser.location.country,
+          } : null;
+          token.settings = dbUser.settingsId ? JSON.parse(JSON.stringify(dbUser.settingsId)) : null;
         } else if (user) {
           token.id = user.id;
           token.name = user.name;
           token.role = (user as any).role || 'user';
           token.gender = 'other';
+          token.location = null;
+          token.settings = null;
         }
       } else if (user) {
         token.id = user.id;
         token.name = user.name;
         token.role = (user as any).role || 'user';
         token.gender = 'other';
+        token.location = null;
+        token.settings = null;
       }
 
       return token;
@@ -95,6 +104,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).gender = token.gender;
+        (session.user as any).location = token.location;
+        (session.user as any).settings = token.settings;
       }
       return session;
     },

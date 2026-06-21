@@ -11,6 +11,8 @@ import { getFastingSummary } from '@/app/actions/fastingActions';
 import { getQuranBookmarks } from '@/app/actions/bookmarkActions';
 import { getQuranProgress } from '@/app/actions/quranProgressActions';
 import { getUserWazeefahs } from '@/app/actions/userWazeefahActions';
+import { getFamilyDetails } from '@/app/actions/familyActions';
+import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
 
 export async function getDashboardData(localTodayDateString: string) {
   try {
@@ -27,7 +29,9 @@ export async function getDashboardData(localTodayDateString: string) {
       fastingData,
       bookmarks,
       progress,
-      wazeefahs
+      wazeefahs,
+      familyData,
+      approvedWazeefahs
     ] = await Promise.all([
       User.findOne({ email: session.user.email }).populate('settingsId').lean(),
       getPrayerStreaks(localTodayDateString),
@@ -36,7 +40,9 @@ export async function getDashboardData(localTodayDateString: string) {
       getFastingSummary(),
       getQuranBookmarks(),
       getQuranProgress(),
-      getUserWazeefahs()
+      getUserWazeefahs(),
+      getFamilyDetails(),
+      getApprovedWazeefahs()
     ]);
 
     if (!user) return null;
@@ -49,7 +55,9 @@ export async function getDashboardData(localTodayDateString: string) {
       fastingData,
       bookmarksCount: bookmarks ? bookmarks.length : 0,
       quranProgress: progress,
-      wazeefahs
+      wazeefahs,
+      family: familyData,
+      suggestedWazeefahs: approvedWazeefahs || []
     };
   } catch (error) {
     console.error('Error in getDashboardData:', error);

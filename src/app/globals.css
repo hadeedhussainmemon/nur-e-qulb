@@ -118,29 +118,41 @@
 }
 
 /* Premium App Themes */
-:root.theme-gold {
+.theme-gold {
   --primary: 43 90% 45%;
   --ring: 43 90% 45%;
+  --color-primary: hsl(43 90% 45%);
+  --color-ring: hsl(43 90% 45%);
 }
-:root.dark.theme-gold {
+.dark .theme-gold, .dark.theme-gold {
   --primary: 43 90% 50%;
   --ring: 43 90% 50%;
+  --color-primary: hsl(43 90% 50%);
+  --color-ring: hsl(43 90% 50%);
 }
 
-:root.theme-rose {
+.theme-rose {
   --primary: 343 75% 50%;
   --ring: 343 75% 50%;
+  --color-primary: hsl(343 75% 50%);
+  --color-ring: hsl(343 75% 50%);
 }
-:root.dark.theme-rose {
+.dark .theme-rose, .dark.theme-rose {
   --primary: 343 75% 55%;
   --ring: 343 75% 55%;
+  --color-primary: hsl(343 75% 55%);
+  --color-ring: hsl(343 75% 55%);
 }
 
-:root.theme-indigo {
+.theme-indigo {
   --primary: 243 75% 59%;
   --ring: 243 75% 59%;
+  --color-primary: hsl(243 75% 59%);
+  --color-ring: hsl(243 75% 59%);
 }
-:root.dark.theme-indigo {
+.dark .theme-indigo, .dark.theme-indigo {
   --primary: 243 75% 65%;
   --ring: 243 75% 65%;
+  --color-primary: hsl(243 75% 65%);
+  --color-ring: hsl(243 75% 65%);
 }

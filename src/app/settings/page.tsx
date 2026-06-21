@@ -9,9 +9,13 @@ import { Settings2, Bell, ShieldAlert, CalendarHeart, MoonStar, MapPin, Sparkles
 import { applyTheme } from '@/components/layout/ThemeSyncEngine';
 import { getCurrentUser, updateUserSettings, updateUserProfile } from '@/app/actions/authActions';
 import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
+import { completeOnboarding } from '@/app/actions/onboardingActions';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
+  const isOnboarding = searchParams.get('onboarding') === 'true';
   const { data: session, status, update: updateSession } = useSession();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -176,11 +180,21 @@ export default function SettingsPage() {
         return;
       }
 
+      // If they were onboarding, mark it complete in DB
+      if (isOnboarding) {
+        await completeOnboarding();
+      }
+
       // Force NextAuth to update session with new DB data
       await updateSession();
 
       setSuccessMsg('Settings saved successfully!');
-      setTimeout(() => setSuccessMsg(null), 3000);
+      // If onboarding, maybe redirect home after short delay
+      if (isOnboarding) {
+        setTimeout(() => window.location.href = '/', 1500);
+      } else {
+        setTimeout(() => setSuccessMsg(null), 3000);
+      }
     } catch (err) {
       console.error(err);
       alert('An unexpected error occurred while saving.');
@@ -199,6 +213,19 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">
+      
+      {isOnboarding && (
+        <div className="bg-emerald-500/10 border border-emerald-500 text-emerald-600 dark:text-emerald-400 px-4 py-4 rounded-xl mb-8 flex items-start gap-3 shadow-sm">
+          <Sparkles className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-base mb-1">Welcome to Nur E Qalbb!</h3>
+            <p className="text-sm opacity-90">
+              Please take a moment to configure your location, timezone, and madhab so we can accurately calculate your prayer times. Click <strong>Save Settings</strong> at the bottom when you're done.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">Settings & Preferences</h2>

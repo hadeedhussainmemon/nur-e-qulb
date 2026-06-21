@@ -77,6 +77,7 @@ export const authOptions: NextAuthOptions = {
           token.name = (dbUser as any).name;
           token.role = (dbUser as any).role || 'user';
           token.gender = (dbUser as any).gender || 'other';
+          token.onboardingCompleted = (dbUser as any).onboardingCompleted ?? false;
           token.location = (dbUser as any).location ? {
             city: (dbUser as any).location.city,
             country: (dbUser as any).location.country,
@@ -89,6 +90,7 @@ export const authOptions: NextAuthOptions = {
           token.name = user.name;
           token.role = (user as any).role || 'user';
           token.gender = 'other';
+          token.onboardingCompleted = false;
           token.location = null;
           token.settings = null;
         }
@@ -103,6 +105,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).gender = token.gender;
         (session.user as any).location = token.location;
         (session.user as any).settings = token.settings;
+        (session.user as any).onboardingCompleted = token.onboardingCompleted ?? false;
       }
       return session;
     },

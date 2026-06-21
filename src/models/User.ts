@@ -15,6 +15,7 @@ export interface IUser extends Document {
   };
   language: string;
   themePreference: 'light' | 'dark' | 'system';
+  onboardingCompleted: boolean;
   settingsId?: mongoose.Types.ObjectId;
   role: 'user' | 'admin';
   familyId?: mongoose.Types.ObjectId;
@@ -36,6 +37,7 @@ const UserSchema = new Schema<IUser>(
     },
     language: { type: String, default: 'en' },
     themePreference: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
+    onboardingCompleted: { type: Boolean, default: false },
     settingsId: { type: Schema.Types.ObjectId, ref: 'Settings' },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     familyId: { type: Schema.Types.ObjectId, ref: 'FamilyGroup' },

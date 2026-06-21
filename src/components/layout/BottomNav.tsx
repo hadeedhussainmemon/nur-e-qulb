@@ -6,88 +6,84 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Home, BookOpen, CircleDot, Heart, User } from 'lucide-react';
 
+const navItems = [
+  { label: 'Home',     icon: Home,      href: '/'         },
+  { label: 'Quran',    icon: BookOpen,  href: '/quran'    },
+  { label: 'Tasbeeh',  icon: CircleDot, href: '/tasbih',  isFloating: true },
+  { label: 'Wazeefah', icon: Heart,     href: '/wazeefahs'},
+  { label: 'Profile',  icon: User,      href: '/settings' },
+];
+
 export function BottomNav() {
   const pathname = usePathname();
 
-  const navItems = [
-    {
-      label: 'Home',
-      icon: Home,
-      href: '/',
-    },
-    {
-      label: 'Quran',
-      icon: BookOpen,
-      href: '/quran',
-    },
-    {
-      label: 'Tasbeeh',
-      icon: CircleDot,
-      href: '/tasbih',
-      isFloating: true,
-    },
-    {
-      label: 'Wazeefah',
-      icon: Heart,
-      href: '/wazeefahs',
-    },
-    {
-      label: 'Profile',
-      icon: User,
-      href: '/settings',
-    },
-  ];
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-slate-950/95 backdrop-blur-md border-t border-slate-900 h-18 px-4 pb-safe flex items-center justify-around shadow-2xl">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href;
-        const Icon = item.icon;
+    <nav
+      className={cn(
+        'fixed bottom-0 left-0 right-0 z-50 md:hidden',
+        'bg-white/95 dark:bg-slate-950/95 backdrop-blur-md',
+        'border-t border-slate-200 dark:border-slate-800',
+        'shadow-[0_-4px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.4)]'
+      )}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-center justify-around h-16 px-2">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          const Icon = item.icon;
 
-        if (item.isFloating) {
+          if (item.isFloating) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="relative -top-4 flex flex-col items-center group"
+              >
+                <div className={cn(
+                  'w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all shadow-lg',
+                  isActive
+                    ? 'bg-emerald-500 border-emerald-400 text-white shadow-emerald-500/30'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-500'
+                )}>
+                  <Icon className="w-6 h-6" />
+                </div>
+                <span className={cn(
+                  'text-[9px] font-bold tracking-wide mt-0.5',
+                  isActive ? 'text-emerald-500' : 'text-slate-400 dark:text-zinc-500'
+                )}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          }
+
           return (
-            <Link 
-              key={item.href} 
+            <Link
+              key={item.href}
               href={item.href}
-              className="relative -top-3 flex flex-col items-center group cursor-pointer"
+              className="flex flex-col items-center justify-center flex-1 py-1 gap-1 group"
             >
               <div className={cn(
-                "w-12 h-12 rounded-full border-2 bg-slate-950 flex items-center justify-center transition-all",
-                isActive 
-                  ? "border-emerald-500 text-emerald-450 shadow-[0_0_12px_rgba(16,185,129,0.3)]" 
-                  : "border-slate-800 text-slate-400 hover:border-emerald-500/50 hover:text-emerald-400"
+                'w-9 h-9 rounded-xl flex items-center justify-center transition-all',
+                isActive
+                  ? 'bg-emerald-50 dark:bg-emerald-500/10'
+                  : 'hover:bg-slate-100 dark:hover:bg-white/5'
               )}>
-                <Icon className="w-5 h-5" />
+                <Icon className={cn(
+                  'w-5 h-5 transition-colors',
+                  isActive ? 'text-emerald-500' : 'text-slate-400 dark:text-zinc-500 group-hover:text-slate-700 dark:group-hover:text-white'
+                )} />
               </div>
               <span className={cn(
-                "text-[9px] font-semibold mt-0.5 tracking-wider transition-colors",
-                isActive ? "text-emerald-400" : "text-zinc-500"
+                'text-[9px] font-semibold tracking-wide transition-colors leading-none',
+                isActive ? 'text-emerald-500' : 'text-slate-400 dark:text-zinc-500'
               )}>
                 {item.label}
               </span>
             </Link>
           );
-        }
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex flex-col items-center justify-center w-12 h-10 group cursor-pointer"
-          >
-            <Icon className={cn(
-              "w-5 h-5 transition-colors",
-              isActive ? "text-emerald-400" : "text-zinc-400 group-hover:text-white"
-            )} />
-            <span className={cn(
-              "text-[9px] font-semibold mt-1 tracking-wider transition-colors",
-              isActive ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-400"
-            )}>
-              {item.label}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
+        })}
+      </div>
+    </nav>
   );
 }

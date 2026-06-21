@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -19,15 +19,81 @@ import {
   Info,
   CheckCircle2,
   ChevronRight,
-  PlusCircle
+  PlusCircle,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from 'lucide-react';
 import { SubmitWazeefahForm } from './SubmitWazeefahForm';
+import Link from 'next/link';
 import {
   subscribeToWazeefah,
   createCustomWazeefah,
   logWazeefahProgress,
   deleteUserWazeefah
 } from '@/app/actions/userWazeefahActions';
+
+// All 114 Surahs
+const SURAHS = [
+  { n: 1, name: 'Al-Fatihah', ayahs: 7 }, { n: 2, name: 'Al-Baqarah', ayahs: 286 },
+  { n: 3, name: 'Ali \'Imran', ayahs: 200 }, { n: 4, name: 'An-Nisa', ayahs: 176 },
+  { n: 5, name: 'Al-Ma\'idah', ayahs: 120 }, { n: 6, name: 'Al-An\'am', ayahs: 165 },
+  { n: 7, name: 'Al-A\'raf', ayahs: 206 }, { n: 8, name: 'Al-Anfal', ayahs: 75 },
+  { n: 9, name: 'At-Tawbah', ayahs: 129 }, { n: 10, name: 'Yunus', ayahs: 109 },
+  { n: 11, name: 'Hud', ayahs: 123 }, { n: 12, name: 'Yusuf', ayahs: 111 },
+  { n: 13, name: 'Ar-Ra\'d', ayahs: 43 }, { n: 14, name: 'Ibrahim', ayahs: 52 },
+  { n: 15, name: 'Al-Hijr', ayahs: 99 }, { n: 16, name: 'An-Nahl', ayahs: 128 },
+  { n: 17, name: 'Al-Isra', ayahs: 111 }, { n: 18, name: 'Al-Kahf', ayahs: 110 },
+  { n: 19, name: 'Maryam', ayahs: 98 }, { n: 20, name: 'Ta-Ha', ayahs: 135 },
+  { n: 21, name: 'Al-Anbiya', ayahs: 112 }, { n: 22, name: 'Al-Hajj', ayahs: 78 },
+  { n: 23, name: 'Al-Mu\'minun', ayahs: 118 }, { n: 24, name: 'An-Nur', ayahs: 64 },
+  { n: 25, name: 'Al-Furqan', ayahs: 77 }, { n: 26, name: 'Ash-Shu\'ara', ayahs: 227 },
+  { n: 27, name: 'An-Naml', ayahs: 93 }, { n: 28, name: 'Al-Qasas', ayahs: 88 },
+  { n: 29, name: 'Al-\'Ankabut', ayahs: 69 }, { n: 30, name: 'Ar-Rum', ayahs: 60 },
+  { n: 31, name: 'Luqman', ayahs: 34 }, { n: 32, name: 'As-Sajdah', ayahs: 30 },
+  { n: 33, name: 'Al-Ahzab', ayahs: 73 }, { n: 34, name: 'Saba', ayahs: 54 },
+  { n: 35, name: 'Fatir', ayahs: 45 }, { n: 36, name: 'Ya-Sin', ayahs: 83 },
+  { n: 37, name: 'As-Saffat', ayahs: 182 }, { n: 38, name: 'Sad', ayahs: 88 },
+  { n: 39, name: 'Az-Zumar', ayahs: 75 }, { n: 40, name: 'Ghafir', ayahs: 85 },
+  { n: 41, name: 'Fussilat', ayahs: 54 }, { n: 42, name: 'Ash-Shura', ayahs: 53 },
+  { n: 43, name: 'Az-Zukhruf', ayahs: 89 }, { n: 44, name: 'Ad-Dukhan', ayahs: 59 },
+  { n: 45, name: 'Al-Jathiyah', ayahs: 37 }, { n: 46, name: 'Al-Ahqaf', ayahs: 35 },
+  { n: 47, name: 'Muhammad', ayahs: 38 }, { n: 48, name: 'Al-Fath', ayahs: 29 },
+  { n: 49, name: 'Al-Hujurat', ayahs: 18 }, { n: 50, name: 'Qaf', ayahs: 45 },
+  { n: 51, name: 'Adh-Dhariyat', ayahs: 60 }, { n: 52, name: 'At-Tur', ayahs: 49 },
+  { n: 53, name: 'An-Najm', ayahs: 62 }, { n: 54, name: 'Al-Qamar', ayahs: 55 },
+  { n: 55, name: 'Ar-Rahman', ayahs: 78 }, { n: 56, name: 'Al-Waqi\'ah', ayahs: 96 },
+  { n: 57, name: 'Al-Hadid', ayahs: 29 }, { n: 58, name: 'Al-Mujadila', ayahs: 22 },
+  { n: 59, name: 'Al-Hashr', ayahs: 24 }, { n: 60, name: 'Al-Mumtahanah', ayahs: 13 },
+  { n: 61, name: 'As-Saf', ayahs: 14 }, { n: 62, name: 'Al-Jumu\'ah', ayahs: 11 },
+  { n: 63, name: 'Al-Munafiqun', ayahs: 11 }, { n: 64, name: 'At-Taghabun', ayahs: 18 },
+  { n: 65, name: 'At-Talaq', ayahs: 12 }, { n: 66, name: 'At-Tahrim', ayahs: 12 },
+  { n: 67, name: 'Al-Mulk', ayahs: 30 }, { n: 68, name: 'Al-Qalam', ayahs: 52 },
+  { n: 69, name: 'Al-Haqqah', ayahs: 52 }, { n: 70, name: 'Al-Ma\'arij', ayahs: 44 },
+  { n: 71, name: 'Nuh', ayahs: 28 }, { n: 72, name: 'Al-Jinn', ayahs: 28 },
+  { n: 73, name: 'Al-Muzzammil', ayahs: 20 }, { n: 74, name: 'Al-Muddaththir', ayahs: 56 },
+  { n: 75, name: 'Al-Qiyamah', ayahs: 40 }, { n: 76, name: 'Al-Insan', ayahs: 31 },
+  { n: 77, name: 'Al-Mursalat', ayahs: 50 }, { n: 78, name: 'An-Naba', ayahs: 40 },
+  { n: 79, name: 'An-Nazi\'at', ayahs: 46 }, { n: 80, name: 'Abasa', ayahs: 42 },
+  { n: 81, name: 'At-Takwir', ayahs: 29 }, { n: 82, name: 'Al-Infitar', ayahs: 19 },
+  { n: 83, name: 'Al-Mutaffifin', ayahs: 36 }, { n: 84, name: 'Al-Inshiqaq', ayahs: 25 },
+  { n: 85, name: 'Al-Buruj', ayahs: 22 }, { n: 86, name: 'At-Tariq', ayahs: 17 },
+  { n: 87, name: 'Al-A\'la', ayahs: 19 }, { n: 88, name: 'Al-Ghashiyah', ayahs: 26 },
+  { n: 89, name: 'Al-Fajr', ayahs: 30 }, { n: 90, name: 'Al-Balad', ayahs: 20 },
+  { n: 91, name: 'Ash-Shams', ayahs: 15 }, { n: 92, name: 'Al-Layl', ayahs: 21 },
+  { n: 93, name: 'Ad-Duha', ayahs: 11 }, { n: 94, name: 'Ash-Sharh', ayahs: 8 },
+  { n: 95, name: 'At-Tin', ayahs: 8 }, { n: 96, name: 'Al-\'Alaq', ayahs: 19 },
+  { n: 97, name: 'Al-Qadr', ayahs: 5 }, { n: 98, name: 'Al-Bayyinah', ayahs: 8 },
+  { n: 99, name: 'Az-Zalzalah', ayahs: 8 }, { n: 100, name: 'Al-\'Adiyat', ayahs: 11 },
+  { n: 101, name: 'Al-Qari\'ah', ayahs: 11 }, { n: 102, name: 'At-Takathur', ayahs: 8 },
+  { n: 103, name: 'Al-\'Asr', ayahs: 3 }, { n: 104, name: 'Al-Humazah', ayahs: 9 },
+  { n: 105, name: 'Al-Fil', ayahs: 5 }, { n: 106, name: 'Quraysh', ayahs: 4 },
+  { n: 107, name: 'Al-Ma\'un', ayahs: 7 }, { n: 108, name: 'Al-Kawthar', ayahs: 3 },
+  { n: 109, name: 'Al-Kafirun', ayahs: 6 }, { n: 110, name: 'An-Nasr', ayahs: 3 },
+  { n: 111, name: 'Al-Masad', ayahs: 5 }, { n: 112, name: 'Al-Ikhlas', ayahs: 4 },
+  { n: 113, name: 'Al-Falaq', ayahs: 5 }, { n: 114, name: 'An-Nas', ayahs: 6 },
+];
 
 export function WazeefahPageClient({
   initialWazeefahs,
@@ -56,6 +122,20 @@ export function WazeefahPageClient({
   const [customInstructionsText, setCustomInstructionsText] = useState('');
   const [customTarget, setCustomTarget] = useState<number>(33);
   const [customReminder, setCustomReminder] = useState('Fajr');
+
+  // Quran Ref state
+  const [showQuranRef, setShowQuranRef] = useState(false);
+  const [surahSearch, setSurahSearch] = useState('');
+  const [selectedSurah, setSelectedSurah] = useState<typeof SURAHS[0] | null>(null);
+  const [fromAyah, setFromAyah] = useState<string>('');
+  const [toAyah, setToAyah] = useState<string>('');
+
+  const filteredSurahs = useMemo(() =>
+    SURAHS.filter(s =>
+      s.name.toLowerCase().includes(surahSearch.toLowerCase()) ||
+      String(s.n).includes(surahSearch)
+    ).slice(0, 20),
+  [surahSearch]);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
 
@@ -101,8 +181,17 @@ export function WazeefahPageClient({
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
+    const quranRef = selectedSurah
+      ? {
+          surahNumber: selectedSurah.n,
+          surahName: selectedSurah.name,
+          fromAyah: fromAyah ? parseInt(fromAyah) : undefined,
+          toAyah: toAyah ? parseInt(toAyah) : undefined,
+        }
+      : null;
+
     try {
-      const res = await createCustomWazeefah(customTitle, customDesc, instructions, customTarget, customReminder);
+      const res = await createCustomWazeefah(customTitle, customDesc, instructions, customTarget, customReminder, quranRef);
       if (res.success) {
         setUserWazeefahs([res.userWazeefah, ...userWazeefahs]);
         setIsCustomOpen(false);
@@ -112,6 +201,11 @@ export function WazeefahPageClient({
         setCustomInstructionsText('');
         setCustomTarget(33);
         setCustomReminder('Fajr');
+        setShowQuranRef(false);
+        setSurahSearch('');
+        setSelectedSurah(null);
+        setFromAyah('');
+        setToAyah('');
         setActiveTab('schedule');
       } else {
         alert(res.error || 'Failed to create wazeefah.');
@@ -289,24 +383,48 @@ export function WazeefahPageClient({
                     </div>
 
                     {/* Instructions List (small preview) */}
-                    {uw.instructions && uw.instructions.length > 0 && (
-                      <div className="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                          <ListChecks className="w-3.5 h-3.5 text-blue-500" /> Method
-                        </p>
-                        <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                          {uw.instructions.slice(0, 2).map((inst: string, idx: number) => (
-                            <li key={idx} className="flex gap-1.5 items-start">
-                              <span className="font-semibold text-blue-500 select-none">{idx + 1}.</span>
-                              <span className="line-clamp-1">{inst}</span>
-                            </li>
-                          ))}
-                          {uw.instructions.length > 2 && (
-                            <li className="text-[10px] text-muted-foreground italic pl-3">+ {uw.instructions.length - 2} more steps</li>
-                          )}
-                        </ul>
+                  {uw.instructions && uw.instructions.length > 0 && (
+                    <div className="bg-slate-50 dark:bg-slate-900/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800 space-y-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                        <ListChecks className="w-3.5 h-3.5 text-blue-500" /> Method
+                      </p>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        {uw.instructions.slice(0, 2).map((inst: string, idx: number) => (
+                          <li key={idx} className="flex gap-1.5 items-start">
+                            <span className="font-semibold text-blue-500 select-none">{idx + 1}.</span>
+                            <span className="line-clamp-1">{inst}</span>
+                          </li>
+                        ))}
+                        {uw.instructions.length > 2 && (
+                          <li className="text-[10px] text-muted-foreground italic pl-3">+ {uw.instructions.length - 2} more steps</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Quran Ref Badge */}
+                  {uw.quranRef?.surahName && (
+                    <Link
+                      href={`/quran?surah=${uw.quranRef.surahNumber}${uw.quranRef.fromAyah ? `&ayah=${uw.quranRef.fromAyah}` : ''}`}
+                      className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg hover:bg-emerald-500/10 transition-colors group"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                        <BookOpen className="w-3.5 h-3.5" />
                       </div>
-                    )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-emerald-400 truncate">
+                          {uw.quranRef.surahNumber}. {uw.quranRef.surahName}
+                          {uw.quranRef.fromAyah && (
+                            <span className="font-normal text-emerald-400/70">
+                              {' '}:{uw.quranRef.fromAyah}{uw.quranRef.toAyah && uw.quranRef.toAyah !== uw.quranRef.fromAyah ? `–${uw.quranRef.toAyah}` : ''}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Tap to open in Quran</p>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-emerald-400/50 group-hover:text-emerald-400 transition-colors shrink-0" />
+                    </Link>
+                  )}
 
                     {/* Progress Control Actions */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 border-slate-100 dark:border-slate-850">
@@ -530,9 +648,93 @@ export function WazeefahPageClient({
               <Textarea
                 value={customInstructionsText}
                 onChange={(e) => setCustomInstructionsText(e.target.value)}
-                placeholder="Step 1: Recite Astaghfirullah&#10;Step 2: Contemplate forgiveness..."
+                placeholder={`Step 1: Recite Astaghfirullah&#10;Step 2: Contemplate forgiveness...`}
                 rows={3}
               />
+            </div>
+
+            {/* Quran Reference Section */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => { setShowQuranRef(v => !v); if (showQuranRef) { setSelectedSurah(null); setSurahSearch(''); setFromAyah(''); setToAyah(''); } }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  {selectedSurah ? `Surah ${selectedSurah.n}. ${selectedSurah.name}${fromAyah ? ` :${fromAyah}` : ''}${toAyah && toAyah !== fromAyah ? `–${toAyah}` : ''}` : 'Add Surah / Ayat (optional)'}
+                </span>
+                {showQuranRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {showQuranRef && (
+                <div className="border border-slate-700/50 bg-slate-800/40 rounded-lg p-3 space-y-3">
+                  {/* Surah search */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Search Surah</label>
+                    <Input
+                      value={surahSearch}
+                      onChange={e => { setSurahSearch(e.target.value); setSelectedSurah(null); }}
+                      placeholder="e.g. Al-Kahf or 18"
+                      className="bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500 h-8 text-xs"
+                    />
+                    {surahSearch && !selectedSurah && (
+                      <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 divide-y divide-slate-800">
+                        {filteredSurahs.length === 0 ? (
+                          <p className="text-xs text-slate-500 p-2 text-center">No surah found</p>
+                        ) : filteredSurahs.map(s => (
+                          <button
+                            key={s.n}
+                            type="button"
+                            onClick={() => { setSelectedSurah(s); setSurahSearch(s.name); setFromAyah(''); setToAyah(''); }}
+                            className="w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-800 text-slate-200 cursor-pointer text-left transition-colors"
+                          >
+                            <span><span className="text-slate-500 mr-1.5">{s.n}.</span>{s.name}</span>
+                            <span className="text-slate-500">{s.ayahs} ayahs</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedSurah && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span className="text-xs text-emerald-400 font-semibold">{selectedSurah.n}. {selectedSurah.name}</span>
+                        <span className="text-[9px] text-slate-500 ml-auto">{selectedSurah.ayahs} ayahs</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ayat range */}
+                  {selectedSurah && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">From Ayah</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={selectedSurah.ayahs}
+                          value={fromAyah}
+                          onChange={e => setFromAyah(e.target.value)}
+                          placeholder={`1–${selectedSurah.ayahs}`}
+                          className="bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500 h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">To Ayah</label>
+                        <Input
+                          type="number"
+                          min={fromAyah ? parseInt(fromAyah) : 1}
+                          max={selectedSurah.ayahs}
+                          value={toAyah}
+                          onChange={e => setToAyah(e.target.value)}
+                          placeholder={`up to ${selectedSurah.ayahs}`}
+                          className="bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

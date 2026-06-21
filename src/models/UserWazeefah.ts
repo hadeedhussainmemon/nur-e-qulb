@@ -6,6 +6,12 @@ export interface IUserWazeefah extends Document {
   title: string;
   description?: string;
   instructions?: string[];
+  quranRef?: {
+    surahNumber: number;
+    surahName: string;
+    fromAyah?: number;
+    toAyah?: number;
+  };
   targetCount: number;
   completions: {
     date: string; // Format: 'YYYY-MM-DD'
@@ -23,6 +29,12 @@ const UserWazeefahSchema = new Schema<IUserWazeefah>(
     title: { type: String, required: true },
     description: { type: String },
     instructions: [{ type: String }],
+    quranRef: {
+      surahNumber: { type: Number },
+      surahName: { type: String },
+      fromAyah: { type: Number },
+      toAyah: { type: Number },
+    },
     targetCount: { type: Number, default: 33, required: true },
     completions: [
       {

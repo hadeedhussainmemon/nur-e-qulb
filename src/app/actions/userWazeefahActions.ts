@@ -76,7 +76,8 @@ export async function createCustomWazeefah(
   description: string,
   instructions: string[],
   targetCount: number,
-  reminderTime: string
+  reminderTime: string,
+  quranRef?: { surahNumber: number; surahName: string; fromAyah?: number; toAyah?: number } | null
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -91,6 +92,7 @@ export async function createCustomWazeefah(
       title,
       description,
       instructions: instructions || [],
+      quranRef: quranRef || undefined,
       targetCount: targetCount || 33,
       reminderTime: reminderTime || 'Fajr',
       isCustom: true,

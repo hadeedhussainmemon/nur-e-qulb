@@ -40,7 +40,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
                 <span className="text-sm font-medium">Pending Wazeefahs</span>
-                <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">{pendingWazeefahs.length}</span>
+                <span className="font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">{pendingWazeefahs.data.length}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
                 <span className="text-sm font-medium">Total Users</span>
@@ -61,13 +61,13 @@ export default async function AdminDashboardPage() {
         <div className="lg:col-span-2 space-y-6">
           <h2 className="text-2xl font-bold border-b pb-4">Pending Approvals</h2>
           
-          {pendingWazeefahs.length === 0 ? (
+          {pendingWazeefahs.data.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
               No pending submissions to review.
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingWazeefahs.map((w: any) => (
+              {pendingWazeefahs.data.map((w: any) => (
                 <Card key={w._id} className="border-amber-200 dark:border-amber-900 bg-amber-50/30 dark:bg-amber-950/10">
                   <CardHeader className="pb-3 border-b border-amber-100 dark:border-amber-900/50">
                     <div className="flex justify-between items-start">

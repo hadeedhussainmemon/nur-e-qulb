@@ -106,11 +106,14 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchHijriDate() {
       try {
-        const today = new Date();
-        const dd = String(today.getDate()).padStart(2, '0');
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const yyyy = today.getFullYear();
-        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}?adjustment=${hijriAdjustment}`);
+        const adjustedDate = new Date();
+        adjustedDate.setDate(adjustedDate.getDate() + hijriAdjustment); // Shift the target date by the adjustment
+        
+        const dd = String(adjustedDate.getDate()).padStart(2, '0');
+        const mm = String(adjustedDate.getMonth() + 1).padStart(2, '0');
+        const yyyy = adjustedDate.getFullYear();
+        
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}`);
         if (res.ok) {
           const json = await res.json();
           const h = json?.data?.hijri;
@@ -119,7 +122,7 @@ export default function Dashboard() {
       } catch {}
     }
     fetchHijriDate();
-  }, []);
+  }, [hijriAdjustment]);
 
   // Sync city/country if session loads later
   useEffect(() => {

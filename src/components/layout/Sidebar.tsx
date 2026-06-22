@@ -16,6 +16,7 @@ import {
   BookMarked,
   Calendar,
   CircleDot,
+  Calculator,
 } from 'lucide-react';
 
 const routes = [
@@ -28,6 +29,8 @@ const routes = [
   { label: 'Family',           icon: Users,           href: '/family',   color: 'text-indigo-400'  },
   { label: 'Tasbeeh',          icon: CircleDot,       href: '/tasbih',   color: 'text-purple-400'  },
   { label: 'Islamic Calendar', icon: Calendar,        href: '/calendar', color: 'text-violet-400'  },
+  { label: 'Zakat',            icon: Calculator,      href: '/zakat',    color: 'text-amber-400'   },
+  { label: 'Community',        icon: Users,           href: '/community',color: 'text-blue-500'    },
   { label: 'Settings',         icon: Settings,        href: '/settings', color: 'text-slate-400'   },
 ];
 

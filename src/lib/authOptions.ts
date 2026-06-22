@@ -5,6 +5,18 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import bcrypt from 'bcryptjs';
 
+interface DbUser {
+  _id: any;
+  name: string;
+  email: string;
+  role: string;
+  gender: string;
+  onboardingCompleted: boolean;
+  hijriAdjustment: number;
+  location?: { city: string; country: string };
+  settingsId?: any;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -83,20 +95,22 @@ export const authOptions: NextAuthOptions = {
       // On first sign-in (user object exists) OR explicit update trigger — hit the DB
       if (user || trigger === 'update') {
         await connectToDatabase();
-        const dbUser = await User.findOne({ email: token.email }).populate('settingsId').lean();
-        if (dbUser) {
-          token.id = (dbUser as any)._id.toString();
-          token.name = (dbUser as any).name;
-          token.role = (dbUser as any).role || 'user';
-          token.gender = (dbUser as any).gender || 'other';
-          token.onboardingCompleted = (dbUser as any).onboardingCompleted ?? false;
-          token.hijriAdjustment = (dbUser as any).hijriAdjustment ?? 0;
-          token.location = (dbUser as any).location ? {
-            city: (dbUser as any).location.city,
-            country: (dbUser as any).location.country,
+        const dbUserMatch = await User.findOne({ email: token.email }).populate('settingsId').lean();
+        
+        if (dbUserMatch) {
+          const dbUser = dbUserMatch as unknown as DbUser;
+          token.id = dbUser._id.toString();
+          token.name = dbUser.name;
+          token.role = dbUser.role || 'user';
+          token.gender = dbUser.gender || 'other';
+          token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
+          token.hijriAdjustment = dbUser.hijriAdjustment ?? 0;
+          token.location = dbUser.location ? {
+            city: dbUser.location.city,
+            country: dbUser.location.country,
           } : null;
-          token.settings = (dbUser as any).settingsId
-            ? JSON.parse(JSON.stringify((dbUser as any).settingsId))
+          token.settings = dbUser.settingsId
+            ? JSON.parse(JSON.stringify(dbUser.settingsId))
             : null;
         } else if (user) {
           token.id = user.id;
@@ -114,13 +128,14 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).gender = token.gender;
-        (session.user as any).location = token.location;
-        (session.user as any).settings = token.settings;
-        (session.user as any).onboardingCompleted = token.onboardingCompleted ?? false;
-        (session.user as any).hijriAdjustment = token.hijriAdjustment ?? 0;
+        const u = session.user as any;
+        u.id = token.id;
+        u.role = token.role;
+        u.gender = token.gender;
+        u.onboardingCompleted = token.onboardingCompleted;
+        u.hijriAdjustment = token.hijriAdjustment;
+        u.location = token.location;
+        u.settings = token.settings;
       }
       return session;
     },

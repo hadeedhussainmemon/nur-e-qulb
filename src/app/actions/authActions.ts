@@ -160,7 +160,7 @@ export async function updateUserLocation(city: string, country: string) {
     await connectToDatabase();
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
-      { location: { city, country, latitude: 0, longitude: 0 } },
+      { 'location.city': city, 'location.country': country },
       { new: true }
     ).lean();
 
@@ -179,7 +179,7 @@ export async function updateUserProfile(name: string, gender: 'male' | 'female' 
     await connectToDatabase();
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
-      { name, gender, location: { city, country, latitude: 0, longitude: 0 }, hijriAdjustment },
+      { name, gender, 'location.city': city, 'location.country': country, hijriAdjustment },
       { new: true }
     ).lean();
 

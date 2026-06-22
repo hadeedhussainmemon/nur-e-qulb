@@ -65,7 +65,7 @@ export async function getDashboardData(localTodayDateString: string) {
       getQuranBookmarks(),
       getQuranProgress(),
       getUserWazeefahs(),
-      getFamilyDetails(session.user.email),
+      getFamilyDetails(),
       getApprovedWazeefahs(),
     ]);
 

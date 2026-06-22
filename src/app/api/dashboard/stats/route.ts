@@ -126,8 +126,6 @@ async function syncPastMissedPrayers(user: any) {
     console.error('Error syncing past missed prayers:', error);
   }
 }
-
-}
 import { checkRateLimit } from '@/lib/rateLimit';
 
 export const GET = withLogging(async function GET(request: NextRequest) {

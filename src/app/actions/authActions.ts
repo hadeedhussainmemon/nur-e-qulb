@@ -16,12 +16,19 @@ import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
 import { z } from 'zod';
 
 const settingsSchema = z.object({
-  theme: z.enum(['light', 'dark', 'system']).optional(),
+  theme: z.string().optional(),
   fontFamily: z.string().optional(),
   fontSize: z.number().min(12).max(32).optional(),
   language: z.string().optional(),
   notificationsEnabled: z.boolean().optional(),
-  prayerCalculationMethod: z.number().optional(),
+  notifications: z.object({
+    prayerReminders: z.boolean().optional(),
+    dailyAyah: z.boolean().optional(),
+    dailyHadith: z.boolean().optional(),
+    fridayReminders: z.boolean().optional(),
+    ramadanReminders: z.boolean().optional(),
+  }).optional(),
+  prayerCalculationMethod: z.string().optional(),
   madhab: z.string().optional(),
   quranTranslation: z.string().optional(),
 });
@@ -58,45 +65,28 @@ export async function getDashboardData(localTodayDateString: string) {
       getQuranBookmarks(),
       getQuranProgress(),
       getUserWazeefahs(),
-      getFamilyDetails(),
-      getApprovedWazeefahs()
+      getFamilyDetails(session.user.email),
+      getApprovedWazeefahs(),
     ]);
 
     // Extract values with fallbacks for failures
     const user = results[0].status === 'fulfilled' ? results[0].value : null;
     if (!user) return null;
 
-    const streaks = results[1].status === 'fulfilled' ? results[1].value : { current: 0, best: 0 };
-    const log = results[2].status === 'fulfilled' ? results[2].value : null;
-    const readData = results[3].status === 'fulfilled' ? results[3].value : null;
-    const fastingData = results[4].status === 'fulfilled' ? results[4].value : { totalFasts: 0, missedFasts: 0 };
-    const bookmarks = results[5].status === 'fulfilled' ? results[5].value : [];
-    const progress = results[6].status === 'fulfilled' ? results[6].value : null;
-    const wazeefahs = results[7].status === 'fulfilled' ? results[7].value : [];
-    const familyData = results[8].status === 'fulfilled' ? results[8].value : null;
-    const approvedWazeefahs = results[9].status === 'fulfilled' ? results[9].value : [];
-
-    // Log individual failures for debugging
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        console.warn(`Dashboard data fetch failed at index ${index}:`, result.reason);
-      }
-    });
-
     return {
       user: JSON.parse(JSON.stringify(user)),
-      streaks,
-      log,
-      readData,
-      fastingData,
-      bookmarksCount: bookmarks ? bookmarks.length : 0,
-      quranProgress: progress,
-      wazeefahs,
-      family: familyData,
-      suggestedWazeefahs: approvedWazeefahs || []
+      streaks: results[1].status === 'fulfilled' ? results[1].value : { current: 0, highest: 0, history: {} },
+      todayLog: results[2].status === 'fulfilled' ? results[2].value : null,
+      lastRead: results[3].status === 'fulfilled' ? results[3].value : null,
+      fasting: results[4].status === 'fulfilled' ? results[4].value : null,
+      bookmarks: results[5].status === 'fulfilled' ? results[5].value : [],
+      quranProgress: results[6].status === 'fulfilled' ? results[6].value : null,
+      wazeefahs: results[7].status === 'fulfilled' ? results[7].value : [],
+      family: results[8].status === 'fulfilled' ? results[8].value : null,
+      approvedWazeefahs: results[9].status === 'fulfilled' ? results[9].value : [],
     };
   } catch (error) {
-    console.error('Error in getDashboardData:', error);
+    console.error('Error getting dashboard data:', error);
     return null;
   }
 }
@@ -126,7 +116,7 @@ export async function updateUserSettings(data: any) {
 
     const parseResult = settingsSchema.safeParse(data);
     if (!parseResult.success) {
-      throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+      throw new Error(`Validation Error: ${parseResult.error.message}`);
     }
 
     await connectToDatabase();

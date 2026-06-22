@@ -450,7 +450,7 @@ export async function getPrayerHeatmapData() {
 
     // Load past 120 days of logs for heatmap
     const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - 120);
+    sinceDate.setDate(sinceDate.getDate() - 365);
     const sinceDateStr = sinceDate.toISOString().split('T')[0];
 
     const logs = await PrayerLog.find({

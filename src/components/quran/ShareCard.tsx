@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+// html2canvas is dynamically imported in handleDownload
 import { Download, Loader2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -24,6 +24,9 @@ export function ShareCard({ arabicText, translationText, reference, isOpen, onCl
     setIsGenerating(true);
 
     try {
+      // Dynamically import html2canvas to reduce initial bundle size
+      const html2canvas = (await import('html2canvas')).default;
+
       const canvas = await html2canvas(cardRef.current, {
         scale: 2, // High resolution
         useCORS: true,

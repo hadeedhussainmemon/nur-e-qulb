@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
+import { withLogging } from '@/lib/logger';
 import { PrayerLog } from '@/models/PrayerLog';
 import { LastRead } from '@/models/LastRead';
 import { FastingLog } from '@/models/FastingLog';
@@ -111,7 +112,8 @@ async function syncPastMissedPrayers(user: any) {
   }
 }
 
-export async function GET(request: NextRequest) {
+}
+export const GET = withLogging(async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -124,7 +126,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Failed to fetch dashboard stats' }, { status: 500 });
     }
 
     // 1. Sync missed prayers ONLY if not already synced today (Caching mechanism)
@@ -299,4 +301,4 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching dashboard stats API:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
-}
+});

@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { withLogging } from '@/lib/logger';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name is too long'),
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'An unexpected error occurred during registration.' }, { status: 500 });
     }
 
     const userId = new mongoose.Types.ObjectId();

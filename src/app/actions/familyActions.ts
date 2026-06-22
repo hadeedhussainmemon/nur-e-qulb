@@ -28,28 +28,45 @@ export async function getFamilyDetails() {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user || !user.familyId) return null;
 
-    const group = await FamilyGroup.findById(user.familyId).populate('members', 'name email role');
+    const group = await FamilyGroup.findById(user.familyId).populate('members', 'name email role').lean();
     if (!group) return null;
 
     const localTodayDateString = new Date().toLocaleDateString('en-CA');
-    const enrichedMembers = await Promise.all(group.members.map(async (member: any) => {
-      // 1. Get today's prayer completion
-      const log = await PrayerLog.findOne({ userId: member._id, date: localTodayDateString }).lean();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const sevenDaysAgoString = sevenDaysAgo.toLocaleDateString('en-CA');
+
+    // OPTIMIZED: Fetch all prayer logs in ONE query instead of per-member queries
+    const memberIds = (group.members as any[]).map((m: any) => m._id);
+    const allLogs = await PrayerLog.find({
+      userId: { $in: memberIds },
+      date: { $gte: sevenDaysAgoString, $lte: localTodayDateString }
+    }).lean();
+
+    // Group logs by userId for O(1) lookup
+    const logsByUserId = new Map<string, any[]>();
+    allLogs.forEach((log: any) => {
+      const key = log.userId.toString();
+      if (!logsByUserId.has(key)) logsByUserId.set(key, []);
+      logsByUserId.get(key)!.push(log);
+    });
+
+    // Compute analytics efficiently
+    const enrichedMembers = (group.members as any[]).map((member: any) => {
+      const memberLogs = logsByUserId.get(member._id.toString()) || [];
+      
+      // Today's completion
+      const todayLog = memberLogs.find(l => l.date === localTodayDateString);
       let todayCompletion = 0;
-      if (log) {
-        const prayers = [log.fajr, log.dhuhr, log.asr, log.maghrib, log.isha];
+      if (todayLog) {
+        const prayers = [todayLog.fajr, todayLog.dhuhr, todayLog.asr, todayLog.maghrib, todayLog.isha];
         const done = prayers.filter(p => p === 'completed' || p === 'excused').length;
         todayCompletion = Math.round((done / 5) * 100);
       }
 
-      // 2. Fetch last 7 days of logs to get a weekly completion count
-      const lastWeekLogs = await PrayerLog.find({
-        userId: member._id,
-        date: { $lte: localTodayDateString }
-      }).sort({ date: -1 }).limit(7).lean();
-      
+      // Weekly completion
       let weekCompleted = 0;
-      lastWeekLogs.forEach((wl: any) => {
+      memberLogs.forEach((wl: any) => {
         const prayers = [wl.fajr, wl.dhuhr, wl.asr, wl.maghrib, wl.isha];
         weekCompleted += prayers.filter(p => p === 'completed').length;
       });
@@ -61,7 +78,7 @@ export async function getFamilyDetails() {
           weekCompleted,
         }
       };
-    }));
+    });
 
     const result = JSON.parse(JSON.stringify(group));
     result.members = enrichedMembers;

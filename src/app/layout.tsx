@@ -3,7 +3,7 @@ import { Inter, Amiri, Outfit } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SessionProvider } from '@/components/providers/SessionProvider';
-
+import { SWRProvider } from '@/components/providers/SWRProvider';
 
 import { ThemeSyncEngine } from '@/components/layout/ThemeSyncEngine';
 
@@ -87,17 +87,19 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${amiri.variable} ${outfit.variable} antialiased font-sans`}>
         <SessionProvider>
-          <ThemeSyncEngine />
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <AppShell>
-              {children}
-            </AppShell>
-          </ThemeProvider>
+          <SWRProvider>
+            <ThemeSyncEngine />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <AppShell>
+                {children}
+              </AppShell>
+            </ThemeProvider>
+          </SWRProvider>
         </SessionProvider>
       </body>
     </html>

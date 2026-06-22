@@ -53,7 +53,7 @@ export interface AlAdhanResponse {
 export async function fetchPrayerTimesByCity(city: string, country: string, method: number = 2): Promise<AlAdhanResponse | null> {
   try {
     const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 43200 }, // Cache for 12 hours - prayer times don't change hourly
     });
 
     if (!res.ok) {
@@ -71,7 +71,7 @@ export async function fetchPrayerTimesByCity(city: string, country: string, meth
 export async function fetchPrayerTimesByCoordinates(lat: number, lng: number, method: number = 2): Promise<AlAdhanResponse | null> {
   try {
     const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lng}&method=${method}`, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      next: { revalidate: 43200 }, // Cache for 12 hours - prayer times don't change hourly
     });
 
     if (!res.ok) {
@@ -122,56 +122,72 @@ async function syncPastMissedPrayers(user: any) {
     const logs = await PrayerLog.find({ userId: user._id, date: { $in: dateStrings } });
     const logsMap = new Map(logs.map(l => [l.date, l]));
     
+    // Collect all period dates in one query
+    const periodDates = await PeriodTracker.find({
+      userId: user._id,
+      $or: [
+        { startDate: { $lte: dateStrings[dateStrings.length - 1] }, endDate: { $gte: dateStrings[0] } },
+        { isActive: true, startDate: { $lte: dateStrings[dateStrings.length - 1] } }
+      ]
+    }).lean();
+
+    const periodDateSet = new Set<string>();
+    periodDates.forEach((cycle: any) => {
+      const cycleStart = new Date(cycle.startDate);
+      const cycleEnd = new Date(cycle.endDate || new Date());
+      const current = new Date(cycleStart);
+      while (current <= cycleEnd) {
+        periodDateSet.add(current.toLocaleDateString('en-CA'));
+        current.setDate(current.getDate() + 1);
+      }
+    });
+
+    // Batch operations for MissedPrayer
+    const missedPrayerBulkOps: any[] = [];
+    const prayerLogBulkOps: any[] = [];
+
     for (const dateStr of dateStrings) {
-      const isPeriodDay = await checkIsPeriodDate(user._id, dateStr);
+      const isPeriodDay = periodDateSet.has(dateStr);
       const log = logsMap.get(dateStr);
       
       if (!log) {
         // Create missed log
-        await PrayerLog.create({
-          userId: user._id,
-          date: dateStr,
-          fajr: isPeriodDay ? 'excused' : 'missed',
-          dhuhr: isPeriodDay ? 'excused' : 'missed',
-          asr: isPeriodDay ? 'excused' : 'missed',
-          maghrib: isPeriodDay ? 'excused' : 'missed',
-          isha: isPeriodDay ? 'excused' : 'missed',
-          completionPercentage: isPeriodDay ? 100 : 0
+        prayerLogBulkOps.push({
+          insertOne: {
+            document: {
+              userId: user._id,
+              date: dateStr,
+              fajr: isPeriodDay ? 'excused' : 'missed',
+              dhuhr: isPeriodDay ? 'excused' : 'missed',
+              asr: isPeriodDay ? 'excused' : 'missed',
+              maghrib: isPeriodDay ? 'excused' : 'missed',
+              isha: isPeriodDay ? 'excused' : 'missed',
+              completionPercentage: isPeriodDay ? 100 : 0
+            }
+          }
         });
         
         if (!isPeriodDay) {
+          // Add missed prayer batch operations
           for (const p of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) {
-            await MissedPrayer.findOneAndUpdate(
-              { userId: user._id, prayerName: p } as any,
-              { $inc: { count: 1 } },
-              { upsert: true }
-            );
+            missedPrayerBulkOps.push({
+              updateOne: {
+                filter: { userId: user._id, prayerName: p },
+                update: { $inc: { count: 1 } },
+                upsert: true
+              }
+            });
           }
-        }
-      } else {
-        const logAny = log as any;
-        let updated = false;
-        for (const p of ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) {
-          if (logAny[p] === 'pending') {
-            logAny[p] = isPeriodDay ? 'excused' : 'missed';
-            updated = true;
-            if (!isPeriodDay) {
-              await MissedPrayer.findOneAndUpdate(
-                { userId: user._id, prayerName: p } as any,
-                { $inc: { count: 1 } },
-                { upsert: true }
-              );
-            }
-          }
-        }
-        
-        if (updated) {
-          const list = [log.fajr, log.dhuhr, log.asr, log.maghrib, log.isha];
-          const done = list.filter(status => status === 'completed' || status === 'excused').length;
-          log.completionPercentage = Math.round((done / 5) * 100);
-          await log.save();
         }
       }
+    }
+
+    // Execute batch operations
+    if (missedPrayerBulkOps.length > 0) {
+      await MissedPrayer.bulkWrite(missedPrayerBulkOps);
+    }
+    if (prayerLogBulkOps.length > 0) {
+      await PrayerLog.bulkWrite(prayerLogBulkOps);
     }
   } catch (error) {
     console.error('Error syncing past missed prayers:', error);

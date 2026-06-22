@@ -3,12 +3,14 @@
 import React, { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Navbar } from '@/components/layout/Navbar';
-import { GlobalAudioPlayer } from '@/components/quran/GlobalAudioPlayer';
-import { WazeefahReminderEngine } from '@/components/layout/WazeefahReminderEngine';
-import { BottomNav } from '@/components/layout/BottomNav';
+import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
+
+const Sidebar = dynamic(() => import('@/components/layout/Sidebar').then(mod => mod.Sidebar), { ssr: true });
+const Navbar = dynamic(() => import('@/components/layout/Navbar').then(mod => mod.Navbar), { ssr: true });
+const BottomNav = dynamic(() => import('@/components/layout/BottomNav').then(mod => mod.BottomNav), { ssr: true });
+const GlobalAudioPlayer = dynamic(() => import('@/components/quran/GlobalAudioPlayer').then(mod => mod.GlobalAudioPlayer), { ssr: false });
+const WazeefahReminderEngine = dynamic(() => import('@/components/layout/WazeefahReminderEngine').then(mod => mod.WazeefahReminderEngine), { ssr: false });
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();

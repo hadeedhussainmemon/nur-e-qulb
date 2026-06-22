@@ -21,18 +21,8 @@ export async function getDashboardData(localTodayDateString: string) {
 
     await connectToDatabase();
 
-    const [
-      user,
-      streaks,
-      log,
-      readData,
-      fastingData,
-      bookmarks,
-      progress,
-      wazeefahs,
-      familyData,
-      approvedWazeefahs
-    ] = await Promise.all([
+    // Use Promise.allSettled to handle partial failures gracefully
+    const results = await Promise.allSettled([
       User.findOne({ email: session.user.email }).populate('settingsId').lean(),
       getPrayerStreaks(localTodayDateString),
       getTodayPrayerLog(localTodayDateString),
@@ -45,7 +35,26 @@ export async function getDashboardData(localTodayDateString: string) {
       getApprovedWazeefahs()
     ]);
 
+    // Extract values with fallbacks for failures
+    const user = results[0].status === 'fulfilled' ? results[0].value : null;
     if (!user) return null;
+
+    const streaks = results[1].status === 'fulfilled' ? results[1].value : { current: 0, best: 0 };
+    const log = results[2].status === 'fulfilled' ? results[2].value : null;
+    const readData = results[3].status === 'fulfilled' ? results[3].value : null;
+    const fastingData = results[4].status === 'fulfilled' ? results[4].value : { totalFasts: 0, missedFasts: 0 };
+    const bookmarks = results[5].status === 'fulfilled' ? results[5].value : [];
+    const progress = results[6].status === 'fulfilled' ? results[6].value : null;
+    const wazeefahs = results[7].status === 'fulfilled' ? results[7].value : [];
+    const familyData = results[8].status === 'fulfilled' ? results[8].value : null;
+    const approvedWazeefahs = results[9].status === 'fulfilled' ? results[9].value : [];
+
+    // Log individual failures for debugging
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.warn(`Dashboard data fetch failed at index ${index}:`, result.reason);
+      }
+    });
 
     return {
       user: JSON.parse(JSON.stringify(user)),

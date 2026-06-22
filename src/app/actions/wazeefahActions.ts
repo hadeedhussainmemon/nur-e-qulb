@@ -29,7 +29,7 @@ export async function getApprovedWazeefahs(category?: string, page = 1, limit = 
   }
 }
 
-export async function getPendingWazeefahs() {
+export async function getPendingWazeefahs(page = 1, limit = 20) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || (session.user as any).role !== 'admin') {
@@ -37,11 +37,24 @@ export async function getPendingWazeefahs() {
     }
     
     await connectToDatabase();
-    const wazeefahs = await Wazeefah.find({ isApproved: false }).populate('submittedBy', 'name').sort({ createdAt: 1 }).lean().lean();
-    return JSON.parse(JSON.stringify(wazeefahs));
+    const skip = (page - 1) * limit;
+    const wazeefahs = await Wazeefah.find({ isApproved: false })
+      .populate('submittedBy', 'name')
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    
+    // Return total count for pagination UI
+    const total = await Wazeefah.countDocuments({ isApproved: false });
+    
+    return { 
+      data: JSON.parse(JSON.stringify(wazeefahs)),
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    };
   } catch (error) {
     console.error('Failed to get pending wazeefahs:', error);
-    return [];
+    return { data: [], pagination: { page: 1, limit, total: 0, pages: 0 } };
   }
 }
 

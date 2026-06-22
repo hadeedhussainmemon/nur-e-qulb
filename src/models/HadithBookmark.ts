@@ -20,5 +20,7 @@ const HadithBookmarkSchema = new Schema<IHadithBookmark>(
 );
 
 HadithBookmarkSchema.index({ userId: 1, collectionName: 1, hadithNumber: 1 }, { unique: true });
+// Optimize sorting by createdAt
+HadithBookmarkSchema.index({ userId: 1, createdAt: -1 });
 
 export const HadithBookmark: Model<IHadithBookmark> = mongoose.models.HadithBookmark || mongoose.model<IHadithBookmark>('HadithBookmark', HadithBookmarkSchema);

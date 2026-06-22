@@ -18,5 +18,7 @@ const QuranBookmarkSchema = new Schema<IQuranBookmark>(
 );
 
 QuranBookmarkSchema.index({ userId: 1, surahNumber: 1, ayahNumber: 1 }, { unique: true });
+// Optimize sorting by createdAt
+QuranBookmarkSchema.index({ userId: 1, createdAt: -1 });
 
 export const QuranBookmark: Model<IQuranBookmark> = mongoose.models.QuranBookmark || mongoose.model<IQuranBookmark>('QuranBookmark', QuranBookmarkSchema);

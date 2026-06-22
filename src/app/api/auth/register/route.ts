@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     // 1. Input Validation
     const parseResult = registerSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json({ error: parseResult.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: parseResult.error.message }, { status: 400 });
     }
     
     const { name, email, password, gender, city, country, madhab, calculationMethod } = parseResult.data;

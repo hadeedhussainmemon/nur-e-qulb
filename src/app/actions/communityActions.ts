@@ -84,7 +84,7 @@ export async function createPost(formData: FormData) {
     const category = formData.get('category') as string;
 
     const parseResult = postSchema.safeParse({ title, content, category });
-    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.message}`);
 
     const post = await Post.create({
       userId: user._id,
@@ -111,7 +111,7 @@ export async function createComment(postId: string, content: string) {
     if (!user) throw new Error('User not found');
 
     const parseResult = commentSchema.safeParse({ postId, content });
-    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.message}`);
 
     await Comment.create({
       userId: user._id,

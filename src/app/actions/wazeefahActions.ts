@@ -92,7 +92,7 @@ export async function submitWazeefah(formData: FormData) {
     const parseResult = wazeefahSchema.safeParse({ title, description, category, instructions });
     
     if (!parseResult.success) {
-      throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+      throw new Error(`Validation Error: ${parseResult.error.message}`);
     }
 
     await Wazeefah.create({

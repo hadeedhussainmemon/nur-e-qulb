@@ -182,7 +182,7 @@ export async function updateUserLocation(cityInput: string, countryInput: string
     if (!session?.user?.email) throw new Error('Unauthorized');
 
     const parseResult = locationSchema.safeParse({ city: cityInput, country: countryInput });
-    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.message}`);
     const { city, country } = parseResult.data;
 
     await connectToDatabase();
@@ -212,7 +212,7 @@ export async function updateUserProfile(nameInput: string, genderInput: string, 
       hijriAdjustment: hijriAdjustmentInput 
     });
     
-    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.message}`);
     const { name, gender, city, country, hijriAdjustment } = parseResult.data;
 
     await connectToDatabase();

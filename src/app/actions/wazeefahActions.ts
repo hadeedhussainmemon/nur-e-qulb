@@ -6,14 +6,22 @@ import connectToDatabase from '@/lib/mongodb';
 import { Wazeefah } from '@/models/Wazeefah';
 import { revalidatePath } from 'next/cache';
 
-export async function getApprovedWazeefahs(category?: string) {
+export async function getApprovedWazeefahs(category?: string, page = 1, limit = 20) {
   try {
     await connectToDatabase();
     const query: any = { isApproved: true };
     if (category) {
       query.category = category;
     }
-    const wazeefahs = await Wazeefah.find(query).populate('submittedBy', 'name').sort({ createdAt: -1 }).lean().lean();
+    
+    const skip = (page - 1) * limit;
+    const wazeefahs = await Wazeefah.find(query)
+      .populate('submittedBy', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
     return JSON.parse(JSON.stringify(wazeefahs));
   } catch (error) {
     console.error('Failed to get wazeefahs:', error);

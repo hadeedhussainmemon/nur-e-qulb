@@ -54,7 +54,7 @@ export async function isQuranBookmarked(surahNumber: number, ayahNumber: number)
   }
 }
 
-export async function getQuranBookmarks() {
+export async function getQuranBookmarks(page = 1, limit = 20) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return [];
@@ -63,7 +63,13 @@ export async function getQuranBookmarks() {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const bookmarks = await QuranBookmark.find({ userId: user._id }).sort({ createdAt: -1 }).lean();
+    const skip = (page - 1) * limit;
+    const bookmarks = await QuranBookmark.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
     return JSON.parse(JSON.stringify(bookmarks));
   } catch (error) {
     console.error('Error fetching Quran bookmarks:', error);
@@ -119,7 +125,7 @@ export async function isHadithBookmarked(collectionName: string, hadithNumber: s
   }
 }
 
-export async function getHadithBookmarks() {
+export async function getHadithBookmarks(page = 1, limit = 20) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) return [];
@@ -128,7 +134,13 @@ export async function getHadithBookmarks() {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const bookmarks = await HadithBookmark.find({ userId: user._id }).sort({ createdAt: -1 }).lean();
+    const skip = (page - 1) * limit;
+    const bookmarks = await HadithBookmark.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+      
     return JSON.parse(JSON.stringify(bookmarks));
   } catch (error) {
     console.error('Error fetching Hadith bookmarks:', error);

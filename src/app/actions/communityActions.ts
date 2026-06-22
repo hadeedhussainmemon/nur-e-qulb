@@ -24,7 +24,7 @@ export async function getPosts(page = 1, limit = 20, category?: string) {
   try {
     await connectToDatabase();
     
-    const query = category && category !== 'all' ? { category } : {};
+    const query: Record<string, any> = category && category !== 'all' ? { category } : {};
     const skip = (page - 1) * limit;
 
     const posts = await Post.find(query)

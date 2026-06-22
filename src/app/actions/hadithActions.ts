@@ -19,7 +19,7 @@ export async function fetchHadithCollections() {
 
 export async function fetchHadithsByCollection(collection: string, limit = 20) {
   try {
-    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache', next: { revalidate: 86400 } });
     if (!res.ok) throw new Error(`Failed to fetch ${collection}`);
     
     const data = await res.json();
@@ -36,7 +36,7 @@ export async function fetchHadithsByCollection(collection: string, limit = 20) {
 
 export async function fetchHadithCategories(collection: string) {
   try {
-    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache', next: { revalidate: 86400 } });
     if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
     
     const data = await res.json();
@@ -54,7 +54,7 @@ export async function fetchHadithCategories(collection: string) {
 
 export async function fetchHadithsByCategory(collection: string, bookNumber: string) {
   try {
-    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache', next: { revalidate: 86400 } });
     if (!res.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
     
     const data = await res.json();
@@ -75,7 +75,7 @@ export async function fetchHadithsByCategory(collection: string, bookNumber: str
 
 export async function fetchRandomHadith(collection: string = 'bukhari') {
   try {
-    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache', next: { revalidate: 86400 } });
     if (!res.ok) throw new Error('Failed to fetch random hadith');
     
     const data = await res.json();
@@ -94,7 +94,7 @@ export async function fetchRandomHadith(collection: string = 'bukhari') {
 
 export async function fetchSingleHadith(collection: string, hadithNumber: string) {
   try {
-    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+    const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache', next: { revalidate: 86400 } });
     if (!res.ok) throw new Error('Failed to fetch single hadith');
     
     const data = await res.json();

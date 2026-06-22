@@ -13,6 +13,33 @@ import { getQuranProgress } from '@/app/actions/quranProgressActions';
 import { getUserWazeefahs } from '@/app/actions/userWazeefahActions';
 import { getFamilyDetails } from '@/app/actions/familyActions';
 import { getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
+import { z } from 'zod';
+
+const settingsSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']).optional(),
+  fontFamily: z.string().optional(),
+  fontSize: z.number().min(12).max(32).optional(),
+  language: z.string().optional(),
+  notificationsEnabled: z.boolean().optional(),
+  prayerCalculationMethod: z.number().optional(),
+  madhab: z.string().optional(),
+  quranTranslation: z.string().optional(),
+});
+
+const profileSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+  gender: z.enum(['male', 'female', 'other']),
+  city: z.string().min(1, 'City is required').max(100),
+  country: z.string().min(1, 'Country is required').max(100),
+  hijriAdjustment: z.number().min(-5).max(5).default(0),
+});
+
+const locationSchema = z.object({
+  city: z.string().min(1, 'City is required').max(100),
+  country: z.string().min(1, 'Country is required').max(100),
+});
+
+const genderSchema = z.enum(['male', 'female', 'other']);
 
 export async function getDashboardData(localTodayDateString: string) {
   try {
@@ -92,21 +119,15 @@ export async function getCurrentUser() {
 }
 
 
-export async function updateUserSettings(data: {
-  madhab?: string;
-  prayerCalculationMethod?: string;
-  theme?: string;
-  notifications?: {
-    prayerReminders: boolean;
-    dailyAyah: boolean;
-    dailyHadith: boolean;
-    fridayReminders: boolean;
-    ramadanReminders: boolean;
-  };
-}) {
+export async function updateUserSettings(data: any) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
+
+    const parseResult = settingsSchema.safeParse(data);
+    if (!parseResult.success) {
+      throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    }
 
     await connectToDatabase();
     const user = await User.findOne({ email: session.user.email });
@@ -142,10 +163,14 @@ export async function updateUserSettings(data: {
   }
 }
 
-export async function updateUserGender(gender: 'male' | 'female' | 'other') {
+export async function updateUserGender(genderInput: string) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
+
+    const parseResult = genderSchema.safeParse(genderInput);
+    if (!parseResult.success) throw new Error('Invalid gender');
+    const gender = parseResult.data;
 
     await connectToDatabase();
     const user = await User.findOneAndUpdate(
@@ -161,10 +186,14 @@ export async function updateUserGender(gender: 'male' | 'female' | 'other') {
   }
 }
 
-export async function updateUserLocation(city: string, country: string) {
+export async function updateUserLocation(cityInput: string, countryInput: string) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
+
+    const parseResult = locationSchema.safeParse({ city: cityInput, country: countryInput });
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    const { city, country } = parseResult.data;
 
     await connectToDatabase();
     const user = await User.findOneAndUpdate(
@@ -180,10 +209,21 @@ export async function updateUserLocation(city: string, country: string) {
   }
 }
 
-export async function updateUserProfile(name: string, gender: 'male' | 'female' | 'other', city: string, country: string, hijriAdjustment: number = 0) {
+export async function updateUserProfile(nameInput: string, genderInput: string, cityInput: string, countryInput: string, hijriAdjustmentInput: number = 0) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
+
+    const parseResult = profileSchema.safeParse({ 
+      name: nameInput, 
+      gender: genderInput, 
+      city: cityInput, 
+      country: countryInput, 
+      hijriAdjustment: hijriAdjustmentInput 
+    });
+    
+    if (!parseResult.success) throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    const { name, gender, city, country, hijriAdjustment } = parseResult.data;
 
     await connectToDatabase();
     const user = await User.findOneAndUpdate(

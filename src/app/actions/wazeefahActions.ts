@@ -5,6 +5,14 @@ import { authOptions } from '@/lib/authOptions';
 import connectToDatabase from '@/lib/mongodb';
 import { Wazeefah } from '@/models/Wazeefah';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+
+const wazeefahSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(100),
+  description: z.string().min(10, 'Description must be at least 10 characters').max(500),
+  category: z.enum(['health', 'wealth', 'protection', 'forgiveness', 'success', 'general']),
+  instructions: z.array(z.string().min(1)).min(1, 'At least one instruction is required'),
+});
 
 export async function getApprovedWazeefahs(category?: string, page = 1, limit = 20) {
   try {
@@ -79,13 +87,19 @@ export async function submitWazeefah(formData: FormData) {
     
     // Parse instructions (assuming they are newline separated in the textarea)
     const rawInstructions = formData.get('instructions') as string;
-    const instructions = rawInstructions.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    const instructions = rawInstructions ? rawInstructions.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [];
+
+    const parseResult = wazeefahSchema.safeParse({ title, description, category, instructions });
+    
+    if (!parseResult.success) {
+      throw new Error(`Validation Error: ${parseResult.error.errors[0].message}`);
+    }
 
     await Wazeefah.create({
-      title,
-      description,
-      category: category as any,
-      instructions,
+      title: parseResult.data.title,
+      description: parseResult.data.description,
+      category: parseResult.data.category,
+      instructions: parseResult.data.instructions,
       submittedBy: user._id,
     });
 

@@ -99,12 +99,17 @@ export async function createFamilyGroup(name: string) {
     if (!user) throw new Error('User not found');
     if (user.familyId) throw new Error('You are already in a Family Group');
 
-    // Generate unique code
+    // Generate unique code with max retries to prevent infinite loop
     let joinCode = generateJoinCode();
     let codeExists = await FamilyGroup.findOne({ joinCode }).lean();
-    while (codeExists) {
+    let maxRetries = 10;
+    while (codeExists && maxRetries > 0) {
       joinCode = generateJoinCode();
       codeExists = await FamilyGroup.findOne({ joinCode }).lean();
+      maxRetries--;
+    }
+    if (maxRetries === 0) {
+      throw new Error('Failed to generate unique join code. Please try again.');
     }
 
     const group = await FamilyGroup.create({

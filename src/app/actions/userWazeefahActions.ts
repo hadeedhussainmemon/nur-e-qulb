@@ -17,7 +17,7 @@ export async function getUserWazeefahs() {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    const wazeefahs = await UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean().lean();
+    const wazeefahs = await UserWazeefah.find({ userId: user._id, isActive: true }).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(wazeefahs));
   } catch (error) {
     console.error('Failed to get user wazeefahs:', error);

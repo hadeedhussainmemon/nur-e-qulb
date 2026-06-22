@@ -7,17 +7,35 @@ export function withLogging(handler: RouteHandler): RouteHandler {
     const start = Date.now();
     const method = req.method;
     const url = req.nextUrl.pathname;
+    const timestamp = new Date().toISOString();
     
-    console.log(`[REQ] ${method} ${url} started`);
+    // Log request start in JSON
+    console.log(JSON.stringify({ level: 'info', type: 'request_start', method, url, timestamp }));
     
     try {
       const response = await handler(req, ...args);
       const duration = Date.now() - start;
-      console.log(`[RES] ${method} ${url} completed in ${duration}ms with status ${response.status}`);
+      const status = response.status;
+      
+      // Log request completion in JSON
+      console.log(JSON.stringify({ level: 'info', type: 'request_end', method, url, status, durationMs: duration, timestamp: new Date().toISOString() }));
+      
       return response;
-    } catch (error) {
+    } catch (error: any) {
       const duration = Date.now() - start;
-      console.error(`[ERR] ${method} ${url} failed in ${duration}ms:`, error);
+      
+      // Log errors in JSON
+      console.error(JSON.stringify({ 
+        level: 'error', 
+        type: 'request_error', 
+        method, 
+        url, 
+        durationMs: duration, 
+        error: error.message || String(error),
+        stack: error.stack,
+        timestamp: new Date().toISOString() 
+      }));
+      
       throw error;
     }
   };

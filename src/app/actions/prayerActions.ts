@@ -439,6 +439,21 @@ export async function updateQazaPrayer(prayerName: string, change: number) {
   }
 }
 
+import { unstable_cache } from 'next/cache';
+
+const getCachedHeatmapLogs = unstable_cache(
+  async (userIdStr: string, sinceDateStr: string) => {
+    await connectToDatabase();
+    const PrayerLog = (await import('@/models/PrayerLog')).PrayerLog;
+    return await PrayerLog.find({
+      userId: userIdStr,
+      date: { $gte: sinceDateStr }
+    }).select('date completionPercentage').lean();
+  },
+  ['prayer-heatmap-data'],
+  { revalidate: 86400 } // Cache for 24 hours
+);
+
 export async function getPrayerHeatmapData() {
   try {
     const session = await getServerSession(authOptions);
@@ -448,15 +463,12 @@ export async function getPrayerHeatmapData() {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) return [];
 
-    // Load past 120 days of logs for heatmap
+    // Load past 365 days of logs for heatmap
     const sinceDate = new Date();
     sinceDate.setDate(sinceDate.getDate() - 365);
     const sinceDateStr = sinceDate.toISOString().split('T')[0];
 
-    const logs = await PrayerLog.find({
-      userId: user._id,
-      date: { $gte: sinceDateStr }
-    }).select('date completionPercentage');
+    const logs = await getCachedHeatmapLogs(user._id.toString(), sinceDateStr);
 
     return logs.map(l => ({
       date: l.date,

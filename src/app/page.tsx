@@ -248,7 +248,7 @@ export default function Dashboard() {
       {/* Top Welcome / Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             As-salamu alaykum, <span className="text-emerald-450">{username}!</span>
           </h2>
           <p className="text-muted-foreground mt-0.5 text-xs md:text-sm font-medium">
@@ -257,7 +257,7 @@ export default function Dashboard() {
         </div>
         
         {/* Next Prayer Floating Widget */}
-        <Card className="bg-emerald-950/45 border border-emerald-500/20 text-white shadow-lg shadow-emerald-500/5 shrink-0 py-2.5 px-4 rounded-xl min-w-[200px]">
+        <Card className="bg-emerald-50/50 dark:bg-emerald-950/45 border border-emerald-500/20 text-foreground dark:text-white shadow-lg shadow-emerald-500/5 shrink-0 py-2.5 px-4 rounded-xl min-w-[200px]">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-emerald-500/15 text-emerald-400">
               <Clock className="w-4 h-4" />
@@ -281,9 +281,9 @@ export default function Dashboard() {
       <div className="space-y-2">
         <h3 className="text-sm font-bold text-slate-350 tracking-wider uppercase">Active Prayer</h3>
         {timesLoading || loadingDb ? (
-          <div className="h-20 bg-slate-900/50 border border-slate-800 animate-pulse rounded-xl" />
+          <div className="h-20 bg-muted animate-pulse rounded-xl" />
         ) : (
-          <Card className="relative overflow-hidden border-emerald-500/30 bg-emerald-950/20 dark:bg-emerald-950/10 shadow-sm ring-1 ring-emerald-500/20 rounded-xl">
+          <Card className="relative overflow-hidden border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/10 shadow-sm ring-1 ring-emerald-500/20 rounded-xl">
             {/* Mosque Silhouette SVG Background */}
             <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.08] pointer-events-none text-emerald-450 flex justify-end items-end p-1">
               <svg className="h-full w-full max-w-[200px]" viewBox="0 0 100 60" fill="currentColor">
@@ -303,7 +303,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
-                    <span className="font-bold text-base text-white">{activePrayerName}</span>
+                    <span className="font-bold text-base text-foreground">{activePrayerName}</span>
                     <span className="text-xs font-semibold text-emerald-405">
                       {formatTime12(start)} - {formatTime12(end)}
                     </span>
@@ -341,15 +341,15 @@ export default function Dashboard() {
       {/* Grid: Tasbeeh Counter & Active Wazeefahs */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Tasbeeh Counter Card */}
-        <Card className="border-slate-800 bg-slate-900/20 rounded-xl">
+        <Card>
           <div className="p-4 pb-2 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Tasbeeh Counter
               </h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">Click the bead to count your dhikr</p>
             </div>
-            <Link href="/tasbih" className="text-[10px] text-purple-400 hover:underline flex items-center gap-0.5 font-medium">
+            <Link href="/tasbih" className="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-0.5 font-medium">
               Full Counter <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
@@ -364,8 +364,8 @@ export default function Dashboard() {
                     onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
                     className={`px-3 py-1 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${
                       i === tasbihIdx
-                        ? 'bg-purple-600/20 text-purple-400 border-purple-500/40 shadow-sm'
-                        : 'border-slate-800 text-muted-foreground hover:border-slate-700'
+                        ? 'bg-purple-100 dark:bg-purple-600/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-500/40 shadow-sm'
+                        : 'border-border text-muted-foreground hover:border-foreground/20'
                     }`}
                   >
                     {d.label}
@@ -375,7 +375,7 @@ export default function Dashboard() {
 
               <div 
                 onClick={handleTasbihTap}
-                className="flex items-center gap-5 bg-slate-900/40 border border-slate-800 p-4 rounded-xl cursor-pointer hover:bg-slate-900/60 transition-colors select-none"
+                className="flex items-center gap-5 bg-muted/50 border border-border p-4 rounded-xl cursor-pointer hover:bg-muted transition-colors select-none"
               >
                 {/* Bead count circle (Solid purple matching layout) */}
                 <div className="relative w-16 h-16 rounded-full flex flex-col items-center justify-center bg-purple-600 text-white shrink-0 shadow-md hover:scale-105 transition-transform">
@@ -392,7 +392,7 @@ export default function Dashboard() {
 
                 {/* Stats */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-arabic text-lg text-white leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                  <p className="font-arabic text-lg text-foreground leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">Active Dhikr</p>
                   
                   <div className="flex flex-col mt-2">
@@ -406,15 +406,15 @@ export default function Dashboard() {
         </Card>
 
         {/* Active Wazeefahs Card */}
-        <Card className="border-slate-800 bg-slate-900/20 rounded-xl">
+        <Card>
           <div className="p-4 pb-2 flex flex-row items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Active Wazeefahs
               </h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">Your scheduled routines</p>
             </div>
-            <Link href="/wazeefahs" className="text-[10px] text-blue-400 hover:underline flex items-center gap-0.5 font-medium">
+            <Link href="/wazeefahs" className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 font-medium">
               Manage <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
@@ -451,14 +451,14 @@ export default function Dashboard() {
                   };
 
                   return (
-                    <div key={uw._id} className="flex justify-between items-center group py-1.5 px-3 rounded-lg bg-slate-900/40 border border-slate-800/80">
+                    <div key={uw._id} className="flex justify-between items-center group py-1.5 px-3 rounded-lg bg-muted/50 border border-border">
                       <div className="flex items-center gap-2 min-w-0">
                         <button
                           onClick={handleCheckClick}
                           className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
                             isCompleted
                               ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'border-slate-650 hover:border-emerald-500'
+                              : 'border-border hover:border-emerald-500'
                           }`}
                         >
                           {isCompleted && (
@@ -468,7 +468,7 @@ export default function Dashboard() {
                           )}
                         </button>
                         <div className="min-w-0 text-left">
-                          <p className={`font-semibold text-xs text-white truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                          <p className={`font-semibold text-xs text-foreground truncate ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                             {uw.title}
                           </p>
                           <p className="text-[9px] text-muted-foreground">
@@ -491,8 +491,8 @@ export default function Dashboard() {
       {/* Grid: Quick Access & Islamic Calendar & Daily Inspiration */}
       <div className="grid md:grid-cols-3 gap-6">
         {/* Quick Access Card */}
-        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4">
-          <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-3">
+        <Card className="p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Quick Access
           </h3>
           <div className="flex justify-around items-center pt-2">
@@ -504,7 +504,7 @@ export default function Dashboard() {
               { label: 'Calendar', icon: Calendar, href: '/calendar', color: 'text-cyan-400 hover:text-cyan-350' }
             ].map((act) => (
               <Link href={act.href} key={act.label} className="flex flex-col items-center gap-1 hover:opacity-85 transition-opacity">
-                <div className={`p-2 rounded-xl bg-slate-900 border border-slate-800 ${act.color}`}>
+                <div className={`p-2 rounded-xl bg-background border border-border ${act.color}`}>
                   <act.icon className="w-4 h-4" />
                 </div>
                 <span className="text-[9px] text-muted-foreground font-medium">{act.label}</span>
@@ -514,9 +514,9 @@ export default function Dashboard() {
         </Card>
 
         {/* Islamic Calendar Card */}
-        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4 flex flex-col justify-between">
+        <Card className="p-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Islamic Calendar
             </h3>
             <p className="text-base font-bold text-emerald-405 leading-none mt-1">{hijriStr}</p>
@@ -524,7 +524,7 @@ export default function Dashboard() {
           </div>
           <div className="pt-4 flex justify-end">
             <Link href="/calendar">
-              <button className="border border-slate-800 hover:border-slate-700 bg-transparent text-slate-300 hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-800/50 transition-colors cursor-pointer">
+              <button className="border border-border hover:border-foreground/20 bg-transparent text-muted-foreground hover:text-foreground px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-muted transition-colors cursor-pointer">
                 View Calendar
               </button>
             </Link>
@@ -532,17 +532,17 @@ export default function Dashboard() {
         </Card>
 
         {/* Daily Inspiration / Hadith Card Quote block */}
-        <Card className="border-slate-800 bg-slate-900/20 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden">
+        <Card className="p-4 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.04] pointer-events-none text-emerald-450">
             <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
               <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
             </svg>
           </div>
           <div className="relative z-10">
-            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-white mb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Daily Inspiration
             </h3>
-            <p className="text-xs text-slate-200 leading-relaxed italic">
+            <p className="text-xs text-muted-foreground leading-relaxed italic">
               "And seek help through patience and prayer. And indeed, it is difficult except for the humble."
             </p>
           </div>

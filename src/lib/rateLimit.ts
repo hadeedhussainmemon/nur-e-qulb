@@ -7,13 +7,7 @@ export async function checkRateLimit(req: NextRequest | Request, endpoint: strin
     await connectToDatabase();
     
     // Attempt to extract IP from common proxy headers
-    let ip = 'unknown';
-    if (req instanceof NextRequest) {
-      ip = req.ip || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    } else {
-      // Standard Request object
-      ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    }
+    let ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     
     // If multiple IPs are forwarded, take the first one
     if (ip.includes(',')) {

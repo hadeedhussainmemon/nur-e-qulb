@@ -100,8 +100,12 @@ export default function Dashboard() {
     setTasbihCount(0);
   }, []);
 
-  const localTodayDateString = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
-
+  const isPastMidnightBeforeFajr = nextPrayer?.name === 'Fajr' && new Date().getHours() < 12;
+  const trackingDate = new Date();
+  if (isPastMidnightBeforeFajr) {
+    trackingDate.setDate(trackingDate.getDate() - 1);
+  }
+  const trackingDateString = trackingDate.toLocaleDateString('en-CA');
   // Fetch Hijri date based on local Gregorian date (NOT from prayer API location)
   useEffect(() => {
     async function fetchHijriDate() {
@@ -141,9 +145,17 @@ export default function Dashboard() {
 
   const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
 
+  // Logical tracking date for prayers (doesn't change day until Fajr)
+  const isPastMidnightBeforeFajr = nextPrayer?.name === 'Fajr' && new Date().getHours() < 12;
+  const trackingDate = new Date();
+  if (isPastMidnightBeforeFajr) {
+    trackingDate.setDate(trackingDate.getDate() - 1);
+  }
+  const trackingDateString = trackingDate.toLocaleDateString('en-CA');
+
   // Fetch db stats for prayers using SWR for automatic client-side caching
   const { data: statsData, isLoading: statsLoading } = useSWR(
-    status === 'authenticated' ? `/api/dashboard/stats?date=${localTodayDateString}` : null,
+    status === 'authenticated' ? `/api/dashboard/stats?date=${trackingDateString}` : null,
     fetcher,
     { revalidateOnFocus: true }
   );

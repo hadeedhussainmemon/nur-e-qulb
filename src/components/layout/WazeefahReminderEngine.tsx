@@ -47,11 +47,11 @@ export function WazeefahReminderEngine() {
     }
   }, [notifiedToday]);
 
-  // Request browser permission for notifications
+  // Check existing notification permission on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
+      if (Notification.permission === 'granted') {
+        // We already have permission
       }
     }
   }, []);

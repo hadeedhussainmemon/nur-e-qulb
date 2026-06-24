@@ -195,16 +195,16 @@ export default function SettingsPage() {
       await updateSession();
 
       setSuccessMsg('Settings saved successfully!');
-      // If onboarding, maybe redirect home after short delay
+      // If onboarding, redirect immediately
       if (isOnboarding) {
-        setTimeout(() => window.location.href = '/', 1500);
+        window.location.href = '/';
       } else {
         setTimeout(() => setSuccessMsg(null), 3000);
+        setSaving(false);
       }
     } catch (err) {
       console.error(err);
       alert('An unexpected error occurred while saving.');
-    } finally {
       setSaving(false);
     }
   };
@@ -376,7 +376,16 @@ export default function SettingsPage() {
                 <p className="text-base font-medium">Adhan & Prayer Alerts</p>
                 <p className="text-sm text-muted-foreground">Receive push notifications immediately at local prayer times.</p>
               </div>
-              <Switch checked={prayerReminders} onCheckedChange={setPrayerReminders} disabled={womenMode} />
+              <Switch 
+                checked={prayerReminders} 
+                onCheckedChange={(val) => {
+                  setPrayerReminders(val);
+                  if (val && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                  }
+                }} 
+                disabled={womenMode} 
+              />
             </div>
 
             <div className="flex items-center justify-between space-x-4">
@@ -384,7 +393,15 @@ export default function SettingsPage() {
                 <p className="text-base font-medium">Daily Quran Ayah</p>
                 <p className="text-sm text-muted-foreground">Get daily inspirational verse notifications in the morning.</p>
               </div>
-              <Switch checked={dailyAyah} onCheckedChange={setDailyAyah} />
+              <Switch 
+                checked={dailyAyah} 
+                onCheckedChange={(val) => {
+                  setDailyAyah(val);
+                  if (val && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                  }
+                }} 
+              />
             </div>
 
             <div className="flex items-center justify-between space-x-4">
@@ -392,7 +409,15 @@ export default function SettingsPage() {
                 <p className="text-base font-medium">Daily Hadith Alerts</p>
                 <p className="text-sm text-muted-foreground">Receive authentic snippets of Sunnah directly on your dashboard.</p>
               </div>
-              <Switch checked={dailyHadith} onCheckedChange={setDailyHadith} />
+              <Switch 
+                checked={dailyHadith} 
+                onCheckedChange={(val) => {
+                  setDailyHadith(val);
+                  if (val && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted') {
+                    Notification.requestPermission();
+                  }
+                }} 
+              />
             </div>
           </CardContent>
         </Card>

@@ -23,6 +23,19 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
+  /* Map emerald to dynamic CSS variables for theme overrides */
+  --color-emerald-50: var(--color-emerald-50, #ecfdf5);
+  --color-emerald-100: var(--color-emerald-100, #d1fae5);
+  --color-emerald-200: var(--color-emerald-200, #a7f3d0);
+  --color-emerald-300: var(--color-emerald-300, #6ee7b7);
+  --color-emerald-400: var(--color-emerald-400, #34d399);
+  --color-emerald-500: var(--color-emerald-500, #10b981);
+  --color-emerald-600: var(--color-emerald-600, #059669);
+  --color-emerald-700: var(--color-emerald-700, #047857);
+  --color-emerald-800: var(--color-emerald-800, #065f46);
+  --color-emerald-900: var(--color-emerald-900, #064e3b);
+  --color-emerald-950: var(--color-emerald-950, #022c22);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -156,12 +169,37 @@
   --ring: 43 90% 45%;
   --color-primary: hsl(43 90% 45%);
   --color-ring: hsl(43 90% 45%);
+  
+  /* Map hardcoded emerald colors to Gold scale to fix hardcoded classes */
+  --color-emerald-50: hsl(43 90% 95%);
+  --color-emerald-100: hsl(43 90% 90%);
+  --color-emerald-200: hsl(43 90% 80%);
+  --color-emerald-300: hsl(43 90% 70%);
+  --color-emerald-400: hsl(43 90% 60%);
+  --color-emerald-500: hsl(43 90% 45%);
+  --color-emerald-600: hsl(43 90% 35%);
+  --color-emerald-700: hsl(43 90% 25%);
+  --color-emerald-800: hsl(43 90% 15%);
+  --color-emerald-900: hsl(43 90% 10%);
+  --color-emerald-950: hsl(43 90% 5%);
 }
 .dark .theme-gold, .dark.theme-gold {
   --primary: 43 90% 50%;
   --ring: 43 90% 50%;
   --color-primary: hsl(43 90% 50%);
   --color-ring: hsl(43 90% 50%);
+
+  --color-emerald-50: hsl(43 90% 5%);
+  --color-emerald-100: hsl(43 90% 10%);
+  --color-emerald-200: hsl(43 90% 15%);
+  --color-emerald-300: hsl(43 90% 25%);
+  --color-emerald-400: hsl(43 90% 35%);
+  --color-emerald-500: hsl(43 90% 50%);
+  --color-emerald-600: hsl(43 90% 60%);
+  --color-emerald-700: hsl(43 90% 70%);
+  --color-emerald-800: hsl(43 90% 80%);
+  --color-emerald-900: hsl(43 90% 90%);
+  --color-emerald-950: hsl(43 90% 95%);
 }
 
 .theme-rose {
@@ -169,12 +207,36 @@
   --ring: 343 75% 50%;
   --color-primary: hsl(343 75% 50%);
   --color-ring: hsl(343 75% 50%);
+
+  --color-emerald-50: hsl(343 75% 95%);
+  --color-emerald-100: hsl(343 75% 90%);
+  --color-emerald-200: hsl(343 75% 80%);
+  --color-emerald-300: hsl(343 75% 70%);
+  --color-emerald-400: hsl(343 75% 60%);
+  --color-emerald-500: hsl(343 75% 50%);
+  --color-emerald-600: hsl(343 75% 40%);
+  --color-emerald-700: hsl(343 75% 30%);
+  --color-emerald-800: hsl(343 75% 20%);
+  --color-emerald-900: hsl(343 75% 10%);
+  --color-emerald-950: hsl(343 75% 5%);
 }
 .dark .theme-rose, .dark.theme-rose {
   --primary: 343 75% 55%;
   --ring: 343 75% 55%;
   --color-primary: hsl(343 75% 55%);
   --color-ring: hsl(343 75% 55%);
+
+  --color-emerald-50: hsl(343 75% 5%);
+  --color-emerald-100: hsl(343 75% 10%);
+  --color-emerald-200: hsl(343 75% 20%);
+  --color-emerald-300: hsl(343 75% 30%);
+  --color-emerald-400: hsl(343 75% 40%);
+  --color-emerald-500: hsl(343 75% 55%);
+  --color-emerald-600: hsl(343 75% 65%);
+  --color-emerald-700: hsl(343 75% 75%);
+  --color-emerald-800: hsl(343 75% 85%);
+  --color-emerald-900: hsl(343 75% 90%);
+  --color-emerald-950: hsl(343 75% 95%);
 }
 
 .theme-indigo {
@@ -182,10 +244,34 @@
   --ring: 243 75% 59%;
   --color-primary: hsl(243 75% 59%);
   --color-ring: hsl(243 75% 59%);
+
+  --color-emerald-50: hsl(243 75% 95%);
+  --color-emerald-100: hsl(243 75% 90%);
+  --color-emerald-200: hsl(243 75% 80%);
+  --color-emerald-300: hsl(243 75% 70%);
+  --color-emerald-400: hsl(243 75% 65%);
+  --color-emerald-500: hsl(243 75% 59%);
+  --color-emerald-600: hsl(243 75% 49%);
+  --color-emerald-700: hsl(243 75% 39%);
+  --color-emerald-800: hsl(243 75% 29%);
+  --color-emerald-900: hsl(243 75% 19%);
+  --color-emerald-950: hsl(243 75% 9%);
 }
 .dark .theme-indigo, .dark.theme-indigo {
   --primary: 243 75% 65%;
   --ring: 243 75% 65%;
   --color-primary: hsl(243 75% 65%);
   --color-ring: hsl(243 75% 65%);
+
+  --color-emerald-50: hsl(243 75% 5%);
+  --color-emerald-100: hsl(243 75% 10%);
+  --color-emerald-200: hsl(243 75% 20%);
+  --color-emerald-300: hsl(243 75% 30%);
+  --color-emerald-400: hsl(243 75% 40%);
+  --color-emerald-500: hsl(243 75% 65%);
+  --color-emerald-600: hsl(243 75% 75%);
+  --color-emerald-700: hsl(243 75% 85%);
+  --color-emerald-800: hsl(243 75% 90%);
+  --color-emerald-900: hsl(243 75% 95%);
+  --color-emerald-950: hsl(243 75% 98%);
 }

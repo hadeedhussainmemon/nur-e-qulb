@@ -48,3 +48,32 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Handle interactive notification button clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'prayed' && event.notification.data) {
+    const { prayer, date } = event.notification.data;
+    
+    // Fire the POST request to our new endpoint in the background
+    event.waitUntil(
+      fetch('/api/prayers/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, prayer, status: 'completed' })
+      }).then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Tell all open clients to refresh their UI
+          self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
+              client.postMessage({ type: 'PRAYER_LOGGED', prayer, date });
+            });
+          });
+        }
+      })
+      .catch(err => console.error('SW fetch failed logging prayer:', err))
+    );
+  }
+});

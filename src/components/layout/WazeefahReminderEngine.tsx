@@ -56,13 +56,16 @@ export function WazeefahReminderEngine() {
     }
   }, []);
 
+  const [todayLog, setTodayLog] = useState<any>(null);
+
   // Fetch user's scheduled wazeefahs, profile, settings and prayer times via API route
   useEffect(() => {
     if (!session?.user?.email) return;
 
     async function initializeEngine() {
       try {
-        const res = await fetch('/api/wazeefahs/reminders');
+        const todayDateStr = new Date().toLocaleDateString('en-CA');
+        const res = await fetch('/api/wazeefahs/reminders?date=' + todayDateStr);
         if (!res.ok) throw new Error('Failed to fetch reminders configuration');
         const data = await res.json();
 
@@ -70,6 +73,7 @@ export function WazeefahReminderEngine() {
         setUserLocation(data.location || { city: 'Makkah', country: 'Saudi Arabia' });
         setSettings(data.settings);
         setPrayerTimes(data.prayerTimes || {});
+        if (data.todayLog) setTodayLog(data.todayLog);
       } catch (err) {
         console.error('Failed to initialize Wazeefah Reminder Engine:', err);
       }
@@ -79,7 +83,26 @@ export function WazeefahReminderEngine() {
 
     // Re-initialize every 30 minutes to update logs/times/settings
     const interval = setInterval(initializeEngine, 1800000);
-    return () => clearInterval(interval);
+    
+    // Listen for Service Worker messages
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'PRAYER_LOGGED') {
+        setTodayLog((prev: any) => {
+          if (!prev) return prev;
+          return { ...prev, [event.data.prayer]: 'completed' };
+        });
+      }
+    };
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+      }
+    };
   }, [session]);
 
   const cleanTimeStr = (rawStr: string): string => {
@@ -88,10 +111,28 @@ export function WazeefahReminderEngine() {
     return match ? `${match[1]}:${match[2]}` : rawStr.trim();
   };
 
-  const triggerBrowserNotification = (title: string, body: string) => {
+  const triggerBrowserNotification = async (title: string, body: string, actions?: any[], data?: any) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
+      if ('serviceWorker' in navigator && actions) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          reg.showNotification(title, {
+            body,
+            icon: '/manifest.json',
+            badge: '/manifest.json',
+            actions,
+            data,
+            requireInteraction: true
+          });
+          return;
+        } catch (e) {
+          console.error('SW notification failed, falling back to basic notification', e);
+        }
+      }
+      
+      // Fallback for basic notifications
       new Notification(title, {
         body,
         icon: '/manifest.json',
@@ -163,18 +204,80 @@ export function WazeefahReminderEngine() {
       // 3. Process Adhan / Prayer Time Alerts
       if (showPrayerAlerts) {
         const mainPrayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-        mainPrayers.forEach((pName) => {
+        
+        mainPrayers.forEach((pName, index) => {
           const rawTime = prayerTimes[pName];
           if (!rawTime) return;
           const targetTimeStr = cleanTimeStr(rawTime);
-          const notifyKey = `prayer-${pName}-${todayDateStr}`;
+          const [startH, startM] = targetTimeStr.split(':').map(Number);
+          const startTotalMins = startH * 60 + startM;
+          
+          // Determine end time
+          let endTotalMins = 0;
+          if (pName === 'Isha') {
+            const fajrRaw = prayerTimes['Fajr'];
+            if (fajrRaw) {
+              const [fh, fm] = cleanTimeStr(fajrRaw).split(':').map(Number);
+              endTotalMins = (fh + 24) * 60 + fm; // Next day Fajr
+            }
+          } else {
+            const nextPrayer = mainPrayers[index + 1];
+            const nextRaw = prayerTimes[nextPrayer];
+            if (nextRaw) {
+              const [nh, nm] = cleanTimeStr(nextRaw).split(':').map(Number);
+              endTotalMins = nh * 60 + nm;
+            }
+          }
 
-          if (targetTimeStr === currentTimeStr && notifiedToday[notifyKey] !== todayDateStr) {
+          const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+          // Adjust current mins for Isha if we passed midnight
+          const adjustedCurrentMins = (pName === 'Isha' && now.getHours() < 12) ? currentTotalMins + 24 * 60 : currentTotalMins;
+
+          const isInsideWindow = adjustedCurrentMins >= startTotalMins && adjustedCurrentMins < endTotalMins;
+          const minutesPassed = adjustedCurrentMins - startTotalMins;
+          const minutesRemaining = endTotalMins - adjustedCurrentMins;
+
+          const notifyKeyStart = `prayer-${pName}-${todayDateStr}-start`;
+          const notifyKeyNag = `prayer-${pName}-${todayDateStr}-nag-${minutesPassed}`;
+          const notifyKeyWarn = `prayer-${pName}-${todayDateStr}-warn`;
+
+          const lowerName = pName.toLowerCase();
+          const isPending = todayLog && todayLog[lowerName] === 'pending';
+
+          const actions = [
+            { action: 'prayed', title: 'Prayed ✅' },
+            { action: 'dismiss', title: 'Not Yet ❌' }
+          ];
+          const data = { prayer: lowerName, date: todayDateStr };
+
+          // 1. Initial Notification
+          if (targetTimeStr === currentTimeStr && notifiedToday[notifyKeyStart] !== todayDateStr) {
             triggerBrowserNotification(
               `Salah Time: ${pName}`,
-              `It is time for ${pName} prayer in ${userLocation.city}. Adhan starts now.`
+              `It is time for ${pName} prayer in ${userLocation.city}. Adhan starts now.`,
+              actions, data
             );
-            setNotifiedToday((prev) => ({ ...prev, [notifyKey]: todayDateStr }));
+            setNotifiedToday((prev) => ({ ...prev, [notifyKeyStart]: todayDateStr }));
+          }
+
+          // 2. Nagging every 30 mins
+          if (isInsideWindow && isPending && minutesPassed > 0 && minutesPassed % 30 === 0 && notifiedToday[notifyKeyNag] !== todayDateStr) {
+            triggerBrowserNotification(
+              `Reminder: ${pName}`,
+              `Have you prayed ${pName} yet? It has been ${minutesPassed} minutes since Adhan.`,
+              actions, data
+            );
+            setNotifiedToday((prev) => ({ ...prev, [notifyKeyNag]: todayDateStr }));
+          }
+
+          // 3. 10 Minute Warning
+          if (isInsideWindow && isPending && minutesRemaining === 10 && notifiedToday[notifyKeyWarn] !== todayDateStr) {
+            triggerBrowserNotification(
+              `Expiring Soon: ${pName}`,
+              `You only have 10 minutes left to pray ${pName}!`,
+              actions, data
+            );
+            setNotifiedToday((prev) => ({ ...prev, [notifyKeyWarn]: todayDateStr }));
           }
         });
       }

@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
     const city = (session?.user as any)?.location?.city || 'Makkah';
     const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
     
+    const url = new URL(request.url);
+    const dateQuery = url.searchParams.get('date');
+
     // Fetch daily prayer times directly from third-party API on the server (which is fine) or client
     // To be safe from Vercel outgoing serverless block, let's fetch it, but if it fails we return empty timings
     let prayerTimes = {};
@@ -36,11 +39,18 @@ export async function GET(request: NextRequest) {
       console.error('Failed to fetch prayer times in reminder API:', e);
     }
 
+    let todayLog = null;
+    if (dateQuery) {
+      const { getTodayPrayerLog } = await import('@/app/actions/prayerActions');
+      todayLog = await getTodayPrayerLog(dateQuery);
+    }
+
     return NextResponse.json({
       wazeefahs: activeWazeefahs,
       prayerTimes,
       location: { city, country },
-      settings: (session?.user as any)?.settings || null
+      settings: (session?.user as any)?.settings || null,
+      todayLog
     });
   } catch (err: any) {
     console.error('Wazeefah reminder API error:', err);

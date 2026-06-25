@@ -127,8 +127,13 @@ export async function submitWazeefah(formData: FormData) {
       category: parseResult.data.category,
       instructions: parseResult.data.instructions,
       targetCount: parseResult.data.targetCount,
-      reminderTime: parseResult.data.reminderTime,
-      quranRef: parseResult.data.quranRef,
+      reminderTime: parseResult.data.reminderTime || undefined,
+      quranRef: parseResult.data.quranRef ? {
+        surahNumber: parseResult.data.quranRef.surahNumber,
+        surahName: parseResult.data.quranRef.surahName,
+        fromAyah: parseResult.data.quranRef.fromAyah || undefined,
+        toAyah: parseResult.data.quranRef.toAyah || undefined,
+      } : undefined,
       submittedBy: user._id,
     });
 

@@ -43,13 +43,25 @@ export default function CalendarPage() {
   useEffect(() => {
     async function loadIslamicDate() {
       try {
-        const city = (session?.user as any)?.location?.city || 'Makkah';
-        const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
-        
-        const times = await fetchPrayerTimesByCity(city, country);
-        if (times?.data?.date?.hijri) {
-          const h = times.data.date.hijri;
-          setHijriDateString(`${h.day} ${h.month.en} ${h.year} AH`);
+        const hijriAdjustment = (session?.user as any)?.hijriAdjustment || 0;
+
+        // Shift Gregorian date by user preference
+        const adjustedDate = new Date();
+        adjustedDate.setDate(adjustedDate.getDate() + hijriAdjustment);
+
+        const dd = String(adjustedDate.getDate()).padStart(2, '0');
+        const mm = String(adjustedDate.getMonth() + 1).padStart(2, '0');
+        const yyyy = adjustedDate.getFullYear();
+
+        const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}`);
+        if (res.ok) {
+          const json = await res.json();
+          const h = json?.data?.hijri;
+          if (h) {
+            setHijriDateString(`${h.day} ${h.month.en} ${h.year} AH`);
+          } else {
+            setHijriDateString("Hijri Date unavailable");
+          }
         } else {
           setHijriDateString("Hijri Date unavailable");
         }

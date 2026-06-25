@@ -75,69 +75,105 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === 'google' && user.email) {
-        await connectToDatabase();
-        const existingUser = await User.findOne({ email: user.email });
-        if (!existingUser) {
-          await User.create({
-            name: user.name || 'Google User',
-            email: user.email,
-            googleId: user.id,
-            isGuest: false,
-            role: 'user',
-            gender: 'other', // Default gender, can be customized later in Settings
-          });
+      try {
+        console.log('[NextAuth Callback: signIn] Initiated', {
+          email: user.email,
+          name: user.name,
+          provider: account?.provider,
+        });
+
+        if (account?.provider === 'google' && user.email) {
+          await connectToDatabase();
+          const existingUser = await User.findOne({ email: user.email });
+          
+          if (!existingUser) {
+            console.log('[NextAuth Callback: signIn] Creating new user for Google login');
+            await User.create({
+              name: user.name || 'Google User',
+              email: user.email,
+              googleId: user.id,
+              isGuest: false,
+              role: 'user',
+              gender: 'other', // Default gender, can be customized later in Settings
+            });
+          } else {
+            console.log('[NextAuth Callback: signIn] Existing user found matching email:', user.email);
+            if (!existingUser.googleId) {
+              console.log('[NextAuth Callback: signIn] Linking Google ID to existing user account');
+              existingUser.googleId = user.id;
+              await existingUser.save();
+            }
+          }
         }
+        return true;
+      } catch (error) {
+        console.error('[NextAuth Callback: signIn] Error during execution:', error);
+        // Throwing error inside callback sends details to NextAuth client, resulting in Callback error
+        throw error;
       }
-      return true;
     },
     async jwt({ token, user, trigger }) {
-      // On first sign-in (user object exists) OR explicit update trigger — hit the DB
-      if (user || trigger === 'update') {
-        await connectToDatabase();
-        const dbUserMatch = await User.findOne({ email: token.email }).populate('settingsId').lean();
-        
-        if (dbUserMatch) {
-          const dbUser = dbUserMatch as unknown as DbUser;
-          token.id = dbUser._id.toString();
-          token.name = dbUser.name;
-          token.role = dbUser.role || 'user';
-          token.gender = dbUser.gender || 'other';
-          token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
-          token.hijriAdjustment = dbUser.hijriAdjustment ?? 0;
-          token.location = dbUser.location ? {
-            city: dbUser.location.city,
-            country: dbUser.location.country,
-          } : null;
-          token.settings = dbUser.settingsId
-            ? JSON.parse(JSON.stringify(dbUser.settingsId))
-            : null;
-        } else if (user) {
-          token.id = user.id;
-          token.name = user.name;
-          token.role = (user as any).role || 'user';
-          token.gender = 'other';
-          token.onboardingCompleted = false;
-          token.hijriAdjustment = 0;
-          token.location = null;
-          token.settings = null;
+      try {
+        // On first sign-in (user object exists) OR explicit update trigger — hit the DB
+        if (user || trigger === 'update') {
+          console.log('[NextAuth Callback: jwt] Fetching user details for token mapping', {
+            email: token.email,
+            trigger,
+          });
+          
+          await connectToDatabase();
+          const dbUserMatch = await User.findOne({ email: token.email }).populate('settingsId').lean();
+          
+          if (dbUserMatch) {
+            const dbUser = dbUserMatch as unknown as DbUser;
+            token.id = dbUser._id.toString();
+            token.name = dbUser.name;
+            token.role = dbUser.role || 'user';
+            token.gender = dbUser.gender || 'other';
+            token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
+            token.hijriAdjustment = dbUser.hijriAdjustment ?? 0;
+            token.location = dbUser.location ? {
+              city: dbUser.location.city,
+              country: dbUser.location.country,
+            } : null;
+            token.settings = dbUser.settingsId
+              ? JSON.parse(JSON.stringify(dbUser.settingsId))
+              : null;
+          } else if (user) {
+            token.id = user.id;
+            token.name = user.name;
+            token.role = (user as any).role || 'user';
+            token.gender = 'other';
+            token.onboardingCompleted = false;
+            token.hijriAdjustment = 0;
+            token.location = null;
+            token.settings = null;
+          }
         }
-      }
 
-      return token;
+        return token;
+      } catch (error) {
+        console.error('[NextAuth Callback: jwt] Error during execution:', error);
+        throw error;
+      }
     },
     async session({ session, token }) {
-      if (session.user) {
-        const u = session.user as any;
-        u.id = token.id;
-        u.role = token.role;
-        u.gender = token.gender;
-        u.onboardingCompleted = token.onboardingCompleted;
-        u.hijriAdjustment = token.hijriAdjustment;
-        u.location = token.location;
-        u.settings = token.settings;
+      try {
+        if (session.user) {
+          const u = session.user as any;
+          u.id = token.id;
+          u.role = token.role;
+          u.gender = token.gender;
+          u.onboardingCompleted = token.onboardingCompleted;
+          u.hijriAdjustment = token.hijriAdjustment;
+          u.location = token.location;
+          u.settings = token.settings;
+        }
+        return session;
+      } catch (error) {
+        console.error('[NextAuth Callback: session] Error during execution:', error);
+        throw error;
       }
-      return session;
     },
   },
 };

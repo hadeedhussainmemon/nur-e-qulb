@@ -195,13 +195,10 @@ export default function SettingsPage() {
       await updateSession();
 
       setSuccessMsg('Settings saved successfully!');
-      // If onboarding, redirect immediately
-      if (isOnboarding) {
+      // Redirect to home page after a brief delay so the user sees the success state
+      setTimeout(() => {
         window.location.href = '/';
-      } else {
-        setTimeout(() => setSuccessMsg(null), 3000);
-        setSaving(false);
-      }
+      }, 1000);
     } catch (err) {
       console.error(err);
       alert('An unexpected error occurred while saving.');

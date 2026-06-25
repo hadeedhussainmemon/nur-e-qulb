@@ -17,11 +17,13 @@ import {
   Calendar,
   CircleDot,
   Calculator,
+  BarChart3,
 } from 'lucide-react';
 
 const routes = [
   { label: 'Home',             icon: LayoutDashboard, href: '/',         color: 'text-sky-500'     },
   { label: 'Namaz',            icon: Clock,           href: '/prayers',  color: 'text-emerald-500' },
+  { label: 'My Month',         icon: BarChart3,       href: '/my-month', color: 'text-indigo-400'  },
   { label: 'Wazeefah',         icon: Heart,           href: '/wazeefahs',color: 'text-blue-400'    },
   { label: 'Quran',            icon: BookOpen,        href: '/quran',    color: 'text-teal-400'    },
   { label: 'Qibla',            icon: Compass,         href: '/qibla',    color: 'text-amber-500'   },

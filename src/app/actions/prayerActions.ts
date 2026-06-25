@@ -511,4 +511,103 @@ export async function getPrayersPageData(localDateStr: string) {
   }
 }
 
+// Get monthly prayer logs and historical stats
+export async function getMonthlyPrayerHistory(yearInput?: number, monthInput?: number) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return { success: false, error: 'Unauthorized' };
+
+    await connectToDatabase();
+    const user = await User.findOne({ email: session.user.email }).lean();
+    if (!user) return { success: false, error: 'User not found' };
+
+    const now = new Date();
+    const targetYear = yearInput !== undefined ? yearInput : now.getFullYear();
+    const targetMonth = monthInput !== undefined ? monthInput : now.getMonth(); // 0-indexed
+
+    // Format start and end date strings: YYYY-MM-DD
+    const startOfTargetMonth = new Date(targetYear, targetMonth, 1);
+    const endOfTargetMonth = new Date(targetYear, targetMonth + 1, 0); // last day
+
+    const startStr = startOfTargetMonth.toISOString().split('T')[0];
+    const endStr = endOfTargetMonth.toISOString().split('T')[0];
+
+    // Fetch all logs for target month
+    const targetLogs = await PrayerLog.find({
+      userId: user._id,
+      date: { $gte: startStr, $lte: endStr }
+    }).sort({ date: 1 }).lean();
+
+    // Calculate details for each prayer in the target month
+    let fajrCompleted = 0, dhuhrCompleted = 0, asrCompleted = 0, maghribCompleted = 0, ishaCompleted = 0;
+    let sumPercentage = 0;
+
+    targetLogs.forEach((log: any) => {
+      if (log.fajr === 'completed') fajrCompleted++;
+      if (log.dhuhr === 'completed') dhuhrCompleted++;
+      if (log.asr === 'completed') asrCompleted++;
+      if (log.maghrib === 'completed') maghribCompleted++;
+      if (log.isha === 'completed') ishaCompleted++;
+      sumPercentage += log.completionPercentage || 0;
+    });
+
+    const averageCompletion = targetLogs.length > 0 ? Math.round(sumPercentage / targetLogs.length) : 0;
+
+    // Get historical months (last 6 months)
+    const history = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      
+      const sDate = new Date(y, m, 1).toISOString().split('T')[0];
+      const eDate = new Date(y, m + 1, 0).toISOString().split('T')[0];
+      
+      const logs = await PrayerLog.find({
+        userId: user._id,
+        date: { $gte: sDate, $lte: eDate }
+      }).select('completionPercentage').lean();
+      
+      let sumPct = 0;
+      logs.forEach((l: any) => {
+        sumPct += l.completionPercentage || 0;
+      });
+      const avg = logs.length > 0 ? Math.round(sumPct / logs.length) : 0;
+      
+      const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+      history.push({
+        month: monthName,
+        year: y,
+        percentage: avg,
+        daysLogged: logs.length
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        year: targetYear,
+        month: targetMonth,
+        logs: JSON.parse(JSON.stringify(targetLogs)),
+        stats: {
+          totalDays: endOfTargetMonth.getDate(),
+          daysLogged: targetLogs.length,
+          averageCompletion,
+          prayers: {
+            fajr: { completed: fajrCompleted },
+            dhuhr: { completed: dhuhrCompleted },
+            asr: { completed: asrCompleted },
+            maghrib: { completed: maghribCompleted },
+            isha: { completed: ishaCompleted }
+          }
+        },
+        history
+      }
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+
 

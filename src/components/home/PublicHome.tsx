@@ -111,8 +111,8 @@ export function PublicHome() {
                 <div className="inline-flex p-3 bg-amber-500/10 rounded-2xl mb-6">
                   <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400 animate-pulse" />
                 </div>
-                <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Sunnah of the Day</h3>
-                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-50 leading-relaxed">
+                <h2 className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-3">Sunnah of the Day</h2>
+                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-100 leading-relaxed">
                   "{sunnah.text}"
                 </p>
               </div>
@@ -126,8 +126,8 @@ export function PublicHome() {
                 <div className="inline-flex p-3 bg-rose-500/10 rounded-2xl mb-6">
                   <BookMarked className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Daily Wazeefah Reminder</h3>
-                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-50 leading-relaxed">
+                <h2 className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-3">Daily Wazeefah Reminder</h2>
+                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-100 leading-relaxed">
                   {wazeefah.text}
                 </p>
               </div>
@@ -145,7 +145,7 @@ export function PublicHome() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20 space-y-4">
             <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">Everything you need, in one place</h2>
-            <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Nur E Qalbb replaces half a dozen apps with a beautifully integrated, premium experience designed for focus.</p>
+            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Nur E Qalbb replaces half a dozen apps with a beautifully integrated, premium experience designed for focus.</p>
           </div>
 
           <div className="space-y-32">
@@ -156,7 +156,7 @@ export function PublicHome() {
                   <BookOpen className="w-7 h-7" />
                 </div>
                 <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">Immersive Quran Reader</h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-lg text-slate-700 dark:text-slate-400 leading-relaxed">
                   Experience the Holy Quran like never before. With beautiful typography, seamless audio playback, translations, and distraction-free reading modes.
                 </p>
                 <ul className="space-y-3">
@@ -174,12 +174,12 @@ export function PublicHome() {
                 <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6 relative z-10">
                   <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div className="text-emerald-600 font-bold font-serif text-xl">Surah Al-Mulk</div>
-                    <div className="text-slate-400 text-sm">Ayah 1</div>
+                    <div className="text-slate-600 text-sm">Ayah 1</div>
                   </div>
                   <div className="text-right font-arabic text-4xl leading-[2.5] text-slate-800 dark:text-slate-200" dir="rtl">
                     تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg text-sm text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                  <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg text-sm text-slate-700 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
                     Blessed is He in whose hand is dominion, and He is over all things competent.
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export function PublicHome() {
                   <Clock className="w-7 h-7" />
                 </div>
                 <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">Lifetime Qaza Tracker</h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-lg text-slate-700 dark:text-slate-400 leading-relaxed">
                   Never lose track of your religious obligations. Log your missed prayers and fasts, visualize your progress, and build a consistent habit of making them up.
                 </p>
                 <ul className="space-y-3">
@@ -209,8 +209,8 @@ export function PublicHome() {
                 <div className="bg-white dark:bg-slate-950 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
                    <div className="flex justify-between items-end mb-6">
                      <div>
-                       <div className="text-sm font-medium text-slate-500 mb-1">Total Qaza Prayers</div>
-                       <div className="text-3xl font-bold text-slate-900 dark:text-white">1,420 <span className="text-lg text-slate-400 font-normal">remaining</span></div>
+                       <div className="text-sm font-medium text-slate-600 mb-1">Total Qaza Prayers</div>
+                       <div className="text-3xl font-bold text-slate-900 dark:text-white">1,420 <span className="text-lg text-slate-600 font-normal">remaining</span></div>
                      </div>
                      <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
                        <Shield className="text-indigo-500 w-6 h-6" />
@@ -221,7 +221,7 @@ export function PublicHome() {
                        <div key={p} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
                          <span className="font-semibold text-slate-700 dark:text-slate-300">{p}</span>
                          <div className="flex items-center gap-4">
-                           <span className="font-mono text-sm text-slate-500">{284 - i * 12} left</span>
+                           <span className="font-mono text-sm text-slate-600">{284 - i * 12} left</span>
                            <Button size="sm" variant="outline" className="h-8 rounded-md bg-white dark:bg-slate-950">Log -1</Button>
                          </div>
                        </div>
@@ -238,17 +238,17 @@ export function PublicHome() {
                   <Target className="w-7 h-7" />
                 </div>
                 <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">Smart Tasbih & Adhkar</h3>
-                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-lg text-slate-700 dark:text-slate-400 leading-relaxed">
                   A satisfying, tactile counting experience with haptic feedback. Choose from preset authentic Adhkar or create your custom Dhikr goals.
                 </p>
-                <Link href="/register" className="inline-flex items-center text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                <Link href="/register" className="inline-flex items-center text-teal-700 dark:text-teal-400 font-bold hover:underline">
                   Create your first goal <ChevronRight className="w-4 h-4 ml-1" />
                 </Link>
               </div>
               <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-2xl flex items-center justify-center min-h-[300px]">
                 <div className="w-48 h-48 rounded-full bg-white dark:bg-slate-950 shadow-[0_0_50px_rgba(20,184,166,0.15)] border-4 border-teal-50 dark:border-teal-900/20 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform">
                    <div className="text-5xl font-mono font-bold text-slate-900 dark:text-white">33</div>
-                   <div className="text-sm font-medium text-teal-600 mt-2">SubhanAllah</div>
+                   <div className="text-sm font-medium text-teal-700 mt-2">SubhanAllah</div>
                 </div>
               </div>
             </div>
@@ -293,7 +293,7 @@ export function PublicHome() {
           </div>
           
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Features</h4>
+            <h3 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Features</h3>
             <ul className="space-y-4 text-sm">
               <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Quran Reader</Link></li>
               <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Smart Tasbih</Link></li>
@@ -303,7 +303,7 @@ export function PublicHome() {
           </div>
           
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Legal & Support</h4>
+            <h3 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Legal & Support</h3>
             <ul className="space-y-4 text-sm">
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</Link></li>

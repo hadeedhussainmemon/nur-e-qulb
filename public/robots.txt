@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nur-e-qulb.vercel.app/sitemap.xml

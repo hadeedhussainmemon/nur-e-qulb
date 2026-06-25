@@ -1,0 +1,14 @@
+# Nur E Qalbb - Premium Islamic Productivity Suite
+
+Nur E Qalbb is a clean, distraction-free Islamic productivity companion designed to help you nurture your faith, track your daily obligations, and stay spiritually connected.
+
+## Core Features
+
+- [Prayer Timings & Tracker](/prayers): Real-time daily schedule calculation, log checklist, streaks, and a lifetime Qaza recovery tracker.
+- [Islamic Calendar](/calendar): Month-wide interactive Hijri calendar grid overlaid with Gregorian dates, allowing custom offsets.
+- [Wazeefas & Adhkar](/wazeefahs): Pre-defined Sunnah adhkar presets and custom wazeefah builders.
+- [Hadith Database](/hadith): Accessible collections of Hadith books.
+- [Quran Tracker](/quran): Immersive reader, Khatm planner, translations, and reading bookmarks.
+- [Family Circles](/family): Peer prayer tracking groups.
+- [Tasbih Counter](/tasbih): Satisfying digital counter.
+- [Platform Stats Dashboard](/admin): Aggregate metrics and city offset controls for administrators.

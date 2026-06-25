@@ -4,6 +4,40 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
+
+async function logToDatabase(level: 'error' | 'warn' | 'debug', code: string, metadata: any) {
+  try {
+    await connectToDatabase();
+    const db = mongoose.connection.db;
+    if (db) {
+      let serializedMeta = '';
+      try {
+        if (metadata instanceof Error) {
+          serializedMeta = JSON.stringify({
+            message: metadata.message,
+            stack: metadata.stack,
+            name: metadata.name,
+          });
+        } else if (metadata) {
+          serializedMeta = JSON.stringify(metadata, Object.getOwnPropertyNames(metadata));
+        }
+      } catch (e) {
+        serializedMeta = `[Unserializable metadata: ${e instanceof Error ? e.message : String(e)}]`;
+      }
+
+      await db.collection('nextauth_logs').insertOne({
+        timestamp: new Date(),
+        level,
+        code,
+        metadata: serializedMeta,
+        env: process.env.NODE_ENV,
+      });
+    }
+  } catch (err) {
+    console.error('Failed to write NextAuth log to MongoDB:', err);
+  }
+}
 
 interface DbUser {
   _id: any;
@@ -174,6 +208,20 @@ export const authOptions: NextAuthOptions = {
         console.error('[NextAuth Callback: session] Error during execution:', error);
         throw error;
       }
+    },
+  },
+  logger: {
+    error(code, metadata) {
+      console.error('[NextAuth Error]', code, metadata);
+      logToDatabase('error', code, metadata);
+    },
+    warn(code) {
+      console.warn('[NextAuth Warn]', code);
+      logToDatabase('warn', code, null);
+    },
+    debug(code, metadata) {
+      console.log('[NextAuth Debug]', code, metadata);
+      logToDatabase('debug', code, metadata);
     },
   },
 };

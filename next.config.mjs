@@ -92,7 +92,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://everyayah.com https://cdn.jsdelivr.net; frame-src 'self' https://vercel.live;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.aladhan.com https://api.alquran.cloud https://everyayah.com https://cdn.jsdelivr.net https://accounts.google.com; frame-src 'self' https://vercel.live; form-action 'self' https://accounts.google.com;",
           },
         ],
       },

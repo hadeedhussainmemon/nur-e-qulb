@@ -186,7 +186,10 @@ export async function createAndPublishWazeefah(
   description: string,
   category: 'Rizq' | 'Protection' | 'Illness' | 'Anxiety' | 'Exams' | 'Marriage' | 'Forgiveness' | 'Parents' | 'Children',
   instructions: string[],
-  score: number
+  score: number,
+  targetCount = 33,
+  reminderTime: string | null = null,
+  quranRef: any = null
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -207,7 +210,15 @@ export async function createAndPublishWazeefah(
       instructions,
       submittedBy: user._id,
       isApproved: true,
-      authenticityScore: score
+      authenticityScore: score,
+      targetCount,
+      reminderTime: reminderTime || undefined,
+      quranRef: quranRef ? {
+        surahNumber: quranRef.surahNumber,
+        surahName: quranRef.surahName,
+        fromAyah: quranRef.fromAyah || undefined,
+        toAyah: quranRef.toAyah || undefined,
+      } : undefined,
     });
 
     revalidatePath('/wazeefahs');

@@ -12,6 +12,14 @@ const wazeefahSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters').max(500),
   category: z.enum(['Rizq', 'Protection', 'Illness', 'Anxiety', 'Exams', 'Marriage', 'Forgiveness', 'Parents', 'Children']),
   instructions: z.array(z.string().min(1)).min(1, 'At least one instruction is required'),
+  targetCount: z.coerce.number().min(1).default(33),
+  reminderTime: z.string().optional().nullable(),
+  quranRef: z.object({
+    surahNumber: z.number().min(1).max(114),
+    surahName: z.string(),
+    fromAyah: z.number().optional().nullable(),
+    toAyah: z.number().optional().nullable(),
+  }).optional().nullable(),
 });
 
 export async function getApprovedWazeefahs(category?: string, page = 1, limit = 20) {
@@ -84,12 +92,30 @@ export async function submitWazeefah(formData: FormData) {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const category = formData.get('category') as string;
+    const targetCount = formData.get('targetCount') ? parseInt(formData.get('targetCount') as string, 10) : 33;
+    const reminderTime = formData.get('reminderTime') as string || null;
+    
+    let quranRef = null;
+    const quranRefRaw = formData.get('quranRef') as string;
+    if (quranRefRaw) {
+      try {
+        quranRef = JSON.parse(quranRefRaw);
+      } catch (e) {}
+    }
     
     // Parse instructions (assuming they are newline separated in the textarea)
     const rawInstructions = formData.get('instructions') as string;
     const instructions = rawInstructions ? rawInstructions.split('\n').map(s => s.trim()).filter(s => s.length > 0) : [];
 
-    const parseResult = wazeefahSchema.safeParse({ title, description, category, instructions });
+    const parseResult = wazeefahSchema.safeParse({
+      title,
+      description,
+      category,
+      instructions,
+      targetCount,
+      reminderTime,
+      quranRef,
+    });
     
     if (!parseResult.success) {
       throw new Error(`Validation Error: ${parseResult.error.message}`);
@@ -100,6 +126,9 @@ export async function submitWazeefah(formData: FormData) {
       description: parseResult.data.description,
       category: parseResult.data.category,
       instructions: parseResult.data.instructions,
+      targetCount: parseResult.data.targetCount,
+      reminderTime: parseResult.data.reminderTime,
+      quranRef: parseResult.data.quranRef,
       submittedBy: user._id,
     });
 

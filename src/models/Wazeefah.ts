@@ -9,6 +9,14 @@ export interface IWazeefah extends Document {
   isApproved: boolean;
   authenticityScore: number;
   likesCount: number;
+  targetCount: number;
+  quranRef?: {
+    surahNumber: number;
+    surahName: string;
+    fromAyah?: number;
+    toAyah?: number;
+  };
+  reminderTime?: string;
 }
 
 const WazeefahSchema = new Schema<IWazeefah>(
@@ -25,6 +33,14 @@ const WazeefahSchema = new Schema<IWazeefah>(
     isApproved: { type: Boolean, default: false },
     authenticityScore: { type: Number, default: 0, min: 0, max: 100 },
     likesCount: { type: Number, default: 0 },
+    targetCount: { type: Number, default: 33 },
+    quranRef: {
+      surahNumber: { type: Number },
+      surahName: { type: String },
+      fromAyah: { type: Number },
+      toAyah: { type: Number },
+    },
+    reminderTime: { type: String },
   },
   { timestamps: true }
 );

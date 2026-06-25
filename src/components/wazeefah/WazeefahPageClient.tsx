@@ -35,7 +35,7 @@ import {
 } from '@/app/actions/userWazeefahActions';
 
 // All 114 Surahs
-const SURAHS = [
+export const SURAHS = [
   { n: 1, name: 'Al-Fatihah', ayahs: 7 }, { n: 2, name: 'Al-Baqarah', ayahs: 286 },
   { n: 3, name: 'Ali \'Imran', ayahs: 200 }, { n: 4, name: 'An-Nisa', ayahs: 176 },
   { n: 5, name: 'Al-Ma\'idah', ayahs: 120 }, { n: 6, name: 'Al-An\'am', ayahs: 165 },

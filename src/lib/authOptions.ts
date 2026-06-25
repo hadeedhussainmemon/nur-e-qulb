@@ -7,6 +7,12 @@ import { Settings } from '@/models/Settings';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 
+// Prevent bundlers from tree-shaking these models.
+// Mongoose requires model schemas to be loaded and registered in its registry before we can use .populate()
+const _forceSettings = Settings.modelName;
+const _forceUser = User.modelName;
+
+
 async function logToDatabase(level: 'error' | 'warn' | 'debug', code: string, metadata: any) {
   try {
     await connectToDatabase();

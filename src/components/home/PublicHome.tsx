@@ -44,17 +44,17 @@ export function PublicHome() {
       {/* Header/Nav for Landing Page */}
       <header className="absolute top-0 w-full z-50 px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center overflow-hidden shadow-lg shadow-emerald-500/20">
             <Image src="/logo.png" alt="Logo" width={40} height={40} className="object-cover" />
           </div>
-          <span className="text-xl font-bold text-white tracking-wide">Nur E Qalbb</span>
+          <span className="text-xl font-black text-white tracking-wide">Nur E Qalbb</span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-emerald-100 hover:text-white transition-colors">
+        <div className="flex items-center gap-5">
+          <Link href="/login" className="text-sm font-bold text-emerald-100 hover:text-white transition-colors">
             Log in
           </Link>
           <Link href="/register">
-            <Button className="bg-white text-emerald-900 hover:bg-emerald-50 rounded-full px-6 font-semibold shadow-lg shadow-emerald-900/20">
+            <Button className="bg-white text-emerald-950 hover:bg-emerald-50 rounded-full px-6 h-11 font-bold shadow-lg shadow-emerald-950/20 transition-all hover:scale-105">
               Sign Up
             </Button>
           </Link>
@@ -62,38 +62,39 @@ export function PublicHome() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900 text-white border-b border-emerald-900/30">
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-950 text-white border-b border-emerald-950/50">
+        {/* Ambient Glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-full opacity-40 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full blur-[128px] opacity-60" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500 rounded-full blur-[128px] opacity-60" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[128px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-[128px]" />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 text-center space-y-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-medium backdrop-blur-md">
-            <MoonStar className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold backdrop-blur-md">
+            <MoonStar className="w-4 h-4 text-emerald-400" />
             <span>The Premium Islamic Productivity Suite</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-tight">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-tight">
             Elevate Your <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-200">
               Spiritual Journey
             </span>
           </h1>
           
-          <p className="text-lg md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-2xl text-slate-200 max-w-3xl mx-auto leading-relaxed font-medium">
             A beautiful, distraction-free companion to track your prayers, read the Quran, maintain Wazeefahs, and keep your heart connected to Allah.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
             <Link href="/register">
-              <Button size="lg" className="h-14 px-8 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-xl shadow-emerald-500/25 w-full sm:w-auto transition-all hover:scale-105">
+              <Button size="lg" className="h-14 px-8 text-lg font-black bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-xl shadow-emerald-500/25 w-full sm:w-auto transition-all hover:scale-105">
                 Start Your Journey
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="#features">
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-semibold border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-slate-200 rounded-full w-full sm:w-auto backdrop-blur-md">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-bold border-slate-700 bg-slate-900/60 hover:bg-slate-900 text-slate-100 rounded-full w-full sm:w-auto backdrop-blur-md shadow-md">
                 Explore Features
               </Button>
             </Link>
@@ -104,34 +105,34 @@ export function PublicHome() {
       {/* Daily Highlights Row (Floating over hero border) */}
       <section className="max-w-6xl mx-auto px-6 -mt-12 relative z-20 w-full mb-20">
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-slate-200/50 dark:border-slate-800/50 shadow-2xl rounded-2xl overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+          <Card className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-800 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-8 flex flex-col justify-between h-full">
               <div>
                 <div className="inline-flex p-3 bg-amber-500/10 rounded-2xl mb-6">
-                  <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400 animate-pulse" />
                 </div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Sunnah of the Day</h3>
-                <p className="text-xl md:text-2xl font-serif text-slate-800 dark:text-slate-200 leading-snug">
+                <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Sunnah of the Day</h3>
+                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-50 leading-relaxed">
                   "{sunnah.text}"
                 </p>
               </div>
-              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mt-6">— {sunnah.source}</p>
+              <p className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400 mt-6">— {sunnah.source}</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-slate-200/50 dark:border-slate-800/50 shadow-2xl rounded-2xl overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+          <Card className="bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-800 shadow-2xl rounded-3xl overflow-hidden group hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-8 flex flex-col justify-between h-full">
               <div>
                 <div className="inline-flex p-3 bg-rose-500/10 rounded-2xl mb-6">
                   <BookMarked className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Daily Wazeefah Reminder</h3>
-                <p className="text-xl md:text-2xl font-serif text-slate-800 dark:text-slate-200 leading-snug">
+                <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Daily Wazeefah Reminder</h3>
+                <p className="text-xl md:text-2xl font-serif text-slate-950 dark:text-slate-50 leading-relaxed">
                   {wazeefah.text}
                 </p>
               </div>
-              <div className="mt-6 inline-flex items-center gap-2 text-sm bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 font-medium w-fit">
-                <Clock className="w-4 h-4 text-emerald-500" />
+              <div className="mt-6 inline-flex items-center gap-2 text-sm bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 px-3 py-1.5 rounded-lg text-slate-800 dark:text-slate-200 font-bold w-fit">
+                <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 {wazeefah.time}
               </div>
             </CardContent>
@@ -257,39 +258,42 @@ export function PublicHome() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-emerald-600 dark:bg-emerald-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10" />
+      <section className="py-24 bg-slate-950 relative overflow-hidden border-t border-b border-slate-900">
+        {/* Glow Effects */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-[0.03]" />
+        
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center space-y-8">
-          <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight">Ready to transform your habits?</h2>
-          <p className="text-emerald-100 text-lg md:text-xl max-w-2xl mx-auto">Join thousands of Muslims building a stronger connection with their faith through Nur E Qalbb.</p>
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">Ready to transform your habits?</h2>
+          <p className="text-emerald-100/90 text-lg md:text-xl max-w-2xl mx-auto font-medium">Join thousands of Muslims building a stronger connection with their faith through Nur E Qalbb.</p>
           <div className="pt-4">
             <Link href="/register">
-              <Button size="lg" className="bg-white text-emerald-700 hover:bg-emerald-50 h-16 px-10 text-xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform">
+              <Button size="lg" className="bg-white text-emerald-950 hover:bg-emerald-50 h-16 px-10 text-xl font-black rounded-full shadow-2xl shadow-emerald-500/10 hover:scale-105 transition-all">
                 Create Free Account
               </Button>
             </Link>
-            <p className="mt-6 text-sm text-emerald-200">No credit card required. Fast sign-up with Google.</p>
+            <p className="mt-6 text-sm text-emerald-300/80 font-bold">No credit card required. Fast sign-up with Google.</p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-slate-400 py-16 border-t border-slate-800">
+      <footer className="bg-slate-950 text-slate-300 py-16 border-t border-slate-900 font-medium">
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="col-span-1 md:col-span-2 space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center overflow-hidden">
                 <Image src="/logo.png" alt="Logo" width={32} height={32} className="object-cover" />
               </div>
-              <span className="text-xl font-bold text-white">Nur E Qalbb</span>
+              <span className="text-xl font-black text-white">Nur E Qalbb</span>
             </div>
-            <p className="text-sm leading-relaxed max-w-sm">
+            <p className="text-sm leading-relaxed max-w-sm text-slate-300">
               Your comprehensive Islamic productivity suite. Designed with elegance and built to help you nurture your faith without distractions.
             </p>
           </div>
           
           <div>
-            <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Features</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Features</h4>
             <ul className="space-y-4 text-sm">
               <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Quran Reader</Link></li>
               <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Smart Tasbih</Link></li>
@@ -299,7 +303,7 @@ export function PublicHome() {
           </div>
           
           <div>
-            <h4 className="text-white font-semibold mb-6 uppercase tracking-wider text-sm">Legal & Support</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-xs">Legal & Support</h4>
             <ul className="space-y-4 text-sm">
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Privacy Policy</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Terms of Service</Link></li>
@@ -308,10 +312,10 @@ export function PublicHome() {
           </div>
         </div>
         
-        <div className="max-w-6xl mx-auto px-6 mt-16 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm">© {new Date().getFullYear()} Nur E Qalbb. All rights reserved.</p>
-          <div className="flex items-center gap-2 text-sm">
-            Made with <Heart className="w-4 h-4 text-rose-500 fill-rose-500" /> by Hadeed Hussain
+        <div className="max-w-6xl mx-auto px-6 mt-16 pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-slate-400">© {new Date().getFullYear()} Nur E Qalbb. All rights reserved.</p>
+          <div className="flex items-center gap-2 text-sm text-slate-400 font-bold">
+            Made with <Heart className="w-4 h-4 text-rose-500 fill-rose-500 animate-pulse" /> by Hadeed Hussain
           </div>
         </div>
       </footer>

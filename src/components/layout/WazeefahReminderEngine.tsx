@@ -125,7 +125,7 @@ export function WazeefahReminderEngine() {
             actions,
             data,
             requireInteraction: true
-          });
+          } as any);
           return;
         } catch (e) {
           console.error('SW notification failed, falling back to basic notification', e);

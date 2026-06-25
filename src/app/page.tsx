@@ -100,12 +100,7 @@ export default function Dashboard() {
     setTasbihCount(0);
   }, []);
 
-  const isPastMidnightBeforeFajr = nextPrayer?.name === 'Fajr' && new Date().getHours() < 12;
-  const trackingDate = new Date();
-  if (isPastMidnightBeforeFajr) {
-    trackingDate.setDate(trackingDate.getDate() - 1);
-  }
-  const trackingDateString = trackingDate.toLocaleDateString('en-CA');
+
   // Fetch Hijri date based on local Gregorian date (NOT from prayer API location)
   useEffect(() => {
     async function fetchHijriDate() {
@@ -190,12 +185,12 @@ export default function Dashboard() {
     });
 
     try {
-      const result = await togglePrayerStatus(localTodayDateString, prayerName, newStatus);
+      const result = await togglePrayerStatus(trackingDateString, prayerName, newStatus);
       if (result.success) {
         setTodayLog(result.log);
         setTodayCompletion(result.log.completionPercentage);
         
-        const newStreaks = await getPrayerStreaks(localTodayDateString);
+        const newStreaks = await getPrayerStreaks(trackingDateString);
         setPrayerStreak(newStreaks.currentStreak || 0);
         setFajrStreak(newStreaks.fajrStreak || 0);
       }
@@ -450,13 +445,13 @@ export default function Dashboard() {
             ) : (
               <div className="w-full space-y-2">
                 {userWazeefahs.slice(0, 2).map((uw: any) => {
-                  const todayCompletion = uw.completions.find((c: any) => c.date === localTodayDateString);
+                  const todayCompletion = uw.completions.find((c: any) => c.date === trackingDateString);
                   const count = todayCompletion ? todayCompletion.count : 0;
                   const isCompleted = count >= uw.targetCount;
 
                   const handleCheckClick = async () => {
                     const newCount = isCompleted ? 0 : uw.targetCount;
-                    const res = await logWazeefahProgress(uw._id, newCount, localTodayDateString);
+                    const res = await logWazeefahProgress(uw._id, newCount, trackingDateString);
                     if (res.success) {
                       setUserWazeefahs(prev => prev.map((w: any) => w._id === uw._id ? res.userWazeefah : w));
                     }

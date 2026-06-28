@@ -14,16 +14,20 @@ const CATEGORIES = ['Rizq', 'Protection', 'Illness', 'Anxiety', 'Exams', 'Marria
 
 export function AdminCustomWazeefasTab({
   initialPending,
+  initialApproved,
   initialCustom,
   onUpdatePending,
+  onUpdateApproved,
   onUpdateCustom,
 }: {
   initialPending: any[];
+  initialApproved: any[];
   initialCustom: any[];
   onUpdatePending: (list: any[]) => void;
+  onUpdateApproved: (list: any[]) => void;
   onUpdateCustom: (list: any[]) => void;
 }) {
-  const [subTab, setSubTab] = useState<'pending' | 'personal'>('pending');
+  const [subTab, setSubTab] = useState<'pending' | 'presets' | 'personal'>('pending');
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('Protection');
   const [loadingAction, setLoadingAction] = useState(false);
@@ -74,12 +78,33 @@ export function AdminCustomWazeefasTab({
             p._id === editingWazeefah._id ? { ...p, ...res.wazeefah } : p
           )
         );
+        onUpdateApproved(
+          initialApproved.map((p: any) =>
+            p._id === editingWazeefah._id ? { ...p, ...res.wazeefah } : p
+          )
+        );
         setEditingWazeefah(null);
       } else {
         alert(res.error || 'Failed to update wazeefah.');
       }
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handlePresetDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this community preset suggested wazeefah?')) return;
+    try {
+      const { rejectWazeefah } = await import('@/app/actions/wazeefahActions');
+      const res = await rejectWazeefah(id);
+      if (res.success) {
+        alert('Preset successfully deleted.');
+        onUpdateApproved(initialApproved.filter((p: any) => p._id !== id));
+      } else {
+        alert(res.error || 'Failed to delete preset.');
+      }
+    } catch (e: any) {
+      alert(e.message);
     }
   };
 
@@ -120,6 +145,16 @@ export function AdminCustomWazeefasTab({
           }`}
         >
           Community Submissions ({initialPending.length})
+        </button>
+        <button
+          onClick={() => setSubTab('presets')}
+          className={`pb-2 text-sm font-bold tracking-wide uppercase transition-all border-b-2 cursor-pointer ${
+            subTab === 'presets'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 font-extrabold'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'
+          }`}
+        >
+          Suggested Wazeefas ({initialApproved.length})
         </button>
         <button
           onClick={() => setSubTab('personal')}
@@ -201,6 +236,92 @@ export function AdminCustomWazeefasTab({
                     </div>
                     
                     <AdminWazeefahControls wazeefahId={w._id} onEdit={() => handleEditClick(w)} />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : subTab === 'presets' ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-slate-850 dark:text-slate-200">Suggested Wazeefas</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage community-wide preset template wazeefas.</p>
+
+          {initialApproved.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl border-slate-300 dark:border-slate-800">
+              No approved presets available.
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {initialApproved.map((w: any) => (
+                <Card key={w._id} className="border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/10 dark:bg-emerald-950/5">
+                  <CardHeader className="pb-3 border-b border-emerald-100 dark:border-emerald-900/50">
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded mb-1.5 inline-block">
+                          {w.category}
+                        </span>
+                        <CardTitle className="text-lg">{w.title}</CardTitle>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-muted-foreground block">
+                          By {w.submittedBy?.name || 'Admin'}
+                        </span>
+                        <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-650 dark:text-emerald-450 font-bold px-1.5 py-0.5 rounded mt-1 inline-block">
+                          {w.authenticityScore}% Authentic
+                        </span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <p className="text-sm bg-white dark:bg-slate-900/55 p-3 rounded border dark:border-slate-800">{w.description}</p>
+                    
+                    {/* Wazeefah Specifications */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-slate-100/50 dark:bg-slate-900/30 rounded-lg border dark:border-slate-800 text-xs">
+                      <div>
+                        <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Target Count</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{w.targetCount || 33} recitations</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Recommended Reminder</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">{w.reminderTime || 'None'}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Reference / Source</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block max-w-[150px]" title={w.reference || 'None'}>
+                          {w.reference || 'None'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Quran Reference</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                          {w.quranRef ? (
+                            <>
+                              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                              <span>{w.quranRef.surahName} ({w.quranRef.surahNumber}:{w.quranRef.fromAyah || 1}{w.quranRef.toAyah ? `-${w.quranRef.toAyah}` : ''})</span>
+                            </>
+                          ) : (
+                            'None'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Instructions</h4>
+                      <ul className="text-sm list-decimal list-inside space-y-1 bg-white dark:bg-slate-900/30 p-3 rounded border dark:border-slate-800">
+                        {w.instructions.map((inst: string, i: number) => <li key={i}>{inst}</li>)}
+                      </ul>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 border-t pt-3 mt-3">
+                      <Button variant="outline" size="sm" onClick={() => handleEditClick(w)} className="text-blue-600 hover:text-blue-750">
+                        Edit Preset
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handlePresetDelete(w._id)} className="text-rose-600 hover:text-rose-700">
+                        Delete Preset
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

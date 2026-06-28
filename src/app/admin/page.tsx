@@ -2,7 +2,7 @@ import React from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { redirect } from 'next/navigation';
-import { getPendingWazeefahs } from '@/app/actions/wazeefahActions';
+import { getPendingWazeefahs, getApprovedWazeefahs } from '@/app/actions/wazeefahActions';
 import {
   getAllUsers,
   getAllFamilies,
@@ -20,6 +20,7 @@ export default async function AdminDashboardPage() {
   }
 
   const pendingWazeefahsRes = await getPendingWazeefahs();
+  const approvedWazeefahsRes = await getApprovedWazeefahs(undefined, 1, 100);
   const usersRes = await getAllUsers();
   const familiesRes = await getAllFamilies();
   const customWazeefasRes = await getCustomUserWazeefas();
@@ -29,6 +30,7 @@ export default async function AdminDashboardPage() {
   return (
     <AdminDashboardClient
       initialPendingWazeefahs={pendingWazeefahsRes.data || []}
+      initialApprovedWazeefahs={approvedWazeefahsRes || []}
       initialUsers={usersRes.data || []}
       initialFamilies={familiesRes.data || []}
       initialCustomWazeefas={customWazeefasRes.data || []}

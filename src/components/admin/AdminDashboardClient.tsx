@@ -11,6 +11,7 @@ import { AdminNotificationsTab } from './AdminNotificationsTab';
 
 export function AdminDashboardClient({
   initialPendingWazeefahs,
+  initialApprovedWazeefahs,
   initialUsers,
   initialFamilies,
   initialCustomWazeefas,
@@ -18,6 +19,7 @@ export function AdminDashboardClient({
   initialStats,
 }: {
   initialPendingWazeefahs: any[];
+  initialApprovedWazeefahs: any[];
   initialUsers: any[];
   initialFamilies: any[];
   initialCustomWazeefas: any[];
@@ -28,6 +30,7 @@ export function AdminDashboardClient({
 
   // Lists state for responsive updates
   const [pendingWazeefahs, setPendingWazeefahs] = useState(initialPendingWazeefahs);
+  const [approvedWazeefahs, setApprovedWazeefahs] = useState(initialApprovedWazeefahs);
   const [users, setUsers] = useState(initialUsers);
   const [families, setFamilies] = useState(initialFamilies);
   const [customWazeefas, setCustomWazeefas] = useState(initialCustomWazeefas);
@@ -90,8 +93,10 @@ export function AdminDashboardClient({
         {activeTab === 'wazeefahs' && (
           <AdminCustomWazeefasTab
             initialPending={pendingWazeefahs}
+            initialApproved={approvedWazeefahs}
             initialCustom={customWazeefas}
             onUpdatePending={setPendingWazeefahs}
+            onUpdateApproved={setApprovedWazeefahs}
             onUpdateCustom={setCustomWazeefas}
           />
         )}

@@ -20,6 +20,8 @@ export interface IUserWazeefah extends Document {
   reminderTime?: string; // e.g. '06:00' or 'Fajr', 'Maghrib'
   isCustom: boolean;
   isActive: boolean;
+  reference?: string;
+  reminderDays: number[];
 }
 
 const UserWazeefahSchema = new Schema<IUserWazeefah>(
@@ -45,6 +47,8 @@ const UserWazeefahSchema = new Schema<IUserWazeefah>(
     reminderTime: { type: String },
     isCustom: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
+    reference: { type: String },
+    reminderDays: { type: [Number], default: [0, 1, 2, 3, 4, 5, 6] },
   },
   { timestamps: true }
 );

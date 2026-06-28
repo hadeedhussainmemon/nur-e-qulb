@@ -24,6 +24,13 @@ export function SubmitWazeefahForm({ onSuccess }: { onSuccess: () => void }) {
   // Target & Reminder States
   const [targetCount, setTargetCount] = useState(33);
   const [reminderTime, setReminderTime] = useState('Fajr');
+  const [selectedDays, setSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+
+  const toggleDay = (day: number) => {
+    setSelectedDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
 
   const filteredSurahs = SURAHS.filter(s =>
     s.name.toLowerCase().includes(surahSearch.toLowerCase()) ||
@@ -96,6 +103,15 @@ export function SubmitWazeefahForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Reference / Source (Optional)</label>
+        <Input 
+          name="reference" 
+          placeholder="e.g. Sahih al-Bukhari, Hadith 6405 or Al-Kahf 18:10" 
+          className="border-slate-300 dark:border-slate-800"
+        />
+      </div>
+
+      <div className="space-y-1.5">
         <label className="text-xs font-semibold text-slate-700 dark:text-slate-350 flex items-center justify-between">
           <span>Method / Instructions</span>
           <span className="text-[10px] text-muted-foreground font-normal">One step per line</span>
@@ -153,7 +169,7 @@ export function SubmitWazeefahForm({ onSuccess }: { onSuccess: () => void }) {
               )}
               {selectedSurah && (
                 <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                  <BookOpen className="w-3 h-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{selectedSurah.n}. {selectedSurah.name}</span>
                   <span className="text-[9px] text-slate-400 dark:text-slate-500 ml-auto">{selectedSurah.ayahs} ayahs</span>
                 </div>
@@ -227,6 +243,31 @@ export function SubmitWazeefahForm({ onSuccess }: { onSuccess: () => void }) {
             <option value="Before Sleep">Before Sleep</option>
           </select>
         </div>
+      </div>
+
+      {/* Weekday Selection for Reminders */}
+      <div className="space-y-2">
+        <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Days</label>
+        <div className="flex gap-1.5">
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
+            const isSelected = selectedDays.includes(idx);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => toggleDay(idx)}
+                className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                  isSelected
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                    : 'bg-background border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {dayName}
+              </button>
+            );
+          })}
+        </div>
+        <input type="hidden" name="reminderDays" value={JSON.stringify(selectedDays)} />
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold mt-2">

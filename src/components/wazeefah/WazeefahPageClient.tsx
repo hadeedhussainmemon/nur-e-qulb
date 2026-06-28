@@ -24,9 +24,12 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { SubmitWazeefahForm } from './SubmitWazeefahForm';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { getWazeefahById } from '@/app/actions/wazeefahActions';
 import {
   subscribeToWazeefah,
   createCustomWazeefah,
@@ -122,6 +125,46 @@ export function WazeefahPageClient({
   const [customInstructionsText, setCustomInstructionsText] = useState('');
   const [customTarget, setCustomTarget] = useState<number>(33);
   const [customReminder, setCustomReminder] = useState('Fajr');
+  const [customReference, setCustomReference] = useState('');
+  const [customSelectedDays, setCustomSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+
+  const toggleCustomDay = (day: number) => {
+    setCustomSelectedDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
+  const [subSelectedDays, setSubSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+
+  const toggleSubDay = (day: number) => {
+    setSubSelectedDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
+  // Search parameters for detail modal
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [detailWazeefah, setDetailWazeefah] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const detailWazeefahId = searchParams.get('id') || searchParams.get('wazeefahId');
+
+  React.useEffect(() => {
+    if (detailWazeefahId) {
+      setDetailLoading(true);
+      getWazeefahById(detailWazeefahId).then(res => {
+        if (res.success && res.data) {
+          setDetailWazeefah(res.data);
+        } else {
+          console.error('Failed to load wazeefah details:', res.error);
+        }
+        setDetailLoading(false);
+      });
+    } else {
+      setDetailWazeefah(null);
+    }
+  }, [detailWazeefahId]);
 
   // Quran Ref state
   const [showQuranRef, setShowQuranRef] = useState(false);
@@ -149,6 +192,8 @@ export function WazeefahPageClient({
   const handleOpenSubscribe = (wazeefah: any) => {
     setSelectedTemplate(wazeefah);
     setSubTargetCount(wazeefah.targetCount || 33);
+    setSubReminderTime(wazeefah.reminderTime || 'Fajr');
+    setSubSelectedDays(wazeefah.reminderDays || [0, 1, 2, 3, 4, 5, 6]);
     setIsSubscribeOpen(true);
   };
 
@@ -158,7 +203,7 @@ export function WazeefahPageClient({
 
     setLoadingActionId('subscribe');
     try {
-      const res = await subscribeToWazeefah(selectedTemplate._id, subTargetCount, subReminderTime);
+      const res = await subscribeToWazeefah(selectedTemplate._id, subTargetCount, subReminderTime, subSelectedDays);
       if (res.success) {
         setUserWazeefahs([res.userWazeefah, ...userWazeefahs]);
         setIsSubscribeOpen(false);
@@ -191,7 +236,7 @@ export function WazeefahPageClient({
       : null;
 
     try {
-      const res = await createCustomWazeefah(customTitle, customDesc, instructions, customTarget, customReminder, quranRef);
+      const res = await createCustomWazeefah(customTitle, customDesc, instructions, customTarget, customReminder, quranRef, customReference || null, customSelectedDays);
       if (res.success) {
         setUserWazeefahs([res.userWazeefah, ...userWazeefahs]);
         setIsCustomOpen(false);
@@ -201,6 +246,8 @@ export function WazeefahPageClient({
         setCustomInstructionsText('');
         setCustomTarget(33);
         setCustomReminder('Fajr');
+        setCustomReference('');
+        setCustomSelectedDays([0, 1, 2, 3, 4, 5, 6]);
         setShowQuranRef(false);
         setSurahSearch('');
         setSelectedSurah(null);
@@ -402,6 +449,14 @@ export function WazeefahPageClient({
                     </div>
                   )}
 
+                  {/* Reference Display */}
+                  {uw.reference && (
+                    <div className="text-[10px] text-muted-foreground flex items-start gap-1 p-2 bg-slate-50 dark:bg-slate-900/50 border dark:border-slate-800 rounded-lg">
+                      <span className="font-bold text-slate-400 shrink-0">Source:</span>
+                      <span className="line-clamp-1 italic">{uw.reference}</span>
+                    </div>
+                  )}
+
                   {/* Quran Ref Badge */}
                   {uw.quranRef?.surahName && (
                     <Link
@@ -531,6 +586,29 @@ export function WazeefahPageClient({
                       </ul>
                     </div>
                   </div>
+                  {w.reference && (
+                    <div className="text-[10px] text-muted-foreground mt-3 flex items-start gap-1 p-2 bg-slate-50 dark:bg-slate-900/50 border dark:border-slate-800 rounded-lg">
+                      <span className="font-bold text-slate-400 shrink-0">Source:</span>
+                      <span className="line-clamp-2 italic">{w.reference}</span>
+                    </div>
+                  )}
+
+                  {w.quranRef?.surahName && (
+                    <Link
+                      href={`/quran?surah=${w.quranRef.surahNumber}${w.quranRef.fromAyah ? `&ayah=${w.quranRef.fromAyah}` : ''}`}
+                      className="mt-3 flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors group"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-emerald-500 truncate">
+                          {w.quranRef.surahNumber}. {w.quranRef.surahName}
+                          {w.quranRef.fromAyah && ` :${w.quranRef.fromAyah}`}
+                        </p>
+                      </div>
+                      <ExternalLink className="w-3 h-3 text-emerald-500/50 group-hover:text-emerald-500 transition-colors shrink-0" />
+                    </Link>
+                  )}
+
                   <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">Added: {new Date(w.createdAt).toLocaleDateString()}</span>
                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleOpenSubscribe(w)}>
@@ -598,6 +676,30 @@ export function WazeefahPageClient({
                 <option value="Evening">Evening Adhkar</option>
                 <option value="Before Sleep">Before Sleep</option>
               </select>
+            </div>
+
+            {/* Weekday Selection for Presets */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Days</label>
+              <div className="flex gap-1.5">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
+                  const isSelected = subSelectedDays.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleSubDay(idx)}
+                      className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                          : 'bg-background border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {dayName}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <DialogFooter className="pt-2">
@@ -737,6 +839,15 @@ export function WazeefahPageClient({
               )}
             </div>
 
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Reference / Source (Optional)</label>
+              <Input
+                value={customReference}
+                onChange={(e) => setCustomReference(e.target.value)}
+                placeholder="e.g. Sahih al-Bukhari, Hadith 6405 or Al-Kahf 18:10"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Target Count</label>
@@ -769,6 +880,30 @@ export function WazeefahPageClient({
               </div>
             </div>
 
+            {/* Weekday Selection for Custom */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Days</label>
+              <div className="flex gap-1.5">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
+                  const isSelected = customSelectedDays.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleCustomDay(idx)}
+                      className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                          : 'bg-background border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {dayName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsCustomOpen(false)}>
                 Cancel
@@ -778,6 +913,83 @@ export function WazeefahPageClient({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Wazeefah Detail View */}
+      <Dialog open={!!detailWazeefah} onOpenChange={(open) => { if (!open) { setDetailWazeefah(null); router.push('/wazeefahs'); } }}>
+        <DialogContent className="sm:max-w-[425px]">
+          {detailLoading ? (
+            <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
+          ) : detailWazeefah ? (
+            <div className="space-y-4">
+              <DialogHeader>
+                <div className="flex justify-between items-start">
+                  <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400">
+                    {detailWazeefah.category || 'Wazeefah'}
+                  </Badge>
+                  {detailWazeefah.reminderTime && (
+                    <div className="flex items-center gap-1 text-muted-foreground text-xs font-semibold">
+                      <Clock className="w-3.5 h-3.5 text-blue-500" />
+                      <span>{detailWazeefah.reminderTime}</span>
+                    </div>
+                  )}
+                </div>
+                <DialogTitle className="text-xl font-bold mt-2">{detailWazeefah.title}</DialogTitle>
+                {detailWazeefah.description && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{detailWazeefah.description}</p>
+                )}
+              </DialogHeader>
+
+              {/* Reference */}
+              {detailWazeefah.reference && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border dark:border-slate-800 rounded-lg text-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Source / Reference</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-350">{detailWazeefah.reference}</span>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {detailWazeefah.instructions && detailWazeefah.instructions.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Instructions</span>
+                  <ol className="text-sm list-decimal list-inside space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border dark:border-slate-800">
+                    {detailWazeefah.instructions.map((inst: string, i: number) => <li key={i}>{inst}</li>)}
+                  </ol>
+                </div>
+              )}
+
+              {/* Quran reference */}
+              {detailWazeefah.quranRef?.surahName && (
+                <Link
+                  href={`/quran?surah=${detailWazeefah.quranRef.surahNumber}${detailWazeefah.quranRef.fromAyah ? `&ayah=${detailWazeefah.quranRef.fromAyah}` : ''}`}
+                  onClick={() => setDetailWazeefah(null)}
+                  className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg hover:bg-emerald-500/10 transition-colors group"
+                >
+                  <BookOpen className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-emerald-500 truncate">
+                      {detailWazeefah.quranRef.surahNumber}. {detailWazeefah.quranRef.surahName}
+                      {detailWazeefah.quranRef.fromAyah && ` :${detailWazeefah.quranRef.fromAyah}`}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">Jump to verse in Quran Reader</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-500/50 group-hover:text-emerald-500 transition-colors shrink-0" />
+                </Link>
+              )}
+
+              <DialogFooter className="pt-2">
+                <Button variant="outline" onClick={() => { setDetailWazeefah(null); router.push('/wazeefahs'); }}>
+                  Close
+                </Button>
+                {!detailWazeefah.userId && (
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => { setDetailWazeefah(null); handleOpenSubscribe(detailWazeefah); }}>
+                    Add to Schedule
+                  </Button>
+                )}
+              </DialogFooter>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

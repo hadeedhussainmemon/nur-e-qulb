@@ -25,7 +25,7 @@ export async function getUserWazeefahs() {
   }
 }
 
-export async function subscribeToWazeefah(wazeefahId: string, targetCount: number, reminderTime: string) {
+export async function subscribeToWazeefah(wazeefahId: string, targetCount: number, reminderTime: string, reminderDays?: number[]) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
@@ -54,6 +54,8 @@ export async function subscribeToWazeefah(wazeefahId: string, targetCount: numbe
       title: template.title,
       description: template.description,
       instructions: template.instructions,
+      reference: template.reference,
+      reminderDays: reminderDays || template.reminderDays || [0, 1, 2, 3, 4, 5, 6],
       targetCount: targetCount || 33,
       reminderTime: reminderTime || 'Fajr',
       isCustom: false,
@@ -77,7 +79,9 @@ export async function createCustomWazeefah(
   instructions: string[],
   targetCount: number,
   reminderTime: string,
-  quranRef?: { surahNumber: number; surahName: string; fromAyah?: number; toAyah?: number } | null
+  quranRef?: { surahNumber: number; surahName: string; fromAyah?: number; toAyah?: number } | null,
+  reference?: string | null,
+  reminderDays: number[] = [0, 1, 2, 3, 4, 5, 6]
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -98,6 +102,8 @@ export async function createCustomWazeefah(
       isCustom: true,
       isActive: true,
       completions: [],
+      reference: reference || undefined,
+      reminderDays: reminderDays,
     });
 
     revalidatePath('/wazeefahs');

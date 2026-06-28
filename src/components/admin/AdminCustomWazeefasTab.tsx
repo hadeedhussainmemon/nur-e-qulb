@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { AdminWazeefahControls } from './AdminWazeefahControls';
 import { promoteWazeefahToPreset } from '@/app/actions/adminActions';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 const CATEGORIES = ['Rizq', 'Protection', 'Illness', 'Anxiety', 'Exams', 'Marriage', 'Forgiveness', 'Parents', 'Children'] as const;
 
@@ -24,6 +27,61 @@ export function AdminCustomWazeefasTab({
   const [promotingId, setPromotingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<typeof CATEGORIES[number]>('Protection');
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // Edit Suggestion States
+  const [editingWazeefah, setEditingWazeefah] = useState<any>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCategory, setEditCategory] = useState<typeof CATEGORIES[number]>('Protection');
+  const [editInstructions, setEditInstructions] = useState('');
+  const [editTarget, setEditTarget] = useState(33);
+  const [editReminder, setEditReminder] = useState('Fajr');
+  const [editReference, setEditReference] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleEditClick = (w: any) => {
+    setEditingWazeefah(w);
+    setEditTitle(w.title);
+    setEditDesc(w.description);
+    setEditCategory(w.category);
+    setEditInstructions(w.instructions.join('\n'));
+    setEditTarget(w.targetCount || 33);
+    setEditReminder(w.reminderTime || 'Fajr');
+    setEditReference(w.reference || '');
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWazeefah) return;
+
+    setIsUpdating(true);
+    try {
+      const { updatePendingWazeefah } = await import('@/app/actions/wazeefahActions');
+      const res = await updatePendingWazeefah(editingWazeefah._id, {
+        title: editTitle,
+        description: editDesc,
+        category: editCategory,
+        instructions: editInstructions.split('\n').map(s => s.trim()).filter(Boolean),
+        targetCount: editTarget,
+        reminderTime: editReminder,
+        reference: editReference || null,
+      });
+
+      if (res.success) {
+        alert('Wazeefah successfully updated!');
+        onUpdatePending(
+          initialPending.map((p: any) =>
+            p._id === editingWazeefah._id ? { ...p, ...res.wazeefah } : p
+          )
+        );
+        setEditingWazeefah(null);
+      } else {
+        alert(res.error || 'Failed to update wazeefah.');
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handlePromoteClick = (id: string) => {
     setPromotingId(id);
@@ -105,7 +163,7 @@ export function AdminCustomWazeefasTab({
                     <p className="text-sm bg-white dark:bg-slate-900/55 p-3 rounded border dark:border-slate-800">{w.description}</p>
                     
                     {/* Wazeefah Specifications */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-slate-100/50 dark:bg-slate-900/30 rounded-lg border dark:border-slate-800 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-slate-100/50 dark:bg-slate-900/30 rounded-lg border dark:border-slate-800 text-xs">
                       <div>
                         <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Target Count</span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">{w.targetCount || 33} recitations</span>
@@ -113,6 +171,12 @@ export function AdminCustomWazeefasTab({
                       <div>
                         <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Recommended Reminder</span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">{w.reminderTime || 'None'}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Reference / Source</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block max-w-[150px]" title={w.reference || 'None'}>
+                          {w.reference || 'None'}
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground block uppercase font-bold text-[9px] tracking-wider mb-0.5">Quran Reference</span>
@@ -136,7 +200,7 @@ export function AdminCustomWazeefasTab({
                       </ul>
                     </div>
                     
-                    <AdminWazeefahControls wazeefahId={w._id} />
+                    <AdminWazeefahControls wazeefahId={w._id} onEdit={() => handleEditClick(w)} />
                   </CardContent>
                 </Card>
               ))}
@@ -244,6 +308,110 @@ export function AdminCustomWazeefasTab({
           )}
         </div>
       )}
+
+      {/* Dialog for Admin Editing Suggested Wazeefas */}
+      <Dialog open={!!editingWazeefah} onOpenChange={(open) => { if (!open) setEditingWazeefah(null); }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+              Edit Suggested Wazeefah
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Title</label>
+              <Input
+                required
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Description</label>
+              <Textarea
+                required
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Category</label>
+              <select
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value as any)}
+                className="w-full h-10 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reference / Source</label>
+              <Input
+                value={editReference}
+                onChange={(e) => setEditReference(e.target.value)}
+                placeholder="Reference info..."
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350 flex items-center justify-between">
+                <span>Method / Instructions</span>
+                <span className="text-[10px] text-muted-foreground font-normal">One step per line</span>
+              </label>
+              <Textarea
+                required
+                value={editInstructions}
+                onChange={(e) => setEditInstructions(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Target Count</label>
+                <Input
+                  type="number"
+                  min={1}
+                  required
+                  value={editTarget}
+                  onChange={(e) => setEditTarget(parseInt(e.target.value, 10) || 0)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Schedule</label>
+                <select
+                  value={editReminder}
+                  onChange={(e) => setEditReminder(e.target.value)}
+                  className="w-full h-10 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Fajr">After Fajr</option>
+                  <option value="Dhuhr">After Dhuhr</option>
+                  <option value="Asr">After Asr</option>
+                  <option value="Maghrib">After Maghrib</option>
+                  <option value="Isha">After Isha</option>
+                  <option value="Morning">Morning Adhkar</option>
+                  <option value="Evening">Evening Adhkar</option>
+                  <option value="Before Sleep">Before Sleep</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditingWazeefah(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={isUpdating}>
+                {isUpdating ? 'Updating...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

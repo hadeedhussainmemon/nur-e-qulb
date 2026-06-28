@@ -17,6 +17,8 @@ export interface IWazeefah extends Document {
     toAyah?: number;
   };
   reminderTime?: string;
+  reference?: string;
+  reminderDays?: number[];
 }
 
 const WazeefahSchema = new Schema<IWazeefah>(
@@ -41,6 +43,8 @@ const WazeefahSchema = new Schema<IWazeefah>(
       toAyah: { type: Number },
     },
     reminderTime: { type: String },
+    reference: { type: String },
+    reminderDays: { type: [Number], default: [0, 1, 2, 3, 4, 5, 6] },
   },
   { timestamps: true }
 );

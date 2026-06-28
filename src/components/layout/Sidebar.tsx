@@ -18,6 +18,7 @@ import {
   CircleDot,
   Calculator,
   BarChart3,
+  Download,
 } from 'lucide-react';
 
 const routes = [
@@ -38,6 +39,34 @@ const routes = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
+  const [isInstallable, setIsInstallable] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
@@ -53,7 +82,7 @@ export function Sidebar() {
 
       {/* Nav routes */}
       <nav className="flex-1 px-2 py-2 flex flex-col justify-between overflow-hidden">
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 overflow-y-auto max-h-[calc(100vh-180px)]">
           {routes.map((route) => (
             <Link
               href={route.href}
@@ -71,19 +100,31 @@ export function Sidebar() {
           ))}
         </div>
 
-        {/* Quote card */}
-        <div className="mx-1 mt-3 p-3 bg-emerald-50 dark:bg-slate-950/30 border border-emerald-100 dark:border-emerald-500/10 rounded-xl relative overflow-hidden shrink-0">
-          <div className="absolute right-0 bottom-0 top-0 w-1/2 opacity-[0.05] pointer-events-none text-emerald-500">
-            <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
-              <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
-            </svg>
+        <div className="shrink-0 space-y-2 mt-auto pt-2">
+          {/* Install App Button */}
+          {isInstallable && (
+            <button
+              onClick={handleInstallClick}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border-0"
+            >
+              <Download className="w-3.5 h-3.5" /> Install Desktop App
+            </button>
+          )}
+
+          {/* Quote card */}
+          <div className="p-3 bg-emerald-50 dark:bg-slate-950/30 border border-emerald-100 dark:border-emerald-500/10 rounded-xl relative overflow-hidden">
+            <div className="absolute right-0 bottom-0 top-0 w-1/2 opacity-[0.05] pointer-events-none text-emerald-500">
+              <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
+                <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
+              </svg>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-relaxed italic relative z-10">
+              "Indeed, in the remembrance of Allah do hearts find rest."
+            </p>
+            <p className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold text-right mt-1 relative z-10">
+              — Quran 13:28
+            </p>
           </div>
-          <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-relaxed italic relative z-10">
-            "Indeed, in the remembrance of Allah do hearts find rest."
-          </p>
-          <p className="text-[9px] text-emerald-500 dark:text-emerald-400 font-bold text-right mt-1 relative z-10">
-            — Quran 13:28
-          </p>
         </div>
       </nav>
     </div>

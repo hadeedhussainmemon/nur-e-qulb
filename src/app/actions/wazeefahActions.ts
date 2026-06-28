@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import connectToDatabase from '@/lib/mongodb';
 import { Wazeefah } from '@/models/Wazeefah';
+import { UserWazeefah } from '@/models/UserWazeefah';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -20,6 +21,8 @@ const wazeefahSchema = z.object({
     fromAyah: z.number().optional().nullable(),
     toAyah: z.number().optional().nullable(),
   }).optional().nullable(),
+  reference: z.string().optional().nullable(),
+  reminderDays: z.array(z.number()).optional().nullable(),
 });
 
 export async function getApprovedWazeefahs(category?: string, page = 1, limit = 20) {
@@ -94,6 +97,15 @@ export async function submitWazeefah(formData: FormData) {
     const category = formData.get('category') as string;
     const targetCount = formData.get('targetCount') ? parseInt(formData.get('targetCount') as string, 10) : 33;
     const reminderTime = formData.get('reminderTime') as string || null;
+    const reference = formData.get('reference') as string || null;
+    
+    const reminderDaysRaw = formData.get('reminderDays') as string;
+    let reminderDays = [0, 1, 2, 3, 4, 5, 6];
+    if (reminderDaysRaw) {
+      try {
+        reminderDays = JSON.parse(reminderDaysRaw);
+      } catch (e) {}
+    }
     
     let quranRef = null;
     const quranRefRaw = formData.get('quranRef') as string;
@@ -115,6 +127,8 @@ export async function submitWazeefah(formData: FormData) {
       targetCount,
       reminderTime,
       quranRef,
+      reference,
+      reminderDays,
     });
     
     if (!parseResult.success) {
@@ -134,6 +148,8 @@ export async function submitWazeefah(formData: FormData) {
         fromAyah: parseResult.data.quranRef.fromAyah || undefined,
         toAyah: parseResult.data.quranRef.toAyah || undefined,
       } : undefined,
+      reference: parseResult.data.reference || undefined,
+      reminderDays: parseResult.data.reminderDays || undefined,
       submittedBy: user._id,
     });
 
@@ -189,7 +205,9 @@ export async function createAndPublishWazeefah(
   score: number,
   targetCount = 33,
   reminderTime: string | null = null,
-  quranRef: any = null
+  quranRef: any = null,
+  reference: string | null = null,
+  reminderDays: number[] = [0, 1, 2, 3, 4, 5, 6]
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -219,6 +237,8 @@ export async function createAndPublishWazeefah(
         fromAyah: quranRef.fromAyah || undefined,
         toAyah: quranRef.toAyah || undefined,
       } : undefined,
+      reference: reference || undefined,
+      reminderDays: reminderDays,
     });
 
     revalidatePath('/wazeefahs');
@@ -226,6 +246,59 @@ export async function createAndPublishWazeefah(
     return { success: true, wazeefah: JSON.parse(JSON.stringify(wazeefah)) };
   } catch (error: any) {
     console.error('Direct publication failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updatePendingWazeefah(
+  wazeefahId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    category?: 'Rizq' | 'Protection' | 'Illness' | 'Anxiety' | 'Exams' | 'Marriage' | 'Forgiveness' | 'Parents' | 'Children';
+    instructions?: string[];
+    targetCount?: number;
+    reminderTime?: string | null;
+    reference?: string | null;
+    reminderDays?: number[];
+    quranRef?: {
+      surahNumber: number;
+      surahName: string;
+      fromAyah?: number;
+      toAyah?: number;
+    } | null;
+  }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || (session.user as any).role !== 'admin') {
+      throw new Error('Unauthorized');
+    }
+
+    await connectToDatabase();
+    const updated = await Wazeefah.findByIdAndUpdate(wazeefahId, updates, { new: true });
+    
+    revalidatePath('/admin');
+    revalidatePath('/wazeefahs');
+    return { success: true, wazeefah: JSON.parse(JSON.stringify(updated)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getWazeefahById(id: string) {
+  try {
+    await connectToDatabase();
+    const preset = await Wazeefah.findById(id).populate('submittedBy', 'name').lean();
+    if (preset) {
+      return { success: true, type: 'preset', data: JSON.parse(JSON.stringify(preset)) };
+    }
+    const userW = await UserWazeefah.findById(id).lean();
+    if (userW) {
+      return { success: true, type: 'user', data: JSON.parse(JSON.stringify(userW)) };
+    }
+    return { success: false, error: 'Wazeefah not found' };
+  } catch (error: any) {
     return { success: false, error: error.message };
   }
 }

@@ -7,12 +7,12 @@ import connectToDatabase from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { ZakatRecord } from '@/models/ZakatRecord';
 
-const nisabPrices = {
-  gold: 87.48, // Grams of gold for Nisab
-  silver: 612.36, // Grams of silver for Nisab
-  // Example live price per gram (this should ideally be fetched from a live API, but we'll use an estimate or user-provided price)
-  goldPricePerGram: 75, // USD
-  silverPricePerGram: 0.9, // USD
+export const CURRENCY_DATA: Record<string, { symbol: string; goldPricePerGram: number; silverPricePerGram: number }> = {
+  USD: { symbol: '$', goldPricePerGram: 75, silverPricePerGram: 0.90 },
+  INR: { symbol: '₹', goldPricePerGram: 6200, silverPricePerGram: 78 },
+  PKR: { symbol: '₨', goldPricePerGram: 20000, silverPricePerGram: 260 },
+  EUR: { symbol: '€', goldPricePerGram: 69, silverPricePerGram: 0.83 },
+  GBP: { symbol: '£', goldPricePerGram: 58, silverPricePerGram: 0.70 }
 };
 
 const zakatSchema = z.object({
@@ -28,15 +28,14 @@ const zakatSchema = z.object({
 
 export type ZakatInputs = z.infer<typeof zakatSchema>;
 
-export async function calculateZakat(inputs: ZakatInputs) {
-  // In a real app, this might be a server action if we need to hit a secure DB, 
-  // but Zakat calculation is fundamentally pure math that can run on the client or server.
+export async function calculateZakat(inputs: ZakatInputs, currency = 'USD') {
   const parseResult = zakatSchema.safeParse(inputs);
   if (!parseResult.success) {
     throw new Error('Invalid inputs for Zakat calculation');
   }
 
   const data = parseResult.data;
+  const currencyData = CURRENCY_DATA[currency] || CURRENCY_DATA.USD;
 
   const totalAssets = 
     data.goldValue + 
@@ -51,9 +50,8 @@ export async function calculateZakat(inputs: ZakatInputs) {
   const netWorth = totalAssets - totalLiabilities;
 
   // Nisab is traditionally based on Gold (87.48g) or Silver (612.36g). 
-  // Silver is much lower and is the safer threshold for the poor.
-  const nisabSilver = nisabPrices.silver * nisabPrices.silverPricePerGram;
-  const nisabGold = nisabPrices.gold * nisabPrices.goldPricePerGram;
+  const nisabSilver = 612.36 * currencyData.silverPricePerGram;
+  const nisabGold = 87.48 * currencyData.goldPricePerGram;
   
   // Use Silver Nisab by default for strictness, but let user know.
   const nisabThreshold = nisabSilver;
@@ -67,10 +65,12 @@ export async function calculateZakat(inputs: ZakatInputs) {
     nisabThreshold,
     isEligible,
     zakatDue,
+    currency,
+    symbol: currencyData.symbol,
   };
 }
 
-export async function saveZakatRecord(inputs: ZakatInputs) {
+export async function saveZakatRecord(inputs: ZakatInputs, currency = 'USD') {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
@@ -79,12 +79,13 @@ export async function saveZakatRecord(inputs: ZakatInputs) {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
-    const calc = await calculateZakat(inputs);
+    const calc = await calculateZakat(inputs, currency);
     if (!calc.success) throw new Error('Calculation failed');
 
     const record = await ZakatRecord.create({
       userId: user._id,
       year: new Date().getFullYear(),
+      currency,
       assets: {
         goldValue: inputs.goldValue,
         silverValue: inputs.silverValue,
@@ -127,3 +128,4 @@ export async function getZakatHistory() {
     return { success: false, error: error.message };
   }
 }
+

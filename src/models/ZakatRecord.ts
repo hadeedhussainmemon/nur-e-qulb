@@ -19,6 +19,7 @@ export interface IZakatRecord extends Document {
   nisabThreshold: number;
   isEligible: boolean;
   zakatDue: number;
+  currency?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,7 @@ const ZakatRecordSchema = new Schema<IZakatRecord>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     year: { type: Number, required: true },
+    currency: { type: String, default: 'USD' },
     assets: {
       goldValue: { type: Number, default: 0 },
       silverValue: { type: Number, default: 0 },

@@ -11,6 +11,7 @@ interface UserWazeefahData {
   description?: string;
   targetCount: number;
   reminderTime?: string;
+  reminderDays?: number[];
   isActive: boolean;
 }
 
@@ -179,6 +180,14 @@ export function WazeefahReminderEngine() {
       wazeefahs.forEach((uw) => {
         if (notifiedToday[uw._id] === todayDateStr) return;
 
+        // Verify scheduling days
+        if (uw.reminderDays && uw.reminderDays.length > 0) {
+          const currentDayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+          if (!uw.reminderDays.includes(currentDayOfWeek)) {
+            return; // Skip if today is not selected
+          }
+        }
+
         let targetTimeStr: string | null = null;
         const reminder = uw.reminderTime || 'Fajr';
 
@@ -324,15 +333,49 @@ export function WazeefahReminderEngine() {
         }
       }
 
-      // 6. Process Friday Kahf & Salawat Weekly Reminder (Fridays at 10:00 AM)
+      // 6. Process Friday Kahf & Salawat & Nail Cutting Weekly Reminders (Fridays)
       if (showFridayReminders && now.getDay() === 5) {
-        const fridayNotifyKey = `fridayKahf-${todayDateStr}`;
-        if (currentTimeStr === '10:00' && notifiedToday[fridayNotifyKey] !== todayDateStr) {
-          triggerBrowserNotification(
-            `Jumu'ah Mubarak`,
-            `Don't forget to read Surah Al-Kahf and send blessings (Salawat) upon the Prophet (ﷺ) today.`
-          );
-          setNotifiedToday((prev) => ({ ...prev, [fridayNotifyKey]: todayDateStr }));
+        const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+
+        // A. Surah Al-Kahf Periodic Reminders: from 10:00 AM to 10:00 PM, every 45 minutes
+        // 10:00 AM = 600 mins, 10:00 PM = 1320 mins
+        if (currentTotalMins >= 600 && currentTotalMins <= 1320) {
+          const diffMins = currentTotalMins - 600;
+          if (diffMins % 45 === 0) {
+            const kahfKey = `fridayKahfPeriodic-${todayDateStr}-${currentTotalMins}`;
+            if (notifiedToday[kahfKey] !== todayDateStr) {
+              triggerBrowserNotification(
+                `Surah Al-Kahf Reminder`,
+                `It's Friday! Don't forget to recite Surah Al-Kahf today.`
+              );
+              setNotifiedToday((prev) => ({ ...prev, [kahfKey]: todayDateStr }));
+            }
+          }
+        }
+
+        // B. Salawat Hourly Reminders: every hour from 8:00 AM to 10:00 PM
+        // 8:00 AM = 8, 10:00 PM = 22
+        if (now.getHours() >= 8 && now.getHours() <= 22 && now.getMinutes() === 0) {
+          const salawatKey = `fridaySalawatHourly-${todayDateStr}-${now.getHours()}`;
+          if (notifiedToday[salawatKey] !== todayDateStr) {
+            triggerBrowserNotification(
+              `Salawat Reminder`,
+              `Send blessings (Salawat) upon the Prophet Muhammad (ﷺ) on this blessed day of Jumu'ah.`
+            );
+            setNotifiedToday((prev) => ({ ...prev, [salawatKey]: todayDateStr }));
+          }
+        }
+
+        // C. Cut Nails Reminder: at 11:30 AM (before 1:00 PM Jumu'ah)
+        if (currentTimeStr === '11:30') {
+          const nailsKey = `fridayCutNails-${todayDateStr}`;
+          if (notifiedToday[nailsKey] !== todayDateStr) {
+            triggerBrowserNotification(
+              `Friday Sunnah Reminder`,
+              `Remember to cut your nails and perform Ghusl before 1 PM Jumu'ah prayer.`
+            );
+            setNotifiedToday((prev) => ({ ...prev, [nailsKey]: todayDateStr }));
+          }
         }
       }
 

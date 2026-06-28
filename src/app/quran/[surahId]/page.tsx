@@ -82,6 +82,19 @@ export default function SurahDetailPage() {
     }
   }, [surahId]);
 
+  // Anchor scroll effect once loading is done
+  useEffect(() => {
+    if (!loading && typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash;
+      const element = document.querySelector(hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 400); // 400ms delay to allow DOM nodes to mount and render fully
+      }
+    }
+  }, [loading]);
+
   const loadNextSurah = async () => {
     if (loadingNext || nextSurahId > 114) return;
     setLoadingNext(true);

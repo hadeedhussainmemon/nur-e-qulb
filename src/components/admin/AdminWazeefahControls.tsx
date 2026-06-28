@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { approveWazeefah, rejectWazeefah } from '@/app/actions/wazeefahActions';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Edit3 } from 'lucide-react';
 
-export function AdminWazeefahControls({ wazeefahId }: { wazeefahId: string }) {
+export function AdminWazeefahControls({ wazeefahId, onEdit }: { wazeefahId: string; onEdit?: () => void }) {
   const [score, setScore] = useState('80');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,6 +37,11 @@ export function AdminWazeefahControls({ wazeefahId }: { wazeefahId: string }) {
         />
       </div>
       <div className="flex gap-2">
+        {onEdit && (
+          <Button variant="outline" onClick={onEdit} disabled={isLoading} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+            <Edit3 className="w-4 h-4 mr-2" /> Edit
+          </Button>
+        )}
         <Button variant="outline" onClick={handleReject} disabled={isLoading} className="text-rose-600 hover:text-rose-700 hover:bg-rose-50">
           <XCircle className="w-4 h-4 mr-2" /> Reject
         </Button>

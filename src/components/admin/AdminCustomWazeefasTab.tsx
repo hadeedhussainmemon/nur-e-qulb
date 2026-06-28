@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BookOpen, Sparkles, Award, Users, Loader2 } from 'lucide-react';
+import { BookOpen, Sparkles, Award, Users, Loader2, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdminWazeefahControls } from './AdminWazeefahControls';
 import { promoteWazeefahToPreset } from '@/app/actions/adminActions';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { SURAHS } from '../wazeefah/WazeefahPageClient';
 
 const CATEGORIES = ['Rizq', 'Protection', 'Illness', 'Anxiety', 'Exams', 'Marriage', 'Forgiveness', 'Parents', 'Children'] as const;
 
@@ -43,6 +44,29 @@ export function AdminCustomWazeefasTab({
   const [editReference, setEditReference] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Quran Reference Edit States
+  const [showQuranRef, setShowQuranRef] = useState(false);
+  const [surahSearch, setSurahSearch] = useState('');
+  const [selectedSurah, setSelectedSurah] = useState<typeof SURAHS[0] | null>(null);
+  const [fromAyah, setFromAyah] = useState('');
+  const [toAyah, setToAyah] = useState('');
+
+  // Weekday selection states for edit modal
+  const [editSelectedDays, setEditSelectedDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+
+  const toggleEditDay = (day: number) => {
+    setEditSelectedDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
+    );
+  };
+
+  const filteredSurahs = React.useMemo(() =>
+    SURAHS.filter(s =>
+      s.name.toLowerCase().includes(surahSearch.toLowerCase()) ||
+      String(s.n).includes(surahSearch)
+    ).slice(0, 20),
+  [surahSearch]);
+
   const handleEditClick = (w: any) => {
     setEditingWazeefah(w);
     setEditTitle(w.title);
@@ -52,11 +76,36 @@ export function AdminCustomWazeefasTab({
     setEditTarget(w.targetCount || 33);
     setEditReminder(w.reminderTime || 'Fajr');
     setEditReference(w.reference || '');
+    setEditSelectedDays(w.reminderDays || [0, 1, 2, 3, 4, 5, 6]);
+    
+    if (w.quranRef) {
+      const surah = SURAHS.find(s => s.n === w.quranRef.surahNumber);
+      setSelectedSurah(surah || null);
+      setSurahSearch(surah ? surah.name : '');
+      setFromAyah(w.quranRef.fromAyah ? String(w.quranRef.fromAyah) : '');
+      setToAyah(w.quranRef.toAyah ? String(w.quranRef.toAyah) : '');
+      setShowQuranRef(true);
+    } else {
+      setSelectedSurah(null);
+      setSurahSearch('');
+      setFromAyah('');
+      setToAyah('');
+      setShowQuranRef(false);
+    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingWazeefah) return;
+
+    const quranRef = selectedSurah
+      ? {
+          surahNumber: selectedSurah.n,
+          surahName: selectedSurah.name,
+          fromAyah: fromAyah ? parseInt(fromAyah) : undefined,
+          toAyah: toAyah ? parseInt(toAyah) : undefined,
+        }
+      : null;
 
     setIsUpdating(true);
     try {
@@ -69,6 +118,8 @@ export function AdminCustomWazeefasTab({
         targetCount: editTarget,
         reminderTime: editReminder,
         reference: editReference || null,
+        reminderDays: editSelectedDays,
+        quranRef,
       });
 
       if (res.success) {
@@ -478,6 +529,90 @@ export function AdminCustomWazeefasTab({
               />
             </div>
 
+            {/* Quran Reference Section */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => { setShowQuranRef(v => !v); if (showQuranRef) { setSelectedSurah(null); setSurahSearch(''); setFromAyah(''); setToAyah(''); } }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 text-xs font-semibold transition-colors cursor-pointer text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  {selectedSurah ? `Surah ${selectedSurah.n}. ${selectedSurah.name}${fromAyah ? ` :${fromAyah}` : ''}${toAyah && toAyah !== fromAyah ? `–${toAyah}` : ''}` : 'Add Surah / Ayat (optional)'}
+                </span>
+                {showQuranRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {showQuranRef && (
+                <div className="border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 space-y-3">
+                  {/* Surah search */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Surah</label>
+                    <Input
+                      value={surahSearch}
+                      onChange={e => { setSurahSearch(e.target.value); setSelectedSurah(null); }}
+                      placeholder="e.g. Al-Kahf or 18"
+                      className="bg-background border-slate-350 dark:border-slate-805 h-8 text-xs"
+                    />
+                    {surahSearch && !selectedSurah && (
+                      <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-800 bg-background divide-y divide-slate-200 dark:divide-slate-850">
+                        {filteredSurahs.length === 0 ? (
+                          <p className="text-xs text-slate-500 p-2 text-center">No surah found</p>
+                        ) : filteredSurahs.map(s => (
+                          <button
+                            key={s.n}
+                            type="button"
+                            onClick={() => { setSelectedSurah(s); setSurahSearch(s.name); setFromAyah(''); setToAyah(''); }}
+                            className="w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer text-left transition-colors"
+                          >
+                            <span><span className="text-slate-450 dark:text-slate-500 mr-1.5">{s.n}.</span>{s.name}</span>
+                            <span className="text-slate-450 dark:text-slate-500">{s.ayahs} ayahs</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedSurah && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                        <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="text-xs text-emerald-650 dark:text-emerald-450 font-semibold">{selectedSurah.n}. {selectedSurah.name}</span>
+                        <span className="text-[9px] text-slate-455 dark:text-slate-550 ml-auto">{selectedSurah.ayahs} ayahs</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ayat range */}
+                  {selectedSurah && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">From Ayah</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={selectedSurah.ayahs}
+                          value={fromAyah}
+                          onChange={e => setFromAyah(e.target.value)}
+                          placeholder={`1–${selectedSurah.ayahs}`}
+                          className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">To Ayah</label>
+                        <Input
+                          type="number"
+                          min={fromAyah ? parseInt(fromAyah, 10) : 1}
+                          max={selectedSurah.ayahs}
+                          value={toAyah}
+                          onChange={e => setToAyah(e.target.value)}
+                          placeholder={`up to ${selectedSurah.ayahs}`}
+                          className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-350 flex items-center justify-between">
                 <span>Method / Instructions</span>
@@ -522,11 +657,35 @@ export function AdminCustomWazeefasTab({
               </div>
             </div>
 
+            {/* Weekday Selection for Reminders */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Days</label>
+              <div className="flex gap-1.5">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
+                  const isSelected = editSelectedDays.includes(idx);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleEditDay(idx)}
+                      className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                          : 'bg-background border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {dayName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setEditingWazeefah(null)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={isUpdating}>
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-705 text-white" disabled={isUpdating}>
                 {isUpdating ? 'Updating...' : 'Save Changes'}
               </Button>
             </DialogFooter>

@@ -55,6 +55,7 @@ export async function subscribeToWazeefah(wazeefahId: string, targetCount: numbe
       description: template.description,
       instructions: template.instructions,
       reference: template.reference,
+      quranRef: template.quranRef,
       reminderDays: reminderDays || template.reminderDays || [0, 1, 2, 3, 4, 5, 6],
       targetCount: targetCount || 33,
       reminderTime: reminderTime || 'Fajr',

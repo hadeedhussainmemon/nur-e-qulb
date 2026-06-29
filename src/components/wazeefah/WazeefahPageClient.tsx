@@ -592,15 +592,17 @@ export function WazeefahPageClient({
                         >
                           +1
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs font-semibold"
-                          disabled={loadingActionId !== null}
-                          onClick={() => handleIncrement(uw, 10)}
-                        >
-                          +10
-                        </Button>
+                        {uw.targetCount >= 10 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs font-semibold"
+                            disabled={loadingActionId !== null}
+                            onClick={() => handleIncrement(uw, 10)}
+                          >
+                            +10
+                          </Button>
+                        )}
                         {count > 0 && (
                           <Button
                             size="sm"

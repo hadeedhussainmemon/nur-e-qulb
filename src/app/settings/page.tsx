@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Settings2, Bell, ShieldAlert, CalendarHeart, MoonStar, MapPin, Sparkles, Loader2, Check, Palette, User } from 'lucide-react';
+import { Settings2, Bell, ShieldAlert, CalendarHeart, MoonStar, MapPin, Sparkles, Loader2, Check, Palette, User, BellOff } from 'lucide-react';
 import { applyTheme } from '@/components/layout/ThemeSyncEngine';
 import { getCurrentUser, updateUserSettings, updateUserProfile } from '@/app/actions/authActions';
 import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
@@ -21,6 +21,21 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<string>('granted');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  const handleRequestPermission = () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission().then((permission) => {
+        setNotificationPermission(permission);
+      });
+    }
+  };
 
   // User details
   const [name, setName] = useState(() => session?.user?.name || '');
@@ -216,7 +231,35 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32">
-      
+      {/* Notification Permission Alert Banner */}
+      {notificationPermission !== 'granted' && (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+              <BellOff className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm">Notifications Not Enabled</h4>
+              <p className="text-xs text-slate-650 dark:text-slate-400 mt-1 leading-relaxed">
+                {notificationPermission === 'denied' ? (
+                  <>Notifications are blocked on this browser/device. <strong>Solution:</strong> Click the settings/lock icon in your browser's address bar next to the URL, and change "Notifications" to "Allow" to receive reminders.</>
+                ) : (
+                  <>You haven't permitted notifications. Enable notifications to receive timely prayer reminders and wazeefah alerts.</>
+                )}
+              </p>
+            </div>
+          </div>
+          {notificationPermission === 'default' && (
+            <button
+              onClick={handleRequestPermission}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0 border-0"
+            >
+              Enable Now
+            </button>
+          )}
+        </div>
+      )}
+
       {isOnboarding && (
         <div className="bg-emerald-500/10 border border-emerald-500 text-emerald-600 dark:text-emerald-400 px-4 py-4 rounded-xl mb-8 flex items-start gap-3 shadow-sm">
           <Sparkles className="w-5 h-5 shrink-0 mt-0.5" />

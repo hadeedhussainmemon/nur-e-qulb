@@ -56,7 +56,7 @@ export function AdminStatsTab({ stats, onUpdateStats }: { stats: any; onUpdateSt
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Overview Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {OVERVIEWS.map((o, idx) => {
           const Icon = o.icon;
           return (

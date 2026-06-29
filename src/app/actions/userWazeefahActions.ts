@@ -167,3 +167,42 @@ export async function deleteUserWazeefah(userWazeefahId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function updateUserWazeefah(
+  userWazeefahId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    instructions?: string[];
+    targetCount?: number;
+    reminderTime?: string;
+    reminderDays?: number[];
+    reference?: string | null;
+    quranRef?: { surahNumber: number; surahName: string; fromAyah?: number; toAyah?: number } | null;
+  }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) throw new Error('Unauthorized');
+
+    await connectToDatabase();
+    const user = await User.findOne({ email: session.user.email }).lean();
+    if (!user) throw new Error('User not found');
+
+    const updated = await UserWazeefah.findOneAndUpdate(
+      { _id: userWazeefahId, userId: user._id },
+      updates,
+      { new: true }
+    );
+
+    if (!updated) throw new Error('Wazeefah not found');
+
+    revalidatePath('/wazeefahs');
+    revalidatePath('/');
+
+    return { success: true, userWazeefah: JSON.parse(JSON.stringify(updated)) };
+  } catch (error: any) {
+    console.error('Error updating user wazeefah:', error);
+    return { success: false, error: error.message };
+  }
+}

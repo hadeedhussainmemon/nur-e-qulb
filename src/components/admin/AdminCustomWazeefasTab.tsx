@@ -481,207 +481,208 @@ export function AdminCustomWazeefasTab({
         </div>
       )}
 
-      {/* Dialog for Admin Editing Suggested Wazeefas */}
       <Dialog open={!!editingWazeefah} onOpenChange={(open) => { if (!open) setEditingWazeefah(null); }}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2 border-b dark:border-slate-800 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               Edit Suggested Wazeefah
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Title</label>
-              <Input
-                required
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Description</label>
-              <Textarea
-                required
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Category</label>
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value as any)}
-                className="w-full h-10 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reference / Source</label>
-              <Input
-                value={editReference}
-                onChange={(e) => setEditReference(e.target.value)}
-                placeholder="Reference info..."
-              />
-            </div>
-
-            {/* Quran Reference Section */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => { setShowQuranRef(v => !v); if (showQuranRef) { setSelectedSurah(null); setSurahSearch(''); setFromAyah(''); setToAyah(''); } }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 text-xs font-semibold transition-colors cursor-pointer text-left"
-              >
-                <span className="flex items-center gap-2">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  {selectedSurah ? `Surah ${selectedSurah.n}. ${selectedSurah.name}${fromAyah ? ` :${fromAyah}` : ''}${toAyah && toAyah !== fromAyah ? `–${toAyah}` : ''}` : 'Add Surah / Ayat (optional)'}
-                </span>
-                {showQuranRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-
-              {showQuranRef && (
-                <div className="border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 space-y-3">
-                  {/* Surah search */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Surah</label>
-                    <Input
-                      value={surahSearch}
-                      onChange={e => { setSurahSearch(e.target.value); setSelectedSurah(null); }}
-                      placeholder="e.g. Al-Kahf or 18"
-                      className="bg-background border-slate-350 dark:border-slate-805 h-8 text-xs"
-                    />
-                    {surahSearch && !selectedSurah && (
-                      <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-800 bg-background divide-y divide-slate-200 dark:divide-slate-850">
-                        {filteredSurahs.length === 0 ? (
-                          <p className="text-xs text-slate-500 p-2 text-center">No surah found</p>
-                        ) : filteredSurahs.map(s => (
-                          <button
-                            key={s.n}
-                            type="button"
-                            onClick={() => { setSelectedSurah(s); setSurahSearch(s.name); setFromAyah(''); setToAyah(''); }}
-                            className="w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer text-left transition-colors"
-                          >
-                            <span><span className="text-slate-450 dark:text-slate-500 mr-1.5">{s.n}.</span>{s.name}</span>
-                            <span className="text-slate-450 dark:text-slate-500">{s.ayahs} ayahs</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {selectedSurah && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                        <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span className="text-xs text-emerald-650 dark:text-emerald-450 font-semibold">{selectedSurah.n}. {selectedSurah.name}</span>
-                        <span className="text-[9px] text-slate-455 dark:text-slate-550 ml-auto">{selectedSurah.ayahs} ayahs</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Ayat range */}
-                  {selectedSurah && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">From Ayah</label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={selectedSurah.ayahs}
-                          value={fromAyah}
-                          onChange={e => setFromAyah(e.target.value)}
-                          placeholder={`1–${selectedSurah.ayahs}`}
-                          className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">To Ayah</label>
-                        <Input
-                          type="number"
-                          min={fromAyah ? parseInt(fromAyah, 10) : 1}
-                          max={selectedSurah.ayahs}
-                          value={toAyah}
-                          onChange={e => setToAyah(e.target.value)}
-                          placeholder={`up to ${selectedSurah.ayahs}`}
-                          className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350 flex items-center justify-between">
-                <span>Method / Instructions</span>
-                <span className="text-[10px] text-muted-foreground font-normal">One step per line</span>
-              </label>
-              <Textarea
-                required
-                value={editInstructions}
-                onChange={(e) => setEditInstructions(e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleEditSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Target Count</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Title</label>
                 <Input
-                  type="number"
-                  min={1}
                   required
-                  value={editTarget}
-                  onChange={(e) => setEditTarget(parseInt(e.target.value, 10) || 0)}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Schedule</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Description</label>
+                <Textarea
+                  required
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Category</label>
                 <select
-                  value={editReminder}
-                  onChange={(e) => setEditReminder(e.target.value)}
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value as any)}
                   className="w-full h-10 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Fajr">After Fajr</option>
-                  <option value="Dhuhr">After Dhuhr</option>
-                  <option value="Asr">After Asr</option>
-                  <option value="Maghrib">After Maghrib</option>
-                  <option value="Isha">After Isha</option>
-                  <option value="Morning">Morning Adhkar</option>
-                  <option value="Evening">Evening Adhkar</option>
-                  <option value="Before Sleep">Before Sleep</option>
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
-            </div>
 
-            {/* Weekday Selection for Reminders */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-350">Reminder Days</label>
-              <div className="flex gap-1.5">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
-                  const isSelected = editSelectedDays.includes(idx);
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => toggleEditDay(idx)}
-                      className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
-                        isSelected
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                          : 'bg-background border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {dayName}
-                    </button>
-                  );
-                })}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Reference / Source</label>
+                <Input
+                  value={editReference}
+                  onChange={(e) => setEditReference(e.target.value)}
+                  placeholder="Reference info..."
+                />
+              </div>
+
+              {/* Quran Reference Section */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowQuranRef(v => !v); if (showQuranRef) { setSelectedSurah(null); setSurahSearch(''); setFromAyah(''); setToAyah(''); } }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 text-xs font-semibold transition-colors cursor-pointer text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {selectedSurah ? `Surah ${selectedSurah.n}. ${selectedSurah.name}${fromAyah ? ` :${fromAyah}` : ''}${toAyah && toAyah !== fromAyah ? `–${toAyah}` : ''}` : 'Add Surah / Ayat (optional)'}
+                  </span>
+                  {showQuranRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {showQuranRef && (
+                  <div className="border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 space-y-3">
+                    {/* Surah search */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Search Surah</label>
+                      <Input
+                        value={surahSearch}
+                        onChange={e => { setSurahSearch(e.target.value); setSelectedSurah(null); }}
+                        placeholder="e.g. Al-Kahf or 18"
+                        className="bg-background border-slate-350 dark:border-slate-805 h-8 text-xs"
+                      />
+                      {surahSearch && !selectedSurah && (
+                        <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-800 bg-background divide-y divide-slate-200 dark:divide-slate-850">
+                          {filteredSurahs.length === 0 ? (
+                            <p className="text-xs text-slate-500 p-2 text-center">No surah found</p>
+                          ) : filteredSurahs.map(s => (
+                            <button
+                              key={s.n}
+                              type="button"
+                              onClick={() => { setSelectedSurah(s); setSurahSearch(s.name); setFromAyah(''); setToAyah(''); }}
+                              className="w-full flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer text-left transition-colors"
+                            >
+                              <span><span className="text-slate-450 dark:text-slate-500 mr-1.5">{s.n}.</span>{s.name}</span>
+                              <span className="text-slate-450 dark:text-slate-500">{s.ayahs} ayahs</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {selectedSurah && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                          <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-xs text-emerald-650 dark:text-emerald-450 font-semibold">{selectedSurah.n}. {selectedSurah.name}</span>
+                          <span className="text-[9px] text-slate-455 dark:text-slate-550 ml-auto">{selectedSurah.ayahs} ayahs</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Ayat range */}
+                    {selectedSurah && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">From Ayah</label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={selectedSurah.ayahs}
+                            value={fromAyah}
+                            onChange={e => setFromAyah(e.target.value)}
+                            placeholder={`1–${selectedSurah.ayahs}`}
+                            className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-455">To Ayah</label>
+                          <Input
+                            type="number"
+                            min={fromAyah ? parseInt(fromAyah, 10) : 1}
+                            max={selectedSurah.ayahs}
+                            value={toAyah}
+                            onChange={e => setToAyah(e.target.value)}
+                            placeholder={`up to ${selectedSurah.ayahs}`}
+                            className="bg-background border-slate-350 dark:border-slate-800 h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355 flex items-center justify-between">
+                  <span>Method / Instructions</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">One step per line</span>
+                </label>
+                <Textarea
+                  required
+                  value={editInstructions}
+                  onChange={(e) => setEditInstructions(e.target.value)}
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Target Count</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    required
+                    value={editTarget}
+                    onChange={(e) => setEditTarget(parseInt(e.target.value, 10) || 0)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Reminder Schedule</label>
+                  <select
+                    value={editReminder}
+                    onChange={(e) => setEditReminder(e.target.value)}
+                    className="w-full h-10 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-800 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Fajr">After Fajr</option>
+                    <option value="Dhuhr">After Dhuhr</option>
+                    <option value="Asr">After Asr</option>
+                    <option value="Maghrib">After Maghrib</option>
+                    <option value="Isha">After Isha</option>
+                    <option value="Morning">Morning Adhkar</option>
+                    <option value="Evening">Evening Adhkar</option>
+                    <option value="Before Sleep">Before Sleep</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Weekday Selection for Reminders */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-355">Reminder Days</label>
+                <div className="flex gap-1.5">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => {
+                    const isSelected = editSelectedDays.includes(idx);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => toggleEditDay(idx)}
+                        className={`w-8 h-8 rounded-full text-xs font-bold transition-all border ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                            : 'bg-background border-slate-300 dark:border-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {dayName}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t dark:border-slate-800 shrink-0 flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setEditingWazeefah(null)}>
                 Cancel
               </Button>

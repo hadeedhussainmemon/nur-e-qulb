@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -19,7 +20,10 @@ import {
   Calculator,
   BarChart3,
   Download,
+  ShieldAlert,
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const routes = [
   { label: 'Home',             icon: LayoutDashboard, href: '/',         color: 'text-sky-500'     },
@@ -39,20 +43,26 @@ const routes = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'admin';
+
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
-  const [isInstallable, setIsInstallable] = React.useState(false);
+  const [isStandalone, setIsStandalone] = React.useState(false);
+  const [isInstallInfoOpen, setIsInstallInfoOpen] = React.useState(false);
 
   React.useEffect(() => {
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setIsInstallable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstallable(false);
+    if (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone
+    ) {
+      setIsStandalone(true);
     }
 
     return () => {
@@ -61,12 +71,26 @@ export function Sidebar() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    setIsInstallable(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      setIsInstallInfoOpen(true);
+    }
   };
+
+  const visibleRoutes = React.useMemo(() => {
+    if (isAdmin) {
+      return [
+        ...routes,
+        { label: 'Admin Console', icon: ShieldAlert, href: '/admin', color: 'text-rose-500 font-bold' }
+      ];
+    }
+    return routes;
+  }, [isAdmin]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
@@ -83,7 +107,7 @@ export function Sidebar() {
       {/* Nav routes */}
       <nav className="flex-1 px-2 py-2 flex flex-col justify-between overflow-hidden">
         <div className="space-y-0.5 overflow-y-auto max-h-[calc(100vh-180px)]">
-          {routes.map((route) => (
+          {visibleRoutes.map((route) => (
             <Link
               href={route.href}
               key={route.href}
@@ -102,7 +126,7 @@ export function Sidebar() {
 
         <div className="shrink-0 space-y-2 mt-auto pt-2">
           {/* Install App Button */}
-          {isInstallable && (
+          {!isStandalone && (
             <button
               onClick={handleInstallClick}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border-0"
@@ -127,6 +151,45 @@ export function Sidebar() {
           </div>
         </div>
       </nav>
+
+      {/* Manual PWA Install Instructions Dialog */}
+      <Dialog open={isInstallInfoOpen} onOpenChange={setIsInstallInfoOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <Download className="w-5 h-5 animate-bounce" /> Install Nur-e-Qulb App
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2 text-sm text-slate-600 dark:text-slate-300">
+            <p>Install Nur-e-Qulb on your device to enjoy a standalone, premium, distraction-free app experience.</p>
+            
+            <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border dark:border-slate-850">
+              <div className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">On Chrome / Edge:</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Click the computer/install icon in the address bar (next to the bookmark star), or open the menu (<span className="font-mono">...</span>) and select <span className="font-semibold">"Install Nur E Qalbb"</span>.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">On Apple Safari (macOS):</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Click the Share button (<span className="font-semibold"></span>) in the browser toolbar, then select <span className="font-semibold">"Add to Dock"</span> or <span className="font-semibold">"Add to Home Screen"</span>.</p>
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-[11px] text-muted-foreground italic text-center">Once installed, you can launch the app directly from your Dock, Taskbar, or desktop shortcut.</p>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button onClick={() => setIsInstallInfoOpen(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold w-full">
+              Got It
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

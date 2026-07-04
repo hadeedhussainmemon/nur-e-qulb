@@ -559,7 +559,7 @@ export function WazeefahPageClient({
                   {/* Quran Ref Badge */}
                   {uw.quranRef?.surahName && (
                     <Link
-                      href={`/quran?surah=${uw.quranRef.surahNumber}${uw.quranRef.fromAyah ? `&ayah=${uw.quranRef.fromAyah}` : ''}`}
+                      href={`/quran/${uw.quranRef.surahNumber}${uw.quranRef.fromAyah ? `#ayah-${uw.quranRef.fromAyah}` : ''}`}
                       className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg hover:bg-emerald-500/10 transition-colors group"
                     >
                       <div className="w-7 h-7 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
@@ -705,7 +705,7 @@ export function WazeefahPageClient({
 
                   {w.quranRef?.surahName && (
                     <Link
-                      href={`/quran?surah=${w.quranRef.surahNumber}${w.quranRef.fromAyah ? `&ayah=${w.quranRef.fromAyah}` : ''}`}
+                      href={`/quran/${w.quranRef.surahNumber}${w.quranRef.fromAyah ? `#ayah-${w.quranRef.fromAyah}` : ''}`}
                       className="mt-3 flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2 rounded-lg hover:bg-emerald-500/10 transition-colors group"
                     >
                       <BookOpen className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -1292,7 +1292,7 @@ export function WazeefahPageClient({
               {/* Quran reference */}
               {detailWazeefah.quranRef?.surahName && (
                 <Link
-                  href={`/quran?surah=${detailWazeefah.quranRef.surahNumber}${detailWazeefah.quranRef.fromAyah ? `&ayah=${detailWazeefah.quranRef.fromAyah}` : ''}`}
+                  href={`/quran/${detailWazeefah.quranRef.surahNumber}${detailWazeefah.quranRef.fromAyah ? `#ayah-${detailWazeefah.quranRef.fromAyah}` : ''}`}
                   onClick={() => setDetailWazeefah(null)}
                   className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg hover:bg-emerald-500/10 transition-colors group"
                 >

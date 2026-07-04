@@ -116,17 +116,22 @@ export function WazeefahReminderEngine() {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
     if (Notification.permission === 'granted') {
-      if ('serviceWorker' in navigator && actions) {
+      if ('serviceWorker' in navigator) {
         try {
           const reg = await navigator.serviceWorker.ready;
-          reg.showNotification(title, {
+          const options: any = {
             body,
-            icon: '/manifest.json',
-            badge: '/manifest.json',
-            actions,
-            data,
+            icon: '/icons/icon-192x192.png',
+            badge: '/icons/icon-192x192.png',
             requireInteraction: true
-          } as any);
+          };
+          if (actions && actions.length > 0) {
+            options.actions = actions;
+          }
+          if (data) {
+            options.data = data;
+          }
+          await reg.showNotification(title, options);
           return;
         } catch (e) {
           console.error('SW notification failed, falling back to basic notification', e);
@@ -134,11 +139,15 @@ export function WazeefahReminderEngine() {
       }
       
       // Fallback for basic notifications
-      new Notification(title, {
-        body,
-        icon: '/manifest.json',
-        badge: '/manifest.json',
-      });
+      try {
+        new Notification(title, {
+          body,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-192x192.png',
+        });
+      } catch (err) {
+        console.error('Basic notification failed', err);
+      }
     }
   };
 

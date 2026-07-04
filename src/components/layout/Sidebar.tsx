@@ -49,6 +49,8 @@ export function Sidebar() {
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isStandalone, setIsStandalone] = React.useState(false);
   const [isInstallInfoOpen, setIsInstallInfoOpen] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [isIOS, setIsIOS] = React.useState(false);
 
   React.useEffect(() => {
     const handler = (e: any) => {
@@ -58,11 +60,18 @@ export function Sidebar() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    if (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone
-    ) {
-      setIsStandalone(true);
+    if (typeof window !== 'undefined') {
+      const userAgent = window.navigator.userAgent || window.navigator.vendor || (window as any).opera;
+      const mobileCheck = /android|iphone|ipad|ipod/i.test(userAgent);
+      setIsMobile(mobileCheck);
+      setIsIOS(/iphone|ipad|ipod/i.test(userAgent));
+
+      if (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone
+      ) {
+        setIsStandalone(true);
+      }
     }
 
     return () => {
@@ -131,7 +140,7 @@ export function Sidebar() {
               onClick={handleInstallClick}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border-0"
             >
-              <Download className="w-3.5 h-3.5" /> Install Desktop App
+              <Download className="w-3.5 h-3.5" /> {isMobile ? 'Install App' : 'Install Desktop App'}
             </button>
           )}
 
@@ -163,25 +172,65 @@ export function Sidebar() {
           <div className="space-y-4 pt-2 text-sm text-slate-600 dark:text-slate-300">
             <p>Install Nur-e-Qulb on your device to enjoy a standalone, premium, distraction-free app experience.</p>
             
-            <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border dark:border-slate-850">
-              <div className="flex gap-3">
-                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">1</span>
-                <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">On Chrome / Edge:</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Click the computer/install icon in the address bar (next to the bookmark star), or open the menu (<span className="font-mono">...</span>) and select <span className="font-semibold">"Install Nur E Qalbb"</span>.</p>
-                </div>
+            {isMobile ? (
+              <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border dark:border-slate-850">
+                {isIOS ? (
+                  <>
+                    <div className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200">Open Safari Share Menu:</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Tap the Share button in Safari's bottom toolbar (the square box with an arrow pointing up).</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200">Add to Home Screen:</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Scroll down the share sheet options and select <span className="font-semibold">"Add to Home Screen"</span>.</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200">Open Browser Menu:</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Tap the browser menu button next to the address bar (usually three dots <span className="font-mono">...</span>).</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-slate-200">Install / Add to Home Screen:</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Select <span className="font-semibold">"Install app"</span> or <span className="font-semibold">"Add to Home screen"</span> from the list.</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
+            ) : (
+              <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/50 p-4 rounded-xl border dark:border-slate-850">
+                <div className="flex gap-3">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                  <div>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">On Chrome / Edge:</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Click the computer/install icon in the address bar (next to the bookmark star), or open the menu (<span className="font-mono">...</span>) and select <span className="font-semibold">"Install Nur E Qalbb"</span>.</p>
+                  </div>
+                </div>
 
-              <div className="flex gap-3">
-                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
-                <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-200">On Apple Safari (macOS):</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Click the Share button (<span className="font-semibold"></span>) in the browser toolbar, then select <span className="font-semibold">"Add to Dock"</span> or <span className="font-semibold">"Add to Home Screen"</span>.</p>
+                <div className="flex gap-3">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                  <div>
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">On Apple Safari (macOS):</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Click the Share button in the browser toolbar, then select <span className="font-semibold">"Add to Dock"</span> or <span className="font-semibold">"Add to Home Screen"</span>.</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            <p className="text-[11px] text-muted-foreground italic text-center">Once installed, you can launch the app directly from your Dock, Taskbar, or desktop shortcut.</p>
+            <p className="text-[11px] text-muted-foreground italic text-center">Once installed, you can launch the app directly from your device home screen or app launcher.</p>
           </div>
           <DialogFooter className="pt-2">
             <Button onClick={() => setIsInstallInfoOpen(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold w-full">

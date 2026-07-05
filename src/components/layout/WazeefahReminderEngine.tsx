@@ -4,6 +4,22 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { fetchRandomAyah } from '@/app/actions/quranActions';
 import { fetchRandomHadith } from '@/app/actions/hadithActions';
+import { savePushSubscription } from '@/app/actions/pushSubscriptionActions';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 interface UserWazeefahData {
   _id: string;
@@ -104,6 +120,48 @@ export function WazeefahReminderEngine() {
         navigator.serviceWorker.removeEventListener('message', handleSWMessage);
       }
     };
+  }, [session]);
+
+  // Web Push Subscription registration
+  useEffect(() => {
+    async function initWebPush() {
+      if (
+        session &&
+        typeof window !== 'undefined' &&
+        'serviceWorker' in navigator &&
+        'PushManager' in window &&
+        Notification.permission === 'granted'
+      ) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          let sub = await reg.pushManager.getSubscription();
+          
+          if (!sub) {
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (!vapidPublicKey) {
+              console.warn('VAPID public key environment variable is not defined.');
+              return;
+            }
+
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+          }
+
+          await savePushSubscription(JSON.parse(JSON.stringify(sub)));
+        } catch (error) {
+          console.error('Error setting up Web Push subscription:', error);
+        }
+      }
+    }
+    
+    initWebPush();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', initWebPush);
+      return () => window.removeEventListener('focus', initWebPush);
+    }
   }, [session]);
 
   const cleanTimeStr = (rawStr: string): string => {

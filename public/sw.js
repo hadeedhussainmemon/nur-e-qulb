@@ -49,14 +49,45 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle interactive notification button clicks
+// Handle background Web Push events
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      const { title, body, icon, badge, actions, data } = payload;
+      
+      event.waitUntil(
+        self.registration.showNotification(title, {
+          body: body || 'You have a reminder from Nur-e-Qulb.',
+          icon: icon || '/icons/icon-192x192.png',
+          badge: badge || '/icons/icon-192x192.png',
+          actions: actions || [],
+          data: data || {},
+          requireInteraction: true
+        })
+      );
+    } catch (e) {
+      // Fallback if data is not JSON
+      event.waitUntil(
+        self.registration.showNotification('Nur-e-Qulb Reminder', {
+          body: event.data.text(),
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-192x192.png',
+          requireInteraction: true
+        })
+      );
+    }
+  }
+});
+
+// Handle interactive notification clicks
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   if (event.action === 'prayed' && event.notification.data) {
     const { prayer, date } = event.notification.data;
     
-    // Fire the POST request to our new endpoint in the background
+    // Fire the POST request to our endpoint in the background
     event.waitUntil(
       fetch('/api/prayers/toggle', {
         method: 'POST',
@@ -74,6 +105,28 @@ self.addEventListener('notificationclick', (event) => {
         }
       })
       .catch(err => console.error('SW fetch failed logging prayer:', err))
+    );
+  } else {
+    // Standard card body click: navigate to URL
+    const urlToOpen = (event.notification.data && event.notification.data.url)
+      ? event.notification.data.url
+      : '/';
+
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+        // Check if there is already a window tab open, focus it
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          const clientPath = new URL(client.url).pathname;
+          if (clientPath === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // If not open, open a new window
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(urlToOpen);
+        }
+      })
     );
   }
 });

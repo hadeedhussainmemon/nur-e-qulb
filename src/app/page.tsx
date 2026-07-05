@@ -265,6 +265,10 @@ export default function Dashboard() {
     ? formatTime12(timesData.data.timings[nextPrayer.name as keyof typeof timesData.data.timings])
     : '1:54 PM';
 
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (todayCompletion / 100) * circumference;
+
   return (
     <div className="space-y-6 pb-24 max-w-6xl mx-auto px-1 md:px-4">
       {/* Notification Permission Alert Banner */}
@@ -308,21 +312,51 @@ export default function Dashboard() {
         </div>
         
         {/* Next Prayer Floating Widget */}
-        <Card className="bg-emerald-50/50 dark:bg-emerald-950/45 border border-emerald-500/20 text-foreground dark:text-white shadow-lg shadow-emerald-500/5 shrink-0 py-2.5 px-4 rounded-xl min-w-[200px]">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-emerald-500/15 text-emerald-400">
-              <Clock className="w-4 h-4" />
+        <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 text-foreground dark:text-white shadow-lg shadow-emerald-500/5 shrink-0 py-3 px-4 rounded-2xl min-w-[230px] transition-all hover:scale-[1.02] duration-300">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
+                <Clock className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
+                  NEXT: {nextPrayer?.name || 'ASR'}
+                </p>
+                <p className="text-lg font-bold leading-none mt-1 font-mono">
+                  {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '2h 50m'}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  {nextPrayerTimeStr} • Insha'Allah
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                NEXT: {nextPrayer?.name || 'ASR'}
-              </p>
-              <p className="text-lg font-bold leading-tight mt-0.5 font-mono">
-                {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '2h 50m'}
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5">
-                {nextPrayerTimeStr} • Insha'Allah
-              </p>
+            
+            {/* Circular Progress Ring */}
+            <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="28"
+                  cy="28"
+                  r={radius}
+                  className="stroke-emerald-500/10 dark:stroke-emerald-500/5 fill-transparent"
+                  strokeWidth="3.5"
+                />
+                <circle
+                  cx="28"
+                  cy="28"
+                  r={radius}
+                  className="stroke-emerald-500 dark:stroke-emerald-400 fill-transparent transition-all duration-500 ease-out"
+                  strokeWidth="3.5"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold font-mono text-emerald-605 dark:text-emerald-400">
+                  {todayCompletion}%
+                </span>
+              </div>
             </div>
           </div>
         </Card>
@@ -334,7 +368,7 @@ export default function Dashboard() {
         {timesLoading || loadingDb ? (
           <div className="h-20 bg-muted animate-pulse rounded-xl" />
         ) : (
-          <Card className="relative overflow-hidden border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/10 shadow-sm ring-1 ring-emerald-500/20 rounded-xl">
+          <Card className="relative overflow-hidden border-emerald-500/25 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 dark:from-emerald-500/10 dark:to-teal-500/10 backdrop-blur-md shadow-md shadow-emerald-500/5 rounded-2xl transition-all hover:scale-[1.005] hover:shadow-lg hover:shadow-emerald-500/5 duration-300">
             {/* Mosque Silhouette SVG Background */}
             <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.08] pointer-events-none text-emerald-450 flex justify-end items-end p-1">
               <svg className="h-full w-full max-w-[200px]" viewBox="0 0 100 60" fill="currentColor">
@@ -346,16 +380,16 @@ export default function Dashboard() {
               </svg>
             </div>
 
-            <CardContent className="p-4 flex items-center justify-between gap-4 relative z-10">
+            <CardContent className="p-5 flex items-center justify-between gap-4 relative z-10">
               <div className="flex items-center gap-3.5">
                 {/* Clock / Pulse Icon wrapper */}
                 <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-550 animate-pulse shadow-sm" />
                 </div>
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
                     <span className="font-bold text-base text-foreground">{activePrayerName}</span>
-                    <span className="text-xs font-semibold text-emerald-405">
+                    <span className="text-xs font-bold text-emerald-550">
                       {formatTime12(start)} - {formatTime12(end)}
                     </span>
                   </div>
@@ -367,10 +401,10 @@ export default function Dashboard() {
               
               <button
                 onClick={() => handleTogglePrayer(activePrayerName)}
-                className={`py-1.5 px-4 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                className={`py-2 px-4 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 duration-200 ${
                   isDone 
-                    ? 'bg-emerald-600 text-white border-transparent shadow hover:bg-emerald-700' 
-                    : 'border-emerald-500/40 bg-emerald-500/5 text-emerald-405 hover:bg-emerald-500/15'
+                    ? 'bg-emerald-600 text-white border-transparent hover:bg-emerald-700' 
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
                 }`}
               >
                 {statusVal === 'completed' ? (
@@ -392,7 +426,7 @@ export default function Dashboard() {
       {/* Grid: Tasbeeh Counter & Active Wazeefahs */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Tasbeeh Counter Card */}
-        <Card>
+        <Card className="relative overflow-hidden border-purple-500/25 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 dark:from-purple-500/10 dark:to-indigo-500/10 backdrop-blur-md shadow-md shadow-purple-500/5 rounded-2xl transition-all hover:scale-[1.005] hover:shadow-lg hover:shadow-purple-500/5 duration-300">
           <div className="p-4 pb-2 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
@@ -400,7 +434,7 @@ export default function Dashboard() {
               </h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">Click the bead to count your dhikr</p>
             </div>
-            <Link href="/tasbih" className="text-[10px] text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-0.5 font-medium">
+            <Link href="/tasbih" className="text-[10px] text-purple-650 dark:text-purple-400 hover:underline flex items-center gap-0.5 font-medium">
               Full Counter <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
@@ -413,10 +447,10 @@ export default function Dashboard() {
                   <button
                     key={d.id}
                     onClick={() => { setTasbihIdx(i); setTasbihCount(0); }}
-                    className={`px-3 py-1 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all cursor-pointer ${
                       i === tasbihIdx
-                        ? 'bg-purple-100 dark:bg-purple-600/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-500/40 shadow-sm'
-                        : 'border-border text-muted-foreground hover:border-foreground/20'
+                        ? 'bg-purple-600 text-white border-transparent shadow-sm'
+                        : 'border-purple-500/20 bg-purple-500/5 text-purple-650 dark:text-purple-450 hover:bg-purple-500/10'
                     }`}
                   >
                     {d.label}
@@ -426,10 +460,12 @@ export default function Dashboard() {
 
               <div 
                 onClick={handleTasbihTap}
-                className="flex items-center gap-5 bg-muted/50 border border-border p-4 rounded-xl cursor-pointer hover:bg-muted transition-colors select-none"
+                className="flex items-center gap-5 bg-purple-500/5 dark:bg-purple-950/20 border border-purple-500/15 p-4 rounded-xl cursor-pointer hover:bg-purple-500/10 transition-all select-none"
               >
                 {/* Bead count circle (Solid purple matching layout) */}
-                <div className="relative w-16 h-16 rounded-full flex flex-col items-center justify-center bg-purple-600 text-white shrink-0 shadow-md hover:scale-105 transition-transform">
+                <div className={`relative w-16 h-16 rounded-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-650 text-white shrink-0 shadow-md transition-all duration-100 ${
+                  tasbihPressed ? 'scale-95 ring-4 ring-purple-500/30' : 'hover:scale-105'
+                }`}>
                   {/* Reset button inside circle top */}
                   <button 
                     onClick={handleResetTasbih}
@@ -443,11 +479,11 @@ export default function Dashboard() {
 
                 {/* Stats */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-arabic text-lg text-foreground leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
+                  <p className="font-arabic text-xl font-bold text-foreground leading-tight">{TASBIH_ADHKARS[tasbihIdx].arabic}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">Active Dhikr</p>
                   
                   <div className="flex flex-col mt-2">
-                    <span className="text-lg font-bold font-mono text-purple-400 leading-none">{tasbihTotal}</span>
+                    <span className="text-lg font-bold font-mono text-purple-550 leading-none">{tasbihTotal}</span>
                     <span className="text-[9px] text-muted-foreground mt-0.5">Total Today</span>
                   </div>
                 </div>
@@ -457,7 +493,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Active Wazeefahs Card */}
-        <Card>
+        <Card className="relative overflow-hidden border-blue-500/25 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-md shadow-md shadow-blue-500/5 rounded-2xl transition-all hover:scale-[1.005] hover:shadow-lg hover:shadow-blue-500/5 duration-300">
           <div className="p-4 pb-2 flex flex-row items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">
@@ -465,7 +501,7 @@ export default function Dashboard() {
               </h3>
               <p className="text-[10px] text-muted-foreground mt-0.5">Your scheduled routines</p>
             </div>
-            <Link href="/wazeefahs" className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 font-medium">
+            <Link href="/wazeefahs" className="text-[10px] text-blue-650 dark:text-blue-450 hover:underline flex items-center gap-0.5 font-medium">
               Manage <ArrowRight className="w-2.5 h-2.5" />
             </Link>
           </div>
@@ -476,12 +512,12 @@ export default function Dashboard() {
             ) : userWazeefahs.length === 0 ? (
               <div className="flex flex-col items-center gap-2.5">
                 {/* Blue calendar icon graphic */}
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-md">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-450 shadow-md">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <p className="text-[11px] text-muted-foreground">No active scheduled wazeefahs.</p>
                 <Link href="/wazeefahs">
-                  <button className="border border-emerald-500 bg-transparent text-emerald-400 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-colors cursor-pointer">
+                  <button className="border border-emerald-500 bg-transparent text-emerald-450 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-colors cursor-pointer">
                     Create Routine
                   </button>
                 </Link>
@@ -502,14 +538,14 @@ export default function Dashboard() {
                   };
 
                   return (
-                    <div key={uw._id} className="flex justify-between items-center group py-1.5 px-3 rounded-lg bg-muted/50 border border-border">
+                    <div key={uw._id} className="flex justify-between items-center group py-2 px-3.5 rounded-xl bg-blue-500/5 dark:bg-blue-950/20 border border-blue-500/10 hover:bg-blue-500/10 transition-colors">
                       <div className="flex items-center gap-2 min-w-0">
                         <button
                           onClick={handleCheckClick}
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
                             isCompleted
                               ? 'bg-emerald-500 border-emerald-500 text-white'
-                              : 'border-border hover:border-emerald-500'
+                              : 'border-blue-500/30 bg-blue-500/5 text-blue-600 hover:border-emerald-500 hover:bg-emerald-500/10'
                           }`}
                         >
                           {isCompleted && (
@@ -527,7 +563,7 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 border-slate-800 ${isCompleted ? 'border-emerald-500/20 text-emerald-600' : 'text-slate-400'}`}>
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 border-slate-800 ${isCompleted ? 'border-emerald-500/20 text-emerald-600 bg-emerald-500/5' : 'text-slate-400'}`}>
                         {isCompleted ? 'Done' : 'Pending'}
                       </Badge>
                     </div>

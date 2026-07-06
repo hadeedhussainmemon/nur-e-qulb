@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, isAuthPage, isSettingsPage, router]);
 
-  if (status === 'loading') {
+  if (status === 'loading' && !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />

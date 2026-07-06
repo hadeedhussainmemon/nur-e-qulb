@@ -2,39 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getLastRead } from '@/app/actions/lastReadActions';
+import { fetchSurahDetail } from '@/app/actions/quranActions';
 import { AyahBlock } from '@/components/quran/AyahBlock';
 import { QuranNavigator } from '@/components/quran/QuranNavigator';
 import { SurahScrollTracker } from '@/components/quran/SurahScrollTracker';
 import { Loader2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-
-const BASE_URL = 'https://api.alquran.cloud/v1';
-
-async function fetchSurahDetailClient(surahNumber: number) {
-  // Fetch Arabic, Tajweed, English translation, and Urdu translation simultaneously
-  const [arabicRes, tajweedRes, englishRes, urduRes] = await Promise.all([
-    fetch(`${BASE_URL}/surah/${surahNumber}`),
-    fetch(`${BASE_URL}/surah/${surahNumber}/ar.tajweed`),
-    fetch(`${BASE_URL}/surah/${surahNumber}/en.asad`),
-    fetch(`${BASE_URL}/surah/${surahNumber}/ur.jalandhry`),
-  ]);
-
-  if (!arabicRes.ok || !tajweedRes.ok || !englishRes.ok || !urduRes.ok) {
-    throw new Error('Failed to fetch surah details');
-  }
-
-  const arabicData = await arabicRes.json();
-  const tajweedData = await tajweedRes.json();
-  const englishData = await englishRes.json();
-  const urduData = await urduRes.json();
-
-  return {
-    arabic: arabicData.data,
-    tajweed: tajweedData.data,
-    english: englishData.data,
-    urdu: urduData.data,
-  };
-}
 
 export default function SurahDetailPage() {
   const params = useParams();
@@ -65,14 +38,17 @@ export default function SurahDetailPage() {
           setLoading(true);
           setError(null);
           const [surahData, lastReadData] = await Promise.all([
-            fetchSurahDetailClient(surahId),
+            fetchSurahDetail(surahId),
             getLastRead()
           ]);
+          if (!surahData) {
+            throw new Error('Failed to load Surah details.');
+          }
           setSurahs([surahData]);
           setLastRead(lastReadData);
           setNextSurahId(surahId + 1);
         } catch (err: any) {
-          console.error('Error fetching surah detail client-side:', err);
+          console.error('Error fetching surah detail:', err);
           setError(err.message || 'Error loading Surah.');
         } finally {
           setLoading(false);
@@ -99,9 +75,11 @@ export default function SurahDetailPage() {
     if (loadingNext || nextSurahId > 114) return;
     setLoadingNext(true);
     try {
-      const nextData = await fetchSurahDetailClient(nextSurahId);
-      setSurahs(prev => [...prev, nextData]);
-      setNextSurahId(prev => prev + 1);
+      const nextData = await fetchSurahDetail(nextSurahId);
+      if (nextData) {
+        setSurahs(prev => [...prev, nextData]);
+        setNextSurahId(prev => prev + 1);
+      }
     } catch (err) {
       console.error('Failed to load next surah:', err);
     } finally {

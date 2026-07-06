@@ -1,28 +1,29 @@
-const CACHE_NAME = 'nur-e-qalbb-v1';
-
-// Add core assets to cache
-const urlsToCache = [
+const CACHE_NAME = 'nur-e-qulb-v2';
+const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/logo.png'
+  '/logo.png',
+  '/icon.png'
 ];
 
+// Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
+// Activate Event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
           }
         })
       );
@@ -31,22 +32,74 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first strategy for a dynamic app
+// Fetch Event - Dynamic Cache Strategies
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-  // Skip API routes so they don't get permanently cached and break the app
-  if (event.request.url.includes('/api/')) {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
-  );
+  const url = new URL(event.request.url);
+
+  // Exclude API routes, next-auth, next static compilation assets, and local development tools
+  if (
+    url.pathname.startsWith('/api/') || 
+    url.pathname.startsWith('/_next/') || 
+    url.pathname.includes('/auth/') ||
+    url.hostname.includes('localhost') ||
+    url.hostname.includes('vercel.live')
+  ) {
+    return;
+  }
+
+  // 1. Cache-First Strategy for Quran, Hadith, and Audio Assets
+  const isCacheFirstOrigin = 
+    url.hostname === 'api.alquran.cloud' || 
+    url.hostname === 'cdn.jsdelivr.net' || 
+    url.hostname === 'api.aladhan.com' ||
+    url.hostname === 'everyayah.com';
+
+  if (isCacheFirstOrigin) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            return new Response(JSON.stringify({ error: 'Offline fallback content not available' }), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // 2. Network-First Strategy with Cache Fallback for Local Pages
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+  }
 });
 
 // Handle background Web Push events
@@ -59,8 +112,8 @@ self.addEventListener('push', (event) => {
       event.waitUntil(
         self.registration.showNotification(title, {
           body: body || 'You have a reminder from Nur-e-Qulb.',
-          icon: icon || '/icons/icon-192x192.png',
-          badge: badge || '/icons/icon-192x192.png',
+          icon: icon || '/logo.png',
+          badge: badge || '/logo.png',
           actions: actions || [],
           data: data || {},
           requireInteraction: true
@@ -71,8 +124,8 @@ self.addEventListener('push', (event) => {
       event.waitUntil(
         self.registration.showNotification('Nur-e-Qulb Reminder', {
           body: event.data.text(),
-          icon: '/icons/icon-192x192.png',
-          badge: '/icons/icon-192x192.png',
+          icon: '/logo.png',
+          badge: '/logo.png',
           requireInteraction: true
         })
       );
@@ -97,7 +150,7 @@ self.addEventListener('notificationclick', (event) => {
       .then(data => {
         if (data.success) {
           // Tell all open clients to refresh their UI
-          self.clients.matchAll().then(clients => {
+          self.clients.matchAll().then((clients) => {
             clients.forEach(client => {
               client.postMessage({ type: 'PRAYER_LOGGED', prayer, date });
             });

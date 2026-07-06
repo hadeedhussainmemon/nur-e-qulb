@@ -92,6 +92,18 @@ export function HadithBlock({
 
   const { arabic, english } = splitArabicAndEnglish(text);
 
+  const sanitizeHadithText = (str: string) => {
+    if (!str) return '';
+    const quoteCount = (str.match(/"/g) || []).length;
+    if (quoteCount % 2 !== 0) {
+      return str.trim() + '"';
+    }
+    return str;
+  };
+
+  const sanitizedEnglish = sanitizeHadithText(english);
+  const sanitizedText = sanitizeHadithText(text);
+
   return (
     <>
       <Card className="overflow-hidden border-slate-200 dark:border-slate-800">
@@ -128,7 +140,7 @@ export function HadithBlock({
         <CardContent className="p-6 space-y-4">
           <div className="text-left">
             <p className="text-base md:text-lg leading-relaxed text-slate-700 dark:text-slate-300">
-              {text}
+              {sanitizedText}
             </p>
           </div>
 
@@ -150,7 +162,7 @@ export function HadithBlock({
       {isShareOpen && (
         <ShareCard 
           arabicText={arabic}
-          translationText={english}
+          translationText={sanitizedEnglish}
           reference={`${collectionId.toUpperCase()} Hadith ${hadithNumber}`}
           isOpen={isShareOpen}
           onClose={() => setIsShareOpen(false)}

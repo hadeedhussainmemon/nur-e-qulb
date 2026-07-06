@@ -74,18 +74,18 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
     (language === 'english' || language === 'both' ? translationText.length : 0) + 
     (language === 'urdu' || language === 'both' ? (urduText?.length || 0) : 0);
   
-  let arabicSize = 'text-5xl';
-  let transSize = 'text-3xl';
-  let spacingClass = 'space-y-12';
+  let arabicSize = 'text-7xl';
+  let transSize = 'text-5xl';
+  let spacingClass = 'space-y-16';
 
   if (totalLength > 500) {
-    arabicSize = 'text-3xl';
-    transSize = 'text-xl';
-    spacingClass = 'space-y-6';
-  } else if (totalLength > 300) {
-    arabicSize = 'text-4xl';
-    transSize = 'text-2xl';
+    arabicSize = 'text-5xl';
+    transSize = 'text-3xl';
     spacingClass = 'space-y-8';
+  } else if (totalLength > 300) {
+    arabicSize = 'text-6xl';
+    transSize = 'text-4xl';
+    spacingClass = 'space-y-12';
   }
 
   const generateCanvas = async () => {
@@ -241,7 +241,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 {/* Branding Header */}
                 <div className="flex flex-col items-center space-y-4 relative z-10">
                   <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-slate-900/20 p-2.5 flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" crossOrigin="anonymous" />
                   </div>
                   <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
                     NUR-E-QULB
@@ -309,7 +309,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 {/* Branding Header */}
                 <div className="flex flex-col items-center space-y-4 relative z-10">
                   <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-slate-900/20 p-2.5 flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" crossOrigin="anonymous" />
                   </div>
                   <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
                     NUR-E-QULB

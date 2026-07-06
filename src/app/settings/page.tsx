@@ -11,10 +11,11 @@ import { getCurrentUser, updateUserSettings, updateUserProfile } from '@/app/act
 import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
 import { completeOnboarding } from '@/app/actions/onboardingActions';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const isOnboarding = searchParams.get('onboarding') === 'true';
   const { data: session, status, update: updateSession } = useSession();
   const [loading, setLoading] = useState(false);
@@ -212,7 +213,8 @@ export default function SettingsPage() {
       setSuccessMsg('Settings saved successfully!');
       // Redirect to home page after a brief delay so the user sees the success state
       setTimeout(() => {
-        window.location.href = '/';
+        router.push('/');
+        router.refresh();
       }, 1000);
     } catch (err) {
       console.error(err);

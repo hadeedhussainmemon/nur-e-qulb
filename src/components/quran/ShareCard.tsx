@@ -22,7 +22,7 @@ const THEMES: Record<ThemeKey, { name: string; gradient: string; border: string;
     gradient: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)',
     border: 'border-emerald-500/20',
     divider: 'bg-emerald-500/30',
-    badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+    badge: 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20'
   },
   slate: {
     name: 'Midnight Slate',
@@ -57,6 +57,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
   // Local states for the long-press download modal
   const [downloadImageUrl, setDownloadImageUrl] = useState<string | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
 
   // Sync language selection options when the card opens or urduText availability changes
   useEffect(() => {
@@ -65,36 +66,58 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
     }
   }, [isOpen, urduText]);
 
+  // Load logo as base64 on mount to prevent canvas taint issues
+  useEffect(() => {
+    async function loadLogoAsBase64() {
+      try {
+        const response = await fetch('/logo.png');
+        if (!response.ok) throw new Error('Failed to fetch logo file');
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        console.warn('Failed to load logo as base64 data URL:', err);
+      }
+    }
+    if (isOpen) {
+      loadLogoAsBase64();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const hasUrdu = !!urduText;
 
-  // Dynamic font sizing based on character length to prevent overflow in 9:16 layout
+  // Dynamic font sizing based on character length for the 280px width card
   const totalLength = arabicText.length + 
     (language === 'english' || language === 'both' ? translationText.length : 0) + 
     (language === 'urdu' || language === 'both' ? (urduText?.length || 0) : 0);
   
-  let arabicSize = 'text-7xl';
-  let transSize = 'text-5xl';
-  let spacingClass = 'space-y-16';
+  let arabicSize = 'text-2xl';
+  let transSize = 'text-sm';
+  let spacingClass = 'space-y-5';
 
-  if (totalLength > 500) {
-    arabicSize = 'text-5xl';
-    transSize = 'text-3xl';
-    spacingClass = 'space-y-8';
-  } else if (totalLength > 300) {
-    arabicSize = 'text-6xl';
-    transSize = 'text-4xl';
-    spacingClass = 'space-y-12';
+  if (totalLength > 400) {
+    arabicSize = 'text-lg';
+    transSize = 'text-xs';
+    spacingClass = 'space-y-3';
+  } else if (totalLength > 200) {
+    arabicSize = 'text-xl';
+    transSize = 'text-xs';
+    spacingClass = 'space-y-4';
   }
 
   const generateCanvas = async () => {
     if (!cardRef.current) return null;
     const html2canvas = (await import('html2canvas')).default;
     return await html2canvas(cardRef.current, {
-      scale: 2, // High resolution output
+      scale: 4, // 4x scale outputs a crisp 1120x1988 resolution image
       useCORS: true,
       backgroundColor: null,
+      logging: false
     });
   };
 
@@ -162,7 +185,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
   return (
     <>
       <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-950 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white dark:bg-slate-955 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
           
           {/* Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
@@ -217,148 +240,73 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
 
           {/* Preview Area */}
           <div className="p-5 overflow-y-auto flex-1 flex justify-center bg-slate-100 dark:bg-slate-900/80 relative">
-            {/* Scaled Preview Wrapper (Using CSS scale to guarantee pixel perfection) */}
-            <div className="w-[238px] h-[423px] relative rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-slate-200 dark:border-slate-800 bg-slate-950">
-              {/* The scaled offscreen content rendered inside the preview box */}
-              <div 
-                style={{
-                  width: '1080px',
-                  height: '1920px',
-                  transform: 'scale(0.22)',
-                  transformOrigin: 'top left',
-                  background: THEMES[activeTheme].gradient,
-                }}
-                className="absolute inset-0 select-none flex flex-col justify-between p-16 text-white overflow-hidden"
-              >
-                {/* Embedded Local Fonts without external network imports to prevent taints */}
-                <style dangerouslySetInnerHTML={{__html: `
-                  .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
-                  .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
-                `}} />
+            {/* The visible card that is captured directly (no scale, no offscreen hides) */}
+            <div 
+              ref={cardRef} 
+              style={{
+                width: '280px',
+                height: '497px',
+                background: THEMES[activeTheme].gradient,
+              }}
+              className="relative rounded-2xl overflow-hidden shadow-2xl shrink-0 flex flex-col justify-between p-6 text-white"
+            >
+              {/* Embedded Local Fonts without external network imports to prevent taints */}
+              <style dangerouslySetInnerHTML={{__html: `
+                .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
+                .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
+              `}} />
 
-                {/* Decorative Geometric Dot Pattern Overlay */}
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 4px 4px, white 2px, transparent 0)', backgroundSize: '48px 48px' }}></div>
+              {/* Decorative Geometric Dot Pattern Overlay */}
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
 
-                {/* Branding Header (Vector SVG Dome Emblem - Taint proof) */}
-                <div className="flex flex-col items-center space-y-4 relative z-10">
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-emerald-955/40 p-2.5 flex items-center justify-center relative">
-                    <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-400" fill="none">
-                      <path d="M50,5 C25.1,5 5,25.1 5,50 C5,74.9 25.1,95 50,95 C74.9,95 95,74.9 95,50 C95,25.1 74.9,5 50,5 Z M50,90 C27.9,90 10,72.1 10,50 C10,27.9 27.9,10 50,10 C72.1,10 90,27.9 90,50 C90,72.1 72.1,90 50,90 Z" fill="currentColor" opacity="0.2" />
-                      <path d="M50,22 C48,22 46,26 44,32 C41,41 40,52 40,65 C40,75 44,82 50,82 C56,82 60,75 60,65 C60,52 59,41 56,32 C54,26 52,22 50,22 Z M50,15 L50,22 M46,18 L54,18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                      <path d="M30,55 L30,82 M70,55 L70,82" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
-                    NUR-E-QULB
-                  </h4>
-                  <div className="w-16 h-0.5 bg-emerald-500 rounded-full" />
-                </div>
-
-                {/* Verses & Translations Block */}
-                <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
-                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
-                    {arabicText}
-                  </p>
-
-                  <div className={`w-28 h-0.5 ${THEMES[activeTheme].divider} mx-auto rounded-full`} />
-
-                  {(language === 'english' || language === 'both') && (
-                    <p className={`text-center font-medium leading-relaxed text-emerald-100/90 ${transSize}`}>
-                      "{translationText}"
-                    </p>
+              {/* Branding Header (Original Base64 Logo - Taint proof) */}
+              <div className="flex flex-col items-center space-y-1 relative z-10">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20 bg-slate-900/20 flex items-center justify-center relative">
+                  {logoBase64 ? (
+                    <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800/40 animate-pulse" />
                   )}
-
-                  {(language === 'urdu' || language === 'both') && urduText && (
-                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
-                      "{urduText}"
-                    </p>
-                  )}
-
-                  <p className="text-2xl text-center text-emerald-400 font-bold uppercase tracking-wider font-outfit">
-                    — {reference}
-                  </p>
                 </div>
-
-                {/* Branding Link Footer */}
-                <div className="flex flex-col items-center space-y-2 opacity-85 relative z-10">
-                  <span className="text-xl font-bold tracking-widest text-emerald-400 uppercase font-outfit">
-                    READ QURAN ONLINE
-                  </span>
-                  <span className="text-lg font-medium text-slate-350 tracking-wider font-outfit">
-                    nur-e-qulb.vercel.app
-                  </span>
-                </div>
+                <h4 className="text-[10px] font-bold tracking-widest text-white uppercase font-outfit">
+                  NUR-E-QULB
+                </h4>
+                <div className="w-6 h-0.5 bg-emerald-500 rounded-full" />
               </div>
-            </div>
 
-            {/* Offscreen Container: Full resolution 1080x1920 for html2canvas rendering */}
-            <div style={{ position: 'fixed', left: '-9999px', top: '-9999px', overflow: 'hidden' }}>
-              <div 
-                ref={cardRef} 
-                style={{
-                  width: '1080px',
-                  height: '1920px',
-                  background: THEMES[activeTheme].gradient,
-                }}
-                className="flex flex-col justify-between p-16 text-white overflow-hidden relative"
-              >
-                {/* Embedded Local Fonts without external network imports to prevent taints */}
-                <style dangerouslySetInnerHTML={{__html: `
-                  .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
-                  .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
-                `}} />
+              {/* Verses & Translations Block */}
+              <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
+                <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
+                  {arabicText}
+                </p>
 
-                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 4px 4px, white 2px, transparent 0)', backgroundSize: '48px 48px' }}></div>
+                <div className={`w-12 h-0.5 ${THEMES[activeTheme].divider} mx-auto rounded-full`} />
 
-                {/* Branding Header (Vector SVG Dome Emblem - Taint proof) */}
-                <div className="flex flex-col items-center space-y-4 relative z-10">
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-emerald-955/40 p-2.5 flex items-center justify-center relative">
-                    <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-400" fill="none">
-                      <path d="M50,5 C25.1,5 5,25.1 5,50 C5,74.9 25.1,95 50,95 C74.9,95 95,74.9 95,50 C95,25.1 74.9,5 50,5 Z M50,90 C27.9,90 10,72.1 10,50 C10,27.9 27.9,10 50,10 C72.1,10 90,27.9 90,50 C90,72.1 72.1,90 50,90 Z" fill="currentColor" opacity="0.2" />
-                      <path d="M50,22 C48,22 46,26 44,32 C41,41 40,52 40,65 C40,75 44,82 50,82 C56,82 60,75 60,65 C60,52 59,41 56,32 C54,26 52,22 50,22 Z M50,15 L50,22 M46,18 L54,18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                      <path d="M30,55 L30,82 M70,55 L70,82" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
-                    NUR-E-QULB
-                  </h4>
-                  <div className="w-16 h-0.5 bg-emerald-500 rounded-full" />
-                </div>
-
-                {/* Verses & Translations Block */}
-                <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
-                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
-                    {arabicText}
+                {(language === 'english' || language === 'both') && (
+                  <p className={`text-center font-medium leading-relaxed text-emerald-100/90 ${transSize}`}>
+                    "{translationText}"
                   </p>
+                )}
 
-                  <div className={`w-28 h-0.5 ${THEMES[activeTheme].divider} mx-auto rounded-full`} />
-
-                  {(language === 'english' || language === 'both') && (
-                    <p className={`text-center font-medium leading-relaxed text-emerald-100/90 ${transSize}`}>
-                      "{translationText}"
-                    </p>
-                  )}
-
-                  {(language === 'urdu' || language === 'both') && urduText && (
-                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
-                      "{urduText}"
-                    </p>
-                  )}
-
-                  <p className="text-2xl text-center text-emerald-400 font-bold uppercase tracking-wider font-outfit">
-                    — {reference}
+                {(language === 'urdu' || language === 'both') && urduText && (
+                  <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
+                    "{urduText}"
                   </p>
-                </div>
+                )}
 
-                {/* Branding Link Footer */}
-                <div className="flex flex-col items-center space-y-2 opacity-85 relative z-10">
-                  <span className="text-xl font-bold tracking-widest text-emerald-400 uppercase font-outfit">
-                    READ QURAN ONLINE
-                  </span>
-                  <span className="text-lg font-medium text-slate-350 tracking-wider font-outfit">
-                    nur-e-qulb.vercel.app
-                  </span>
-                </div>
+                <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-wider font-outfit">
+                  — {reference}
+                </p>
+              </div>
+
+              {/* Branding Link Footer */}
+              <div className="flex flex-col items-center space-y-0.5 opacity-85 relative z-10">
+                <span className="text-[8px] font-bold tracking-widest text-emerald-400 uppercase font-outfit">
+                  READ QURAN ONLINE
+                </span>
+                <span className="text-[9px] font-medium text-slate-350 tracking-wider">
+                  nur-e-qulb.vercel.app
+                </span>
               </div>
             </div>
           </div>

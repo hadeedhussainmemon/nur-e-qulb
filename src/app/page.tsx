@@ -314,54 +314,64 @@ export default function Dashboard() {
         </div>
         
         {/* Next Prayer Floating Widget */}
-        <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 text-foreground dark:text-white shadow-lg shadow-emerald-500/5 shrink-0 py-3 px-4 rounded-2xl min-w-[230px] transition-all hover:scale-[1.02] duration-300">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
-                <Clock className="w-4 h-4 animate-pulse" />
-              </div>
-              <div>
-                <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
-                  NEXT: {nextPrayer?.name || 'ASR'}
-                </p>
-                <p className="text-lg font-bold leading-none mt-1 font-mono">
-                  {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600000) / 60000)}m` : '2h 50m'}
-                </p>
-                <p className="text-[9px] text-muted-foreground mt-1">
-                  {nextPrayerTimeStr} • Insha'Allah
-                </p>
-              </div>
-            </div>
-            
-            {/* Circular Progress Ring */}
-            <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="28"
-                  cy="28"
-                  r={radius}
-                  className="stroke-emerald-500/10 dark:stroke-emerald-500/5 fill-transparent"
-                  strokeWidth="3.5"
-                />
-                <circle
-                  cx="28"
-                  cy="28"
-                  r={radius}
-                  className="stroke-emerald-500 dark:stroke-emerald-400 fill-transparent transition-all duration-500 ease-out"
-                  strokeWidth="3.5"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-[10px] font-bold font-mono text-emerald-605 dark:text-emerald-400">
-                  {todayCompletion}%
-                </span>
-              </div>
+        {timesLoading ? (
+          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5 shrink-0 py-3 px-4 rounded-2xl min-w-[230px] h-[76px] animate-pulse flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-2 w-12 bg-emerald-500/20 rounded" />
+              <div className="h-4 w-20 bg-emerald-500/25 rounded" />
             </div>
           </div>
-        </Card>
+        ) : (
+          <Card className="bg-emerald-500/5 dark:bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 text-foreground dark:text-white shadow-lg shadow-emerald-500/5 shrink-0 py-3 px-4 rounded-2xl min-w-[230px] transition-all hover:scale-[1.02] duration-300">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Clock className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
+                    NEXT: {nextPrayer?.name || 'ASR'}
+                  </p>
+                  <p className="text-lg font-bold leading-none mt-1 font-mono">
+                    {nextPrayer ? `${Math.floor(nextPrayer.diffMs / 3600000)}h ${Math.floor((nextPrayer.diffMs % 3600005) / 60000)}m` : '2h 50m'}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground mt-1">
+                    {nextPrayerTimeStr} • Insha'Allah
+                  </p>
+                </div>
+              </div>
+              
+              {/* Circular Progress Ring */}
+              <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r={radius}
+                    className="stroke-emerald-500/10 dark:stroke-emerald-500/5 fill-transparent"
+                    strokeWidth="3.5"
+                  />
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r={radius}
+                    className="stroke-emerald-500 dark:stroke-emerald-400 fill-transparent transition-all duration-500 ease-out"
+                    strokeWidth="3.5"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                    {todayCompletion}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Active Prayer Card */}

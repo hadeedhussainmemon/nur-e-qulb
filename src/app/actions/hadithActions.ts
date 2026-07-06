@@ -59,9 +59,10 @@ export async function fetchHadithsByCategory(collection: string, bookNumber: str
     
     const data = await res.json();
     
-    const filteredHadiths = data.hadiths.filter(
-      (h: any) => h.booknumber && h.booknumber.toString() === bookNumber.toString()
-    );
+    const filteredHadiths = data.hadiths.filter((h: any) => {
+      const bNum = h.booknumber || (h.reference && h.reference.book);
+      return bNum && bNum.toString() === bookNumber.toString();
+    });
  
     return {
       metadata: data.metadata,

@@ -121,6 +121,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
       }
     } catch (error) {
       console.error('Failed to generate image:', error);
+      alert('Failed to generate image preview. Please screenshot the screen or try on another browser.');
     } finally {
       setIsGenerating(false);
     }
@@ -152,6 +153,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
       }
     } catch (error) {
       console.error('Failed to share image:', error);
+      alert('Failed to generate sharing image. Please try screenshotting or saving manually.');
     } finally {
       setIsSharing(false);
     }
@@ -228,20 +230,23 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 }}
                 className="absolute inset-0 select-none flex flex-col justify-between p-16 text-white overflow-hidden"
               >
-                {/* Google Font Embed for Amiri and Outfit */}
+                {/* Embedded Local Fonts without external network imports to prevent taints */}
                 <style dangerouslySetInnerHTML={{__html: `
-                  @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@300;400;600;700&display=swap');
-                  .font-arabic { font-family: 'Amiri', serif; }
-                  .font-outfit { font-family: 'Outfit', sans-serif; }
+                  .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
+                  .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
                 `}} />
 
                 {/* Decorative Geometric Dot Pattern Overlay */}
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 4px 4px, white 2px, transparent 0)', backgroundSize: '48px 48px' }}></div>
 
-                {/* Branding Header */}
+                {/* Branding Header (Vector SVG Dome Emblem - Taint proof) */}
                 <div className="flex flex-col items-center space-y-4 relative z-10">
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-slate-900/20 p-2.5 flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-emerald-955/40 p-2.5 flex items-center justify-center relative">
+                    <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-400" fill="none">
+                      <path d="M50,5 C25.1,5 5,25.1 5,50 C5,74.9 25.1,95 50,95 C74.9,95 95,74.9 95,50 C95,25.1 74.9,5 50,5 Z M50,90 C27.9,90 10,72.1 10,50 C10,27.9 27.9,10 50,10 C72.1,10 90,27.9 90,50 C90,72.1 72.1,90 50,90 Z" fill="currentColor" opacity="0.2" />
+                      <path d="M50,22 C48,22 46,26 44,32 C41,41 40,52 40,65 C40,75 44,82 50,82 C56,82 60,75 60,65 C60,52 59,41 56,32 C54,26 52,22 50,22 Z M50,15 L50,22 M46,18 L54,18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M30,55 L30,82 M70,55 L70,82" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                   </div>
                   <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
                     NUR-E-QULB
@@ -251,7 +256,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
 
                 {/* Verses & Translations Block */}
                 <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
-                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`} style={{ fontFamily: 'Amiri, serif' }}>
+                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
                     {arabicText}
                   </p>
 
@@ -264,7 +269,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                   )}
 
                   {(language === 'urdu' || language === 'both') && urduText && (
-                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`} style={{ fontFamily: 'Jameel Noori Nastaleeq, Amiri, serif' }}>
+                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
                       "{urduText}"
                     </p>
                   )}
@@ -279,7 +284,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                   <span className="text-xl font-bold tracking-widest text-emerald-400 uppercase font-outfit">
                     READ QURAN ONLINE
                   </span>
-                  <span className="text-lg font-medium text-slate-350 tracking-wider">
+                  <span className="text-lg font-medium text-slate-350 tracking-wider font-outfit">
                     nur-e-qulb.vercel.app
                   </span>
                 </div>
@@ -297,19 +302,22 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 }}
                 className="flex flex-col justify-between p-16 text-white overflow-hidden relative"
               >
-                {/* Google Font Embed for Amiri and Outfit */}
+                {/* Embedded Local Fonts without external network imports to prevent taints */}
                 <style dangerouslySetInnerHTML={{__html: `
-                  @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@300;400;600;700&display=swap');
-                  .font-arabic { font-family: 'Amiri', serif; }
-                  .font-outfit { font-family: 'Outfit', sans-serif; }
+                  .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
+                  .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
                 `}} />
 
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 4px 4px, white 2px, transparent 0)', backgroundSize: '48px 48px' }}></div>
 
-                {/* Branding Header */}
+                {/* Branding Header (Vector SVG Dome Emblem - Taint proof) */}
                 <div className="flex flex-col items-center space-y-4 relative z-10">
-                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-slate-900/20 p-2.5 flex items-center justify-center">
-                    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" crossOrigin="anonymous" />
+                  <div className="w-20 h-20 rounded-full overflow-hidden shadow-lg border border-white/20 bg-emerald-955/40 p-2.5 flex items-center justify-center relative">
+                    <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-400" fill="none">
+                      <path d="M50,5 C25.1,5 5,25.1 5,50 C5,74.9 25.1,95 50,95 C74.9,95 95,74.9 95,50 C95,25.1 74.9,5 50,5 Z M50,90 C27.9,90 10,72.1 10,50 C10,27.9 27.9,10 50,10 C72.1,10 90,27.9 90,50 C90,72.1 72.1,90 50,90 Z" fill="currentColor" opacity="0.2" />
+                      <path d="M50,22 C48,22 46,26 44,32 C41,41 40,52 40,65 C40,75 44,82 50,82 C56,82 60,75 60,65 C60,52 59,41 56,32 C54,26 52,22 50,22 Z M50,15 L50,22 M46,18 L54,18" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      <path d="M30,55 L30,82 M70,55 L70,82" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
                   </div>
                   <h4 className="text-4xl font-bold tracking-widest text-white uppercase font-outfit">
                     NUR-E-QULB
@@ -319,7 +327,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
 
                 {/* Verses & Translations Block */}
                 <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
-                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`} style={{ fontFamily: 'Amiri, serif' }}>
+                  <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
                     {arabicText}
                   </p>
 
@@ -332,7 +340,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                   )}
 
                   {(language === 'urdu' || language === 'both') && urduText && (
-                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`} style={{ fontFamily: 'Jameel Noori Nastaleeq, Amiri, serif' }}>
+                    <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
                       "{urduText}"
                     </p>
                   )}
@@ -412,7 +420,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
               </Button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-zinc-405 font-medium leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium leading-relaxed">
               📲 <strong>Press and hold (long-press)</strong> the image below and select <strong>"Save Image"</strong> or <strong>"Download Image"</strong> to save it directly to your photos.
             </p>
 

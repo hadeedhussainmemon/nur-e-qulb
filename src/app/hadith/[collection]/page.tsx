@@ -6,20 +6,7 @@ import { BookOpen, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useParams } from 'next/navigation';
 
-const BASE_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
-
-async function fetchHadithCategoriesClient(collection: string) {
-  const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
-  if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
-  
-  const data = await res.json();
-  
-  return {
-    metadata: data.metadata,
-    sections: data.metadata.sections || data.metadata.section,
-    sectionDetails: data.metadata.sectionDetails,
-  };
-}
+import { fetchHadithCategories } from '@/app/actions/hadithActions';
 
 export default function HadithCollectionPage() {
   const params = useParams();
@@ -30,12 +17,12 @@ export default function HadithCollectionPage() {
   useEffect(() => {
     async function loadCategories() {
       try {
-        const res = await fetchHadithCategoriesClient(collection);
+        const res = await fetchHadithCategories(collection);
         if (res) {
           setData(res);
         }
       } catch (err) {
-        console.error('Failed to load categories client-side:', err);
+        console.error('Failed to load categories:', err);
       } finally {
         setLoading(false);
       }

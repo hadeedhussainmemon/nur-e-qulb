@@ -5,33 +5,7 @@ import Link from 'next/link';
 import { HadithBlock } from '@/components/hadith/HadithBlock';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
-const BASE_URL = 'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';
-
-async function fetchHadithCategoriesClient(collection: string) {
-  const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
-  if (!res.ok) throw new Error(`Failed to fetch categories for ${collection}`);
-  const data = await res.json();
-  return {
-    metadata: data.metadata,
-    sections: data.metadata.sections || data.metadata.section,
-    sectionDetails: data.metadata.sectionDetails,
-  };
-}
-
-async function fetchHadithsByCategoryClient(collection: string, bookNumber: string) {
-  const res = await fetch(`${BASE_URL}/eng-${collection}.json`);
-  if (!res.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
-  const data = await res.json();
-  const filteredHadiths = data.hadiths.filter((h: any) => {
-    const bNum = h.booknumber || (h.reference && h.reference.book);
-    return bNum && bNum.toString() === bookNumber.toString();
-  });
-  return {
-    metadata: data.metadata,
-    hadiths: filteredHadiths,
-  };
-}
-
+import { fetchHadithsByCategory, fetchHadithCategories } from '@/app/actions/hadithActions';
 import { useParams } from 'next/navigation';
 
 export default function HadithCategoryPage() {
@@ -47,15 +21,15 @@ export default function HadithCategoryPage() {
     async function loadData() {
       try {
         const [hadithRes, catRes] = await Promise.all([
-          fetchHadithsByCategoryClient(collection, book),
-          fetchHadithCategoriesClient(collection)
+          fetchHadithsByCategory(collection, book),
+          fetchHadithCategories(collection)
         ]);
         if (hadithRes && catRes) {
           setData(hadithRes);
           setCategoriesData(catRes);
         }
       } catch (err) {
-        console.error('Failed to load Hadiths client-side:', err);
+        console.error('Failed to load Hadiths:', err);
       } finally {
         setLoading(false);
       }

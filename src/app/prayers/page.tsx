@@ -37,8 +37,11 @@ export default function PrayerTrackerPage() {
   const [isCycleActive, setIsCycleActive] = useState(false);
   const [gender, setGender] = useState('other');
 
+  const calculationMethod = (session?.user as any)?.settings?.prayerCalculationMethod || 'ISNA';
+  const madhab = (session?.user as any)?.settings?.madhab || 'Hanafi';
+
   // Load Prayer Times Hook (updates automatically with interval)
-  const { data: timesData, loading: timesLoading, error: timesError, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
+  const { data: timesData, loading: timesLoading, error: timesError, nextPrayer, currentPrayer } = usePrayerTimes(city, country, calculationMethod, madhab);
 
   const localDateStr = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
 

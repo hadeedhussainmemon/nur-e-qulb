@@ -3,17 +3,47 @@
 import { useState, useEffect } from 'react';
 import { fetchPrayerTimesByCity, AlAdhanResponse } from '@/app/actions/prayerActions';
 
-export function usePrayerTimes(city: string, country: string) {
+const METHOD_MAP: Record<string, number> = {
+  'Jafari': 0,
+  'University of Islamic Sciences, Karachi': 1,
+  'ISNA': 2,
+  'MWL': 3,
+  'Umm Al-Qura': 4,
+  'Egyptian': 5,
+  'Tehran': 7,
+  'Gulf': 8,
+  'Kuwait': 9,
+  'Qatar': 10,
+  'Majlis Ugama Islam Singapura, Singapore': 11,
+  'Union Organisation Islamique de France': 12,
+  'Diyanet İşleri Başkanlığı, Turkey': 13,
+  'Spiritual Administration of Muslims of Russia': 14
+};
+
+const SCHOOL_MAP: Record<string, number> = {
+  'Standard': 0,
+  'Hanafi': 1
+};
+
+export function usePrayerTimes(
+  city: string,
+  country: string,
+  calculationMethod: string = 'ISNA',
+  madhab: string = 'Hanafi'
+) {
   const [data, setData] = useState<AlAdhanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nextPrayer, setNextPrayer] = useState<{ name: string; time: string; diffMs: number } | null>(null);
   const [currentPrayer, setCurrentPrayer] = useState<string>('Unknown');
 
+  const methodVal = METHOD_MAP[calculationMethod] ?? 2;
+  const schoolVal = SCHOOL_MAP[madhab] ?? 1;
+
   useEffect(() => {
     async function loadData() {
       const todayStr = new Date().toLocaleDateString('en-CA');
-      const cacheKey = `prayer_times_${city}_${country}_${todayStr}`;
+      const cacheKey = `prayer_times_${city}_${country}_${methodVal}_${schoolVal}_${todayStr}`;
       
       // Try cache first
       try {
@@ -28,7 +58,7 @@ export function usePrayerTimes(city: string, country: string) {
       setLoading(true);
       try {
         // Fallback default city to Makkah if empty
-        const res = await fetchPrayerTimesByCity(city || 'Makkah', country || 'Saudi Arabia');
+        const res = await fetchPrayerTimesByCity(city || 'Makkah', country || 'Saudi Arabia', methodVal, schoolVal);
         if (res) {
           setData(res);
           try {
@@ -44,7 +74,7 @@ export function usePrayerTimes(city: string, country: string) {
       }
     }
     loadData();
-  }, [city, country]);
+  }, [city, country, methodVal, schoolVal]);
 
   // Countdown logic
   useEffect(() => {

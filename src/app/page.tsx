@@ -153,7 +153,9 @@ export default function Dashboard() {
     }
   }, [session]);
 
-  const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country);
+  const calculationMethod = (session?.user as any)?.settings?.prayerCalculationMethod || 'ISNA';
+  const madhab = (session?.user as any)?.settings?.madhab || 'Hanafi';
+  const { data: timesData, loading: timesLoading, nextPrayer, currentPrayer } = usePrayerTimes(city, country, calculationMethod, madhab);
 
   // Logical tracking date for prayers (doesn't change day until Fajr)
   const isPastMidnightBeforeFajr = nextPrayer?.name === 'Fajr' && new Date().getHours() < 12;

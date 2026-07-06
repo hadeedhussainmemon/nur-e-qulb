@@ -50,9 +50,9 @@ export interface AlAdhanResponse {
   };
 }
 
-export async function fetchPrayerTimesByCity(city: string, country: string, method: number = 2): Promise<AlAdhanResponse | null> {
+export async function fetchPrayerTimesByCity(city: string, country: string, method: number = 2, school: number = 0): Promise<AlAdhanResponse | null> {
   try {
-    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`, {
+    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}&school=${school}`, {
       next: { revalidate: 43200 }, // Cache for 12 hours - prayer times don't change hourly
     });
 
@@ -68,9 +68,9 @@ export async function fetchPrayerTimesByCity(city: string, country: string, meth
   }
 }
 
-export async function fetchPrayerTimesByCoordinates(lat: number, lng: number, method: number = 2): Promise<AlAdhanResponse | null> {
+export async function fetchPrayerTimesByCoordinates(lat: number, lng: number, method: number = 2, school: number = 0): Promise<AlAdhanResponse | null> {
   try {
-    const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lng}&method=${method}`, {
+    const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lng}&method=${method}&school=${school}`, {
       next: { revalidate: 43200 }, // Cache for 12 hours - prayer times don't change hourly
     });
 

@@ -266,6 +266,7 @@ export function AyahBlock({
         onClose={() => setIsShareOpen(false)}
         arabicText={arabicText}
         translationText={translationText}
+        urduText={urduText}
         reference={`${surahName} ${surahNumber}:${ayahNumber}`}
       />
     </div>

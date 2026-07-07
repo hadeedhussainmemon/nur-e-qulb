@@ -325,7 +325,10 @@ export async function GET(req: NextRequest) {
         minute: '2-digit'
       });
       const localTimeStr = timeFormatter.format(now); // "HH:MM"
-      const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+      const [localHoursStr, localMinutesStr] = localTimeStr.split(':');
+      const localHours = parseInt(localHoursStr, 10);
+      const localMinutes = parseInt(localMinutesStr, 10);
+      const currentTotalMins = localHours * 60 + localMinutes;
 
       // Clean timings map (strip timezone abbreviations e.g. "05:12 (PKT)" -> "05:12")
       const timingsMap: Record<string, string> = {};
@@ -539,8 +542,6 @@ export async function GET(req: NextRequest) {
 
         // 6. Friday reminders in the background
         if (showFridayReminders && localDayOfWeek === 5) {
-          const currentTotalMins = now.getHours() * 60 + now.getMinutes();
-
           if (currentTotalMins >= 600 && currentTotalMins <= 1320) {
             const diffMins = currentTotalMins - 600;
             if (diffMins % 45 === 0) {
@@ -569,7 +570,7 @@ export async function GET(req: NextRequest) {
             }
           }
 
-          if (now.getHours() >= 8 && now.getHours() <= 22 && now.getMinutes() === 0) {
+          if (localHours >= 8 && localHours <= 22 && localMinutes === 0) {
             try {
               const sent = await sendPushNotification(
                 {

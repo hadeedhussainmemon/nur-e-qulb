@@ -6,12 +6,19 @@ import { Download, Loader2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ShareCardProps {
-  arabicText: string;
-  translationText: string;
+  arabicText?: string;
+  translationText?: string;
   urduText?: string;
   reference: string;
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'verse' | 'calendar';
+  calendarData?: {
+    gregorianDate: string;
+    hijriDate: string;
+    location: string;
+    timings: { name: string; start: string; end: string }[];
+  };
 }
 
 type ThemeKey = 'emerald' | 'slate' | 'rose' | 'stone';
@@ -43,7 +50,16 @@ const THEMES: Record<ThemeKey, { name: string; gradient: string; dividerColor: s
   }
 };
 
-export function ShareCard({ arabicText, translationText, urduText, reference, isOpen, onClose }: ShareCardProps) {
+export function ShareCard({ 
+  arabicText = '', 
+  translationText = '', 
+  urduText, 
+  reference, 
+  isOpen, 
+  onClose,
+  mode = 'verse',
+  calendarData
+}: ShareCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [activeTheme, setActiveTheme] = useState<ThemeKey>('emerald');
   const [language, setLanguage] = useState<'english' | 'urdu' | 'both'>('english');
@@ -152,7 +168,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
         // Try programmatic download as a primary attempt
         try {
           const link = document.createElement('a');
-          link.download = `NurEQulb-${reference.replace(/\s+/g, '-')}.png`;
+          link.download = `${mode === 'calendar' ? 'NamazSchedule' : 'NurEQulb'}-${reference.replace(/\s+/g, '-')}.png`;
           link.href = image;
           document.body.appendChild(link);
           link.click();
@@ -178,14 +194,14 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('Blob generation failed');
 
-      const file = new File([blob], `NurEQulb-${reference.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+      const file = new File([blob], `${mode === 'calendar' ? 'NamazSchedule' : 'NurEQulb'}-${reference.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
 
       // Check if browser supports Web Share API file sharing
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'Nur-e-Qulb Share',
-          text: `Read Quran on Nur-e-Qulb: ${reference}`
+          title: mode === 'calendar' ? "Today's Prayer Schedule" : 'Nur-e-Qulb Share',
+          text: mode === 'calendar' ? `Namaz schedule for ${reference}` : `Read Quran on Nur-e-Qulb: ${reference}`
         });
       } else {
         // Fallback to download preview if sharing is not supported
@@ -209,7 +225,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
           {/* Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-emerald-500" /> Share Quran Verse
+              <Share2 className="w-4 h-4 text-emerald-500" /> {mode === 'calendar' ? "Share Namaz Schedule" : "Share Quran Verse"}
             </h3>
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-850">
               <X className="w-5 h-5" />
@@ -236,8 +252,8 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
               ))}
             </div>
 
-            {/* Language Selector (Only show if Urdu translation is available) */}
-            {hasUrdu && (
+            {/* Language Selector (Only show if Urdu translation is available and in verse mode) */}
+            {mode === 'verse' && hasUrdu && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-muted-foreground mr-1">Language:</span>
                 {(['english', 'urdu', 'both'] as const).map((lang) => (
@@ -299,35 +315,80 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 <div style={{ width: '24px', height: '2px', backgroundColor: '#10b981', borderRadius: '9999px', marginTop: '2px' }} />
               </div>
 
-              {/* Verses & Translations Block */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: spacingClassGap, position: 'relative', zIndex: 10 }}>
-                <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#ffffff', fontSize: arabicFontSizePx, margin: 0 }}>
-                  {arabicText}
-                </p>
+              {/* Dynamic Content Switching based on Mode */}
+              {mode === 'calendar' && calendarData ? (
+                /* Calendar / Timings Share Layout */
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', zIndex: 10 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p className="font-outfit" style={{ fontSize: '13px', fontWeight: 'bold', margin: 0, color: '#34d399' }}>
+                      {calendarData.hijriDate}
+                    </p>
+                    <p className="font-outfit" style={{ fontSize: '10px', fontWeight: 500, margin: 0, marginTop: '1px', color: '#cbd5e1', opacity: 0.9 }}>
+                      {calendarData.gregorianDate}
+                    </p>
+                    <p className="font-outfit" style={{ fontSize: '9px', fontWeight: 600, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, marginTop: '4px' }}>
+                      📍 {calendarData.location}
+                    </p>
+                  </div>
 
-                <div style={{ width: '48px', height: '2px', backgroundColor: THEMES[activeTheme].dividerColor, margin: '0 auto', borderRadius: '9999px' }} />
+                  <div style={{ width: '48px', height: '1.5px', backgroundColor: THEMES[activeTheme].dividerColor, margin: '0 auto', borderRadius: '9999px' }} />
 
-                {(language === 'english' || language === 'both') && (
-                  <p className="font-outfit" style={{ textAlign: 'center', fontWeight: 500, lineHeight: 1.5, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
-                    "{translationText}"
+                  {/* Timings List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                    {calendarData.timings.map((prayer) => (
+                      <div 
+                        key={prayer.name}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '7px 11px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                        }}
+                      >
+                        <span className="font-outfit" style={{ fontSize: '11px', fontWeight: 'bold', color: '#ffffff' }}>
+                          {prayer.name}
+                        </span>
+                        <span className="font-outfit" style={{ fontSize: '10px', fontWeight: 500, color: '#e2e8f0' }}>
+                          {prayer.start} – {prayer.end}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Standard Quran Verse / Hadith Share Layout */
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: spacingClassGap, position: 'relative', zIndex: 10 }}>
+                  <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#ffffff', fontSize: arabicFontSizePx, margin: 0 }}>
+                    {arabicText}
                   </p>
-                )}
 
-                {(language === 'urdu' || language === 'both') && urduText && (
-                  <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
-                    "{urduText}"
+                  <div style={{ width: '48px', height: '2px', backgroundColor: THEMES[activeTheme].dividerColor, margin: '0 auto', borderRadius: '9999px' }} />
+
+                  {(language === 'english' || language === 'both') && (
+                    <p className="font-outfit" style={{ textAlign: 'center', fontWeight: 500, lineHeight: 1.5, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
+                      "{translationText}"
+                    </p>
+                  )}
+
+                  {(language === 'urdu' || language === 'both') && urduText && (
+                    <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
+                      "{urduText}"
+                    </p>
+                  )}
+
+                  <p className="font-outfit" style={{ fontSize: '10px', textAlign: 'center', color: '#34d399', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                    — {reference}
                   </p>
-                )}
-
-                <p className="font-outfit" style={{ fontSize: '10px', textAlign: 'center', color: '#34d399', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
-                  — {reference}
-                </p>
-              </div>
+                </div>
+              )}
 
               {/* Branding Link Footer */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', opacity: 0.85, position: 'relative', zIndex: 10 }}>
                 <span className="font-outfit" style={{ fontSize: '8px', fontWeight: 'bold', letterSpacing: '0.1em', color: '#34d399', textTransform: 'uppercase' }}>
-                  READ QURAN ONLINE
+                  {mode === 'calendar' ? "DAILY NAMAZ SCHEDULE" : "READ QURAN ONLINE"}
                 </span>
                 <span className="font-outfit" style={{ fontSize: '9px', fontWeight: 500, color: '#cbd5e1', letterSpacing: '0.05em' }}>
                   nur-e-qulb.vercel.app

@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useSession } from 'next-auth/react';
+import { usePrayerTimes } from '@/hooks/usePrayerTimes';
+import { Button } from '@/components/ui/button';
+import { ShareCard } from '@/components/quran/ShareCard';
 
 // Days in month helper
 interface CalendarDay {
@@ -91,11 +94,30 @@ function getHijriDate(date: Date, adjustment: number) {
   }
 }
 
+function formatTime12(time24: string): string {
+  if (!time24 || time24 === '--:--') return '--:--';
+  const cleanTime = time24.split(' ')[0];
+  const [hStr, mStr] = cleanTime.split(':');
+  if (!hStr || !mStr) return time24;
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayH = h % 12 || 12;
+  return `${displayH}:${mStr} ${ampm}`;
+}
+
 export default function CalendarPage() {
   const { data: session } = useSession();
   const [daysToHajj, setDaysToHajj] = useState(0);
   const [daysToRamadan, setDaysToRamadan] = useState(0);
   const [hijriDateString, setHijriDateString] = useState("Loading Hijri Date...");
+  const [isShareOpen, setIsShareOpen] = useState(false);
+
+  const city = (session?.user as any)?.location?.city || 'Makkah';
+  const country = (session?.user as any)?.location?.country || 'Saudi Arabia';
+  const calculationMethod = (session?.user as any)?.settings?.prayerCalculationMethod || 'ISNA';
+  const madhab = (session?.user as any)?.settings?.madhab || 'Hanafi';
+
+  const { data: timesData } = usePrayerTimes(city, country, calculationMethod, madhab);
 
   // Navigation states for monthly grid
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
@@ -211,6 +233,13 @@ export default function CalendarPage() {
             Hijri offset adjustment: {hijriAdjustment > 0 ? `+${hijriAdjustment}` : hijriAdjustment} {Math.abs(hijriAdjustment) === 1 ? 'day' : 'days'}
           </p>
         )}
+        <Button 
+          onClick={() => setIsShareOpen(true)}
+          disabled={!timesData}
+          className="mt-6 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto active:scale-98 transition-all cursor-pointer shadow-md"
+        >
+          <Share2 className="w-4 h-4" /> Share Today's Timings
+        </Button>
       </div>
 
       {/* Month Calendar Grid View */}
@@ -353,6 +382,27 @@ export default function CalendarPage() {
           ))}
         </div>
       </div>
+
+      {isShareOpen && timesData && (
+        <ShareCard
+          reference={`${city}, ${country}`}
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          mode="calendar"
+          calendarData={{
+            gregorianDate: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            hijriDate: hijriDateString,
+            location: `${city}, ${country}`,
+            timings: [
+              { name: 'Fajr', start: formatTime12(timesData.data.timings.Fajr), end: formatTime12(timesData.data.timings.Sunrise) },
+              { name: 'Dhuhr', start: formatTime12(timesData.data.timings.Dhuhr), end: formatTime12(timesData.data.timings.Asr) },
+              { name: 'Asr', start: formatTime12(timesData.data.timings.Asr), end: formatTime12(timesData.data.timings.Maghrib) },
+              { name: 'Maghrib', start: formatTime12(timesData.data.timings.Maghrib), end: formatTime12(timesData.data.timings.Isha) },
+              { name: 'Isha', start: formatTime12(timesData.data.timings.Isha), end: formatTime12(timesData.data.timings.Fajr) },
+            ]
+          }}
+        />
+      )}
     </div>
   );
 }

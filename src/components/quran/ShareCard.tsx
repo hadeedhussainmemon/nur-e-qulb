@@ -16,33 +16,29 @@ interface ShareCardProps {
 
 type ThemeKey = 'emerald' | 'slate' | 'rose' | 'stone';
 
-const THEMES: Record<ThemeKey, { name: string; bgClass: string; border: string; divider: string; badge: string }> = {
+const THEMES: Record<ThemeKey, { name: string; gradient: string; dividerColor: string; badge: string }> = {
   emerald: {
     name: 'Deep Emerald',
-    bgClass: 'bg-gradient-to-br from-teal-950 via-emerald-900 to-teal-950',
-    border: 'border-emerald-500/20',
-    divider: 'bg-emerald-500/30',
+    gradient: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)',
+    dividerColor: 'rgba(16, 185, 129, 0.3)',
     badge: 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20'
   },
   slate: {
     name: 'Midnight Slate',
-    bgClass: 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950',
-    border: 'border-slate-500/20',
-    divider: 'bg-slate-500/30',
+    gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+    dividerColor: 'rgba(148, 163, 184, 0.3)',
     badge: 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
   },
   rose: {
     name: 'Sunset Rose',
-    bgClass: 'bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950',
-    border: 'border-pink-500/20',
-    divider: 'bg-pink-500/30',
+    gradient: 'linear-gradient(135deg, #1c0a21 0%, #581c4c 50%, #1c0a21 100%)',
+    dividerColor: 'rgba(236, 72, 153, 0.3)',
     badge: 'bg-pink-500/10 text-pink-400 border border-pink-500/20'
   },
   stone: {
     name: 'Desert Gold',
-    bgClass: 'bg-gradient-to-br from-stone-950 via-amber-950 to-stone-950',
-    border: 'border-amber-500/20',
-    divider: 'bg-amber-500/30',
+    gradient: 'linear-gradient(135deg, #1c1917 0%, #78350f 50%, #1c1917 100%)',
+    dividerColor: 'rgba(245, 158, 11, 0.3)',
     badge: 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
   }
 };
@@ -96,29 +92,52 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
     (language === 'english' || language === 'both' ? translationText.length : 0) + 
     (language === 'urdu' || language === 'both' ? (urduText?.length || 0) : 0);
   
-  let arabicSize = 'text-2xl';
-  let transSize = 'text-sm';
-  let spacingClass = 'space-y-5';
+  let arabicFontSizePx = '24px';
+  let transFontSizePx = '14px';
+  let spacingClassGap = '20px';
 
   if (totalLength > 400) {
-    arabicSize = 'text-lg';
-    transSize = 'text-xs';
-    spacingClass = 'space-y-3';
+    arabicFontSizePx = '18px';
+    transFontSizePx = '11px';
+    spacingClassGap = '12px';
   } else if (totalLength > 200) {
-    arabicSize = 'text-xl';
-    transSize = 'text-xs';
-    spacingClass = 'space-y-4';
+    arabicFontSizePx = '20px';
+    transFontSizePx = '12px';
+    spacingClassGap = '16px';
   }
 
   const generateCanvas = async () => {
     if (!cardRef.current) return null;
-    const html2canvas = (await import('html2canvas')).default;
-    return await html2canvas(cardRef.current, {
-      scale: 4, // 4x scale outputs a crisp 1120x1988 resolution image
-      useCORS: true,
-      backgroundColor: null,
-      logging: false
+
+    // Temporarily mask document.styleSheets to return an empty list.
+    // This stops html2canvas from reading/parsing Next.js/Tailwind v4 production CSS bundles
+    // containing oklch() or lab() functions, preventing parser crashes.
+    const originalProperty = Object.getOwnPropertyDescriptor(Document.prototype, 'styleSheets');
+    Object.defineProperty(document, 'styleSheets', {
+      get: () => {
+        const list: any = [];
+        list.item = () => null;
+        return list;
+      },
+      configurable: true
     });
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      return await html2canvas(cardRef.current, {
+        scale: 4, // 4x scale outputs a crisp 1120x1988 resolution image
+        useCORS: true,
+        backgroundColor: null,
+        logging: false
+      });
+    } finally {
+      // Restore original styleSheets getter descriptor
+      if (originalProperty) {
+        Object.defineProperty(document, 'styleSheets', originalProperty);
+      } else {
+        delete (document as any).styleSheets;
+      }
+    }
   };
 
   const handleDownload = async () => {
@@ -241,12 +260,22 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
           {/* Preview Area */}
           <div className="p-5 overflow-y-auto flex-1 flex justify-center bg-slate-100 dark:bg-slate-900/80 relative">
             {/* The visible card that is captured directly (no scale, no offscreen hides) */}
+            {/* 100% inline styled to render perfectly when global styleSheets are masked */}
             <div 
               ref={cardRef} 
-              className={`relative rounded-2xl overflow-hidden shadow-2xl shrink-0 flex flex-col justify-between p-6 text-white ${THEMES[activeTheme].bgClass}`}
               style={{
+                position: 'relative',
                 width: '280px',
                 height: '497px',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '24px',
+                color: '#ffffff',
+                background: THEMES[activeTheme].gradient,
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
               }}
             >
               {/* Embedded Local Fonts without external network imports to prevent taints */}
@@ -256,51 +285,51 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
               `}} />
 
               {/* Branding Header (Original Base64 Logo - Taint proof) */}
-              <div className="flex flex-col items-center space-y-1 relative z-10">
-                <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20 bg-slate-900/20 flex items-center justify-center relative">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative', zIndex: 10 }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '9999px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'rgba(15,23,42,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {logoBase64 ? (
                     <img src={logoBase64} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-slate-800/40 animate-pulse" />
                   )}
                 </div>
-                <h4 className="text-[10px] font-bold tracking-widest text-white uppercase font-outfit">
+                <h4 className="font-outfit" style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.15em', color: '#ffffff', textTransform: 'uppercase', margin: 0, marginTop: '4px' }}>
                   NUR-E-QULB
                 </h4>
-                <div className="w-6 h-0.5 bg-emerald-500 rounded-full" />
+                <div style={{ width: '24px', height: '2px', backgroundColor: '#10b981', borderRadius: '9999px', marginTop: '2px' }} />
               </div>
 
               {/* Verses & Translations Block */}
-              <div className={`w-full ${spacingClass} relative z-10 flex flex-col justify-center`}>
-                <p className={`font-arabic text-center leading-[2] text-white ${arabicSize}`}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: spacingClassGap, position: 'relative', zIndex: 10 }}>
+                <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#ffffff', fontSize: arabicFontSizePx, margin: 0 }}>
                   {arabicText}
                 </p>
 
-                <div className={`w-12 h-0.5 ${THEMES[activeTheme].divider} mx-auto rounded-full`} />
+                <div style={{ width: '48px', height: '2px', backgroundColor: THEMES[activeTheme].dividerColor, margin: '0 auto', borderRadius: '9999px' }} />
 
                 {(language === 'english' || language === 'both') && (
-                  <p className={`text-center font-medium leading-relaxed text-emerald-100/90 ${transSize}`}>
+                  <p className="font-outfit" style={{ textAlign: 'center', fontWeight: 500, lineHeight: 1.5, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
                     "{translationText}"
                   </p>
                 )}
 
                 {(language === 'urdu' || language === 'both') && urduText && (
-                  <p className={`text-center font-arabic leading-[2] text-emerald-100/90 ${transSize}`}>
+                  <p className="font-arabic" style={{ textAlign: 'center', lineHeight: 2, color: '#e2e8f0', fontSize: transFontSizePx, margin: 0 }}>
                     "{urduText}"
                   </p>
                 )}
 
-                <p className="text-[10px] text-center text-emerald-400 font-bold uppercase tracking-wider font-outfit">
+                <p className="font-outfit" style={{ fontSize: '10px', textAlign: 'center', color: '#34d399', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
                   — {reference}
                 </p>
               </div>
 
               {/* Branding Link Footer */}
-              <div className="flex flex-col items-center space-y-0.5 opacity-85 relative z-10">
-                <span className="text-[8px] font-bold tracking-widest text-emerald-400 uppercase font-outfit">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', opacity: 0.85, position: 'relative', zIndex: 10 }}>
+                <span className="font-outfit" style={{ fontSize: '8px', fontWeight: 'bold', letterSpacing: '0.1em', color: '#34d399', textTransform: 'uppercase' }}>
                   READ QURAN ONLINE
                 </span>
-                <span className="text-[9px] font-medium text-slate-350 tracking-wider font-outfit">
+                <span className="font-outfit" style={{ fontSize: '9px', fontWeight: 500, color: '#cbd5e1', letterSpacing: '0.05em' }}>
                   nur-e-qulb.vercel.app
                 </span>
               </div>

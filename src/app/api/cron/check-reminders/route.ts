@@ -5,6 +5,7 @@ import { User } from '@/models/User';
 import { Settings } from '@/models/Settings';
 import { UserWazeefah } from '@/models/UserWazeefah';
 import { PrayerTimeCache } from '@/models/PrayerTimeCache';
+import { PrayerLog } from '@/models/PrayerLog';
 import webpush from 'web-push';
 
 type NotificationPayload = {
@@ -342,12 +343,57 @@ export async function GET(req: NextRequest) {
 
       // Check for prayer reminders
       const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+      const prayerStates: Record<string, {
+        startTotalMins: number | null;
+        endTotalMins: number | null;
+        isInsideWindow: boolean;
+        minutesPassed: number;
+        minutesRemaining: number;
+      }> = {};
+
+      for (let idx = 0; idx < PRAYERS.length; idx++) {
+        const pName = PRAYERS[idx];
+        const startRaw = timingsMap[pName];
+        const startTotalMins = startRaw ? timeStringToMinutes(startRaw) : null;
+        
+        let endTotalMins = null;
+        if (pName === 'Isha') {
+          const fajrRaw = timingsMap['Fajr'];
+          if (fajrRaw) {
+            const fm = timeStringToMinutes(fajrRaw);
+            if (fm !== null) {
+              endTotalMins = fm + 24 * 60; // Next day Fajr
+            }
+          }
+        } else {
+          const nextPrayer = PRAYERS[idx + 1];
+          const nextRaw = timingsMap[nextPrayer];
+          if (nextRaw) {
+            endTotalMins = timeStringToMinutes(nextRaw);
+          }
+        }
+
+        const adjustedCurrentMins = (pName === 'Isha' && localHours < 12) ? currentTotalMins + 24 * 60 : currentTotalMins;
+        const isInsideWindow = startTotalMins !== null && endTotalMins !== null && adjustedCurrentMins >= startTotalMins && adjustedCurrentMins < endTotalMins;
+        const minutesPassed = startTotalMins !== null ? adjustedCurrentMins - startTotalMins : 0;
+        const minutesRemaining = endTotalMins !== null ? endTotalMins - adjustedCurrentMins : 0;
+
+        prayerStates[pName] = {
+          startTotalMins,
+          endTotalMins,
+          isInsideWindow,
+          minutesPassed,
+          minutesRemaining
+        };
+      }
+
+      // Check if any prayer started exactly this minute for Wazeefah reminders
       let triggeredPrayer: string | null = null;
-      for (const prayer of PRAYERS) {
-        const targetTime = timingsMap[prayer];
-        const targetMinutes = targetTime ? timeStringToMinutes(targetTime) : null;
-        if (targetMinutes !== null && isWithinMinuteWindow(currentTotalMins, targetMinutes, 2)) {
-          triggeredPrayer = prayer;
+      for (const pName of PRAYERS) {
+        const state = prayerStates[pName];
+        if (state.startTotalMins !== null && currentTotalMins === state.startTotalMins) {
+          triggeredPrayer = pName;
           break;
         }
       }
@@ -368,30 +414,77 @@ export async function GET(req: NextRequest) {
         if (!user) continue;
         const userSettings = user.settingsId;
 
+        // Load today's prayer log to check if they prayed yet
+        const todayLog = await PrayerLog.findOne({ userId: user._id, date: localDateStr }).lean();
+
         // 1. Send Prayer Reminder
-        if (triggeredPrayer && userSettings?.notifications?.prayerReminders !== false) {
-          try {
-            await webpush.sendNotification(
-              {
-                endpoint: sub.subscription.endpoint,
-                keys: {
-                  p256dh: sub.subscription.keys.p256dh,
-                  auth: sub.subscription.keys.auth
+        if (userSettings?.notifications?.prayerReminders !== false) {
+          for (const pName of PRAYERS) {
+            const state = prayerStates[pName];
+            const lowerName = pName.toLowerCase();
+            const isPending = !todayLog || todayLog[lowerName as keyof typeof todayLog] === 'pending' || todayLog[lowerName as keyof typeof todayLog] === undefined;
+
+            let notificationType: 'start' | 'nag' | 'warn' | null = null;
+
+            // Initial Notification (Starts exactly at start minutes)
+            if (state.startTotalMins !== null && currentTotalMins === state.startTotalMins) {
+              notificationType = 'start';
+            }
+            // Nagging every 30 mins
+            else if (state.isInsideWindow && isPending && state.minutesPassed > 0 && state.minutesPassed % 30 === 0) {
+              notificationType = 'nag';
+            }
+            // 10 Minute Warning
+            else if (state.isInsideWindow && isPending && state.minutesRemaining === 10) {
+              notificationType = 'warn';
+            }
+
+            if (notificationType !== null) {
+              let title = '';
+              let body = '';
+              if (notificationType === 'start') {
+                title = `Salah Time: ${pName}`;
+                body = `It is time for the ${pName} prayer in ${city}. Adhan starts now.`;
+              } else if (notificationType === 'nag') {
+                title = `Reminder: ${pName}`;
+                body = `Have you prayed ${pName} yet? It has been ${state.minutesPassed} minutes since Adhan.`;
+              } else if (notificationType === 'warn') {
+                title = `Expiring Soon: ${pName}`;
+                body = `You only have 10 minutes left to pray ${pName}!`;
+              }
+
+              try {
+                await webpush.sendNotification(
+                  {
+                    endpoint: sub.subscription.endpoint,
+                    keys: {
+                      p256dh: sub.subscription.keys.p256dh,
+                      auth: sub.subscription.keys.auth
+                    }
+                  },
+                  JSON.stringify({
+                    title,
+                    body,
+                    icon: '/icons/icon-192x192.png',
+                    badge: '/icons/icon-192x192.png',
+                    actions: [
+                      { action: 'prayed', title: 'I Prayed ✅' },
+                      { action: 'dismiss', title: 'Not Yet ❌' }
+                    ],
+                    data: {
+                      url: '/prayers',
+                      prayer: lowerName,
+                      date: localDateStr
+                    }
+                  })
+                );
+                notificationsSent++;
+              } catch (err: unknown) {
+                // Clean up invalid/expired subscriptions
+                if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
+                  await PushSubscription.deleteOne({ _id: sub._id as any });
                 }
-              },
-              JSON.stringify({
-                title: `${triggeredPrayer} Prayer Reminder`,
-                body: `It is time for the ${triggeredPrayer} prayer in ${city}.`,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/icon-192x192.png',
-                data: { url: '/prayers' }
-              })
-            );
-            notificationsSent++;
-          } catch (err: unknown) {
-            // Clean up invalid/expired subscriptions
-            if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
-              await PushSubscription.deleteOne({ _id: sub._id as any });
+              }
             }
           }
         }

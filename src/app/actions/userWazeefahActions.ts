@@ -19,8 +19,8 @@ const subscribeSchema = z.object({
 
 const customWazeefahSchema = z.object({
   title: z.string().min(3).max(100),
-  description: z.string().min(10).max(500),
-  instructions: z.array(z.string().min(1)).min(1),
+  description: z.string().max(500).optional().nullable().or(z.literal('')),
+  instructions: z.array(z.string()).optional(),
   targetCount: z.number().int().min(1).max(1000),
   reminderTime: z.string().min(1).max(50),
   reminderDays: reminderDaySchema,
@@ -131,7 +131,7 @@ export async function createCustomWazeefah(
     const newUserWazeefah = await UserWazeefah.create({
       userId: user._id,
       title: validatedInput.data.title,
-      description: validatedInput.data.description,
+      description: validatedInput.data.description || undefined,
       instructions: validatedInput.data.instructions,
       quranRef: quranRef || undefined,
       targetCount: validatedInput.data.targetCount,

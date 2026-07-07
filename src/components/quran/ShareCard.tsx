@@ -16,31 +16,31 @@ interface ShareCardProps {
 
 type ThemeKey = 'emerald' | 'slate' | 'rose' | 'stone';
 
-const THEMES: Record<ThemeKey, { name: string; gradient: string; border: string; divider: string; badge: string }> = {
+const THEMES: Record<ThemeKey, { name: string; bgClass: string; border: string; divider: string; badge: string }> = {
   emerald: {
     name: 'Deep Emerald',
-    gradient: 'linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)',
+    bgClass: 'bg-gradient-to-br from-teal-950 via-emerald-900 to-teal-950',
     border: 'border-emerald-500/20',
     divider: 'bg-emerald-500/30',
     badge: 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20'
   },
   slate: {
     name: 'Midnight Slate',
-    gradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+    bgClass: 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950',
     border: 'border-slate-500/20',
     divider: 'bg-slate-500/30',
     badge: 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
   },
   rose: {
     name: 'Sunset Rose',
-    gradient: 'linear-gradient(135deg, #1c0a21 0%, #581c4c 50%, #1c0a21 100%)',
+    bgClass: 'bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950',
     border: 'border-pink-500/20',
     divider: 'bg-pink-500/30',
     badge: 'bg-pink-500/10 text-pink-400 border border-pink-500/20'
   },
   stone: {
     name: 'Desert Gold',
-    gradient: 'linear-gradient(135deg, #1c1917 0%, #78350f 50%, #1c1917 100%)',
+    bgClass: 'bg-gradient-to-br from-stone-950 via-amber-950 to-stone-950',
     border: 'border-amber-500/20',
     divider: 'bg-amber-500/30',
     badge: 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
@@ -185,7 +185,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
   return (
     <>
       <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-955 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white dark:bg-slate-950 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
           
           {/* Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
@@ -243,21 +243,17 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
             {/* The visible card that is captured directly (no scale, no offscreen hides) */}
             <div 
               ref={cardRef} 
+              className={`relative rounded-2xl overflow-hidden shadow-2xl shrink-0 flex flex-col justify-between p-6 text-white ${THEMES[activeTheme].bgClass}`}
               style={{
                 width: '280px',
                 height: '497px',
-                background: THEMES[activeTheme].gradient,
               }}
-              className="relative rounded-2xl overflow-hidden shadow-2xl shrink-0 flex flex-col justify-between p-6 text-white"
             >
               {/* Embedded Local Fonts without external network imports to prevent taints */}
               <style dangerouslySetInnerHTML={{__html: `
                 .font-arabic { font-family: 'Amiri', 'Scheherazade', 'Noto Naskh Arabic', serif; }
                 .font-outfit { font-family: 'Outfit', 'Inter', 'Helvetica Neue', sans-serif; }
               `}} />
-
-              {/* Decorative Geometric Dot Pattern Overlay */}
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
 
               {/* Branding Header (Original Base64 Logo - Taint proof) */}
               <div className="flex flex-col items-center space-y-1 relative z-10">
@@ -304,7 +300,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 <span className="text-[8px] font-bold tracking-widest text-emerald-400 uppercase font-outfit">
                   READ QURAN ONLINE
                 </span>
-                <span className="text-[9px] font-medium text-slate-350 tracking-wider">
+                <span className="text-[9px] font-medium text-slate-350 tracking-wider font-outfit">
                   nur-e-qulb.vercel.app
                 </span>
               </div>
@@ -362,7 +358,7 @@ export function ShareCard({ arabicText, translationText, urduText, reference, is
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsDownloadModalOpen(false)}
-                className="rounded-full h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-800"
+                className="rounded-full h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-850"
               >
                 <X className="w-4 h-4" />
               </Button>

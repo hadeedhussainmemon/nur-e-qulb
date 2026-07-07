@@ -7,6 +7,65 @@ import { UserWazeefah } from '@/models/UserWazeefah';
 import { PrayerTimeCache } from '@/models/PrayerTimeCache';
 import webpush from 'web-push';
 
+type NotificationPayload = {
+  title: string;
+  body: string;
+  icon: string;
+  badge: string;
+  data: { url: string };
+};
+
+type PushKeys = {
+  p256dh: string;
+  auth: string;
+};
+
+type PushSubscriptionPayload = {
+  endpoint: string;
+  keys: PushKeys;
+};
+
+type PushError = {
+  statusCode?: number;
+};
+
+type SettingsSnapshot = {
+  notifications?: {
+    prayerReminders?: boolean;
+    dailyAyah?: boolean;
+    dailyHadith?: boolean;
+    fridayReminders?: boolean;
+    ramadanReminders?: boolean;
+  };
+  prayerCalculationMethod?: string;
+  madhab?: string;
+};
+
+type UserSnapshot = {
+  _id: string;
+  location?: {
+    city?: string;
+    country?: string;
+  };
+  settingsId?: SettingsSnapshot | null;
+};
+
+type SubscriptionRow = {
+  _id: { toString: () => string };
+  userId: UserSnapshot | null;
+  subscription: PushSubscriptionPayload;
+};
+
+type PrayerCacheRow = {
+  dateStr: string;
+  timings: Record<string, string>;
+  timezone: string;
+};
+
+function isPushError(error: unknown): error is PushError {
+  return typeof error === 'object' && error !== null && 'statusCode' in error;
+}
+
 let webPushInitialized = false;
 function initializeWebPush(): boolean {
   if (webPushInitialized) return true;
@@ -59,6 +118,73 @@ const DAYS_MAP: Record<string, number> = {
   'Sat': 6 
 };
 
+async function sendPushNotification(subscription: PushSubscriptionPayload, payload: NotificationPayload, subscriptionId: string): Promise<boolean> {
+  try {
+    await webpush.sendNotification(subscription, JSON.stringify(payload));
+    return true;
+  } catch (err: unknown) {
+    if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
+      await PushSubscription.deleteOne({ _id: subscriptionId });
+      return false;
+    }
+
+    throw err;
+  }
+}
+
+async function fetchRandomAyahPayload() {
+  const randomAyahNumber = Math.floor(Math.random() * 6236) + 1;
+  const [arabicRes, englishRes] = await Promise.all([
+    fetch(`https://api.alquran.cloud/v1/ayah/${randomAyahNumber}`),
+    fetch(`https://api.alquran.cloud/v1/ayah/${randomAyahNumber}/en.asad`),
+  ]);
+
+  if (!arabicRes.ok || !englishRes.ok) {
+    throw new Error('Failed to fetch random ayah');
+  }
+
+  const arabicData = await arabicRes.json();
+  const englishData = await englishRes.json();
+
+  return {
+    arabic: arabicData.data,
+    english: englishData.data,
+  };
+}
+
+async function fetchRandomHadithPayload(collection: string = 'bukhari') {
+  const res = await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-${collection}.json`, {
+    cache: 'force-cache',
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch random hadith');
+  }
+
+  const data = await res.json();
+  const hadiths = data.hadiths || [];
+  if (hadiths.length === 0) {
+    throw new Error('No hadiths available');
+  }
+
+  const randomIndex = Math.floor(Math.random() * hadiths.length);
+  return {
+    metadata: data.metadata,
+    hadith: hadiths[randomIndex],
+  };
+}
+
+function timeStringToMinutes(timeStr: string): number | null {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function isWithinMinuteWindow(currentMinutes: number, targetMinutes: number, windowSize = 2): boolean {
+  const delta = Math.abs(currentMinutes - targetMinutes);
+  return Math.min(delta, 1440 - delta) <= windowSize;
+}
+
 // Next.js dynamic configuration to bypass static rendering
 export const dynamic = 'force-dynamic';
 
@@ -85,7 +211,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Fetch all registered PWA push subscriptions
-    const subscriptions = await PushSubscription.find()
+    const subscriptions = await PushSubscription.find({})
       .populate({
         path: 'userId',
         model: User,
@@ -93,7 +219,7 @@ export async function GET(req: NextRequest) {
           path: 'settingsId',
           model: Settings
         }
-      });
+      }).lean<SubscriptionRow[]>();
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ success: true, message: 'No subscriptions found' });
@@ -105,18 +231,18 @@ export async function GET(req: NextRequest) {
       country: string;
       method: number;
       school: number;
-      subs: any[];
+      subs: SubscriptionRow[];
     }> = {};
 
     for (const sub of subscriptions) {
       if (!sub.userId) continue;
-      const user = sub.userId as any;
+      const user = sub.userId;
       if (!user.location?.city || !user.location?.country) continue;
 
       const city = user.location.city.trim();
       const country = user.location.country.trim();
       
-      const settings = user.settingsId as any;
+      const settings = user.settingsId;
       const methodStr = settings?.prayerCalculationMethod || '2';
       const method = METHOD_MAP[methodStr] !== undefined ? METHOD_MAP[methodStr] : (parseInt(methodStr) || 2);
       const school = settings?.madhab === 'Hanafi' ? 1 : 0;
@@ -147,7 +273,7 @@ export async function GET(req: NextRequest) {
         country: country.toLowerCase(),
         method,
         school
-      } as any)) as any;
+      } as any).lean()) as unknown as PrayerCacheRow | null;
 
       let timezone = cached ? cached.timezone : 'UTC';
 
@@ -184,7 +310,7 @@ export async function GET(req: NextRequest) {
               createdAt: new Date()
             },
             { upsert: true, new: true }
-          )) as any;
+          ).lean()) as unknown as PrayerCacheRow | null;
         } catch (err) {
           console.error(`Failed to fetch and cache prayer timings for group ${groupKey}:`, err);
           continue;
@@ -199,6 +325,7 @@ export async function GET(req: NextRequest) {
         minute: '2-digit'
       });
       const localTimeStr = timeFormatter.format(now); // "HH:MM"
+      const currentTotalMins = now.getHours() * 60 + now.getMinutes();
 
       // Clean timings map (strip timezone abbreviations e.g. "05:12 (PKT)" -> "05:12")
       const timingsMap: Record<string, string> = {};
@@ -214,7 +341,9 @@ export async function GET(req: NextRequest) {
       const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
       let triggeredPrayer: string | null = null;
       for (const prayer of PRAYERS) {
-        if (timingsMap[prayer] === localTimeStr) {
+        const targetTime = timingsMap[prayer];
+        const targetMinutes = targetTime ? timeStringToMinutes(targetTime) : null;
+        if (targetMinutes !== null && isWithinMinuteWindow(currentTotalMins, targetMinutes, 2)) {
           triggeredPrayer = prayer;
           break;
         }
@@ -222,9 +351,9 @@ export async function GET(req: NextRequest) {
 
       // Check for generic time-of-day wazeefah triggers
       let triggeredGenericTime: string | null = null;
-      if (localTimeStr === '08:00') triggeredGenericTime = 'Morning';
-      if (localTimeStr === '17:00') triggeredGenericTime = 'Evening';
-      if (localTimeStr === '22:00') triggeredGenericTime = 'Before Sleep';
+      if (isWithinMinuteWindow(currentTotalMins, 8 * 60, 2)) triggeredGenericTime = 'Morning';
+      if (isWithinMinuteWindow(currentTotalMins, 17 * 60, 2)) triggeredGenericTime = 'Evening';
+      if (isWithinMinuteWindow(currentTotalMins, 22 * 60, 2)) triggeredGenericTime = 'Before Sleep';
 
       // Get local weekday number (0-6)
       const weekdayStr = now.toLocaleDateString('en-US', { timeZone: timezone, weekday: 'short' });
@@ -232,8 +361,9 @@ export async function GET(req: NextRequest) {
 
       // Dispatch notifications to group subscribers
       for (const sub of subs) {
-        const user = sub.userId as any;
-        const userSettings = user.settingsId as any;
+        const user = sub.userId;
+        if (!user) continue;
+        const userSettings = user.settingsId;
 
         // 1. Send Prayer Reminder
         if (triggeredPrayer && userSettings?.notifications?.prayerReminders !== false) {
@@ -255,10 +385,10 @@ export async function GET(req: NextRequest) {
               })
             );
             notificationsSent++;
-          } catch (err: any) {
+          } catch (err: unknown) {
             // Clean up invalid/expired subscriptions
-            if (err.statusCode === 410 || err.statusCode === 404) {
-              await PushSubscription.deleteOne({ _id: sub._id });
+            if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
+              await PushSubscription.deleteOne({ _id: sub._id as any });
             }
           }
         }
@@ -292,9 +422,9 @@ export async function GET(req: NextRequest) {
                   })
                 );
                 notificationsSent++;
-              } catch (err: any) {
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                  await PushSubscription.deleteOne({ _id: sub._id });
+              } catch (err: unknown) {
+                if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
+                  await PushSubscription.deleteOne({ _id: sub._id as any });
                 }
               }
             }
@@ -330,10 +460,259 @@ export async function GET(req: NextRequest) {
                   })
                 );
                 notificationsSent++;
-              } catch (err: any) {
-                if (err.statusCode === 410 || err.statusCode === 404) {
-                  await PushSubscription.deleteOne({ _id: sub._id });
+              } catch (err: unknown) {
+                if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
+                  await PushSubscription.deleteOne({ _id: sub._id as any });
                 }
+              }
+            }
+          }
+        }
+
+        const showDailyAyah = userSettings?.notifications?.dailyAyah !== false;
+        const showDailyHadith = userSettings?.notifications?.dailyHadith !== false;
+        const showFridayReminders = userSettings?.notifications?.fridayReminders !== false;
+        const showRamadanReminders = userSettings?.notifications?.ramadanReminders === true;
+
+        // 4. Send daily Ayah reminder in the background
+        if (showDailyAyah && localTimeStr === '09:00') {
+          try {
+            const ayahData = await fetchRandomAyahPayload();
+            if (ayahData?.english?.text) {
+              const sent = await sendPushNotification(
+                {
+                  endpoint: sub.subscription.endpoint,
+                  keys: {
+                    p256dh: sub.subscription.keys.p256dh,
+                    auth: sub.subscription.keys.auth
+                  }
+                },
+                {
+                  title: 'Daily Verse',
+                  body: `"${ayahData.english.text}" — Surah ${ayahData.arabic?.surah?.englishName || ''} (${ayahData.arabic?.surah?.number || ''}:${ayahData.arabic?.numberInSurah || ''})`,
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-192x192.png',
+                  data: { url: '/quran' }
+                },
+                sub._id.toString()
+              );
+              if (sent) notificationsSent++;
+            }
+          } catch (err) {
+            console.error('Failed to send daily ayah push:', err);
+          }
+        }
+
+        // 5. Send daily Hadith reminder in the background
+        if (showDailyHadith && localTimeStr === '15:00') {
+          try {
+            const hadithData = await fetchRandomHadithPayload('bukhari');
+            if (hadithData?.hadith?.text) {
+              let text = hadithData.hadith.text;
+              if (text.length > 150) {
+                text = text.substring(0, 147) + '...';
+              }
+
+              const sent = await sendPushNotification(
+                {
+                  endpoint: sub.subscription.endpoint,
+                  keys: {
+                    p256dh: sub.subscription.keys.p256dh,
+                    auth: sub.subscription.keys.auth
+                  }
+                },
+                {
+                  title: `Daily Hadith (${hadithData.metadata?.name || 'Bukhari'})`,
+                  body: `"${text}"`,
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-192x192.png',
+                  data: { url: '/hadith/bukhari' }
+                },
+                sub._id.toString()
+              );
+              if (sent) notificationsSent++;
+            }
+          } catch (err) {
+            console.error('Failed to send daily hadith push:', err);
+          }
+        }
+
+        // 6. Friday reminders in the background
+        if (showFridayReminders && localDayOfWeek === 5) {
+          const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+
+          if (currentTotalMins >= 600 && currentTotalMins <= 1320) {
+            const diffMins = currentTotalMins - 600;
+            if (diffMins % 45 === 0) {
+              try {
+                const sent = await sendPushNotification(
+                  {
+                    endpoint: sub.subscription.endpoint,
+                    keys: {
+                      p256dh: sub.subscription.keys.p256dh,
+                      auth: sub.subscription.keys.auth
+                    }
+                  },
+                  {
+                    title: 'Surah Al-Kahf Reminder',
+                    body: `It's Friday! Don't forget to recite Surah Al-Kahf today.`,
+                    icon: '/icons/icon-192x192.png',
+                    badge: '/icons/icon-192x192.png',
+                    data: { url: '/quran' }
+                  },
+                  sub._id.toString()
+                );
+                if (sent) notificationsSent++;
+              } catch (err) {
+                console.error('Failed to send Friday Kahf push:', err);
+              }
+            }
+          }
+
+          if (now.getHours() >= 8 && now.getHours() <= 22 && now.getMinutes() === 0) {
+            try {
+              const sent = await sendPushNotification(
+                {
+                  endpoint: sub.subscription.endpoint,
+                  keys: {
+                    p256dh: sub.subscription.keys.p256dh,
+                    auth: sub.subscription.keys.auth
+                  }
+                },
+                {
+                  title: 'Salawat Reminder',
+                  body: `Send blessings (Salawat) upon the Prophet Muhammad (ﷺ) on this blessed day of Jumu'ah.`,
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-192x192.png',
+                  data: { url: '/' }
+                },
+                sub._id.toString()
+              );
+              if (sent) notificationsSent++;
+            } catch (err) {
+              console.error('Failed to send Friday salawat push:', err);
+            }
+          }
+
+          if (localTimeStr === '11:30') {
+            try {
+              const sent = await sendPushNotification(
+                {
+                  endpoint: sub.subscription.endpoint,
+                  keys: {
+                    p256dh: sub.subscription.keys.p256dh,
+                    auth: sub.subscription.keys.auth
+                  }
+                },
+                {
+                  title: 'Friday Sunnah Reminder',
+                  body: `Remember to cut your nails and perform Ghusl before 1 PM Jumu'ah prayer.`,
+                  icon: '/icons/icon-192x192.png',
+                  badge: '/icons/icon-192x192.png',
+                  data: { url: '/' }
+                },
+                sub._id.toString()
+              );
+              if (sent) notificationsSent++;
+            } catch (err) {
+              console.error('Failed to send Friday nails push:', err);
+            }
+          }
+        }
+
+        // 7. Ramadan reminders in the background
+        if (showRamadanReminders) {
+          const rawImsak = cached?.timings?.Imsak;
+          if (rawImsak) {
+            const cleanImsak = String(rawImsak).split(' ')[0];
+            const [h, m] = cleanImsak.split(':').map(Number);
+
+            if (!isNaN(h) && !isNaN(m)) {
+              const imsakDate = new Date();
+              imsakDate.setHours(h, m, 0, 0);
+
+              const warningDate = new Date(imsakDate.getTime() - 10 * 60 * 1000);
+              const warningHour = warningDate.getHours().toString().padStart(2, '0');
+              const warningMin = warningDate.getMinutes().toString().padStart(2, '0');
+              const warningTimeStr = `${warningHour}:${warningMin}`;
+
+              if (localTimeStr === warningTimeStr) {
+                try {
+                  const sent = await sendPushNotification(
+                    {
+                      endpoint: sub.subscription.endpoint,
+                      keys: {
+                        p256dh: sub.subscription.keys.p256dh,
+                        auth: sub.subscription.keys.auth
+                      }
+                    },
+                    {
+                      title: 'Sehri Reminder',
+                      body: `10 minutes remaining for Sehri. Please finish your meal and make your intention to fast.`,
+                      icon: '/icons/icon-192x192.png',
+                      badge: '/icons/icon-192x192.png',
+                      data: { url: '/fasting' }
+                    },
+                    sub._id.toString()
+                  );
+                  if (sent) notificationsSent++;
+                } catch (err) {
+                  console.error('Failed to send Sehri warning push:', err);
+                }
+              }
+
+              if (localTimeStr === cleanImsak) {
+                try {
+                  const sent = await sendPushNotification(
+                    {
+                      endpoint: sub.subscription.endpoint,
+                      keys: {
+                        p256dh: sub.subscription.keys.p256dh,
+                        auth: sub.subscription.keys.auth
+                      }
+                    },
+                    {
+                      title: 'Fasting Begins',
+                      body: `Imsak time reached. Sehri is over. Fasting starts now.`,
+                      icon: '/icons/icon-192x192.png',
+                      badge: '/icons/icon-192x192.png',
+                      data: { url: '/fasting' }
+                    },
+                    sub._id.toString()
+                  );
+                  if (sent) notificationsSent++;
+                } catch (err) {
+                  console.error('Failed to send Imsak push:', err);
+                }
+              }
+            }
+          }
+
+          const rawMaghrib = cached?.timings?.Maghrib;
+          if (rawMaghrib) {
+            const cleanMaghrib = String(rawMaghrib).split(' ')[0];
+            if (localTimeStr === cleanMaghrib) {
+              try {
+                const sent = await sendPushNotification(
+                  {
+                    endpoint: sub.subscription.endpoint,
+                    keys: {
+                      p256dh: sub.subscription.keys.p256dh,
+                      auth: sub.subscription.keys.auth
+                    }
+                  },
+                  {
+                    title: 'Iftar Time!',
+                    body: `Maghrib time reached. You can break your fast. May Allah accept your fast and prayers.`,
+                    icon: '/icons/icon-192x192.png',
+                    badge: '/icons/icon-192x192.png',
+                    data: { url: '/fasting' }
+                  },
+                  sub._id.toString()
+                );
+                if (sent) notificationsSent++;
+              } catch (err) {
+                console.error('Failed to send Iftar push:', err);
               }
             }
           }
@@ -345,8 +724,8 @@ export async function GET(req: NextRequest) {
       success: true,
       message: `Completed checking reminders. Notifications sent: ${notificationsSent}`
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error running cron check-reminders:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }

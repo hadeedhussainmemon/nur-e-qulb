@@ -99,6 +99,30 @@ async function checkIsPeriodDate(userId: mongoose.Types.ObjectId, dateStr: strin
   return !!matchingCycle;
 }
 
+async function getPeriodDateSet(userId: mongoose.Types.ObjectId, startDateStr: string, endDateStr: string): Promise<Set<string>> {
+  const periodDates = await PeriodTracker.find({
+    userId,
+    $or: [
+      { startDate: { $lte: endDateStr }, endDate: { $gte: startDateStr } },
+      { isActive: true, startDate: { $lte: endDateStr } }
+    ]
+  }).lean();
+
+  const periodDateSet = new Set<string>();
+  periodDates.forEach((cycle: any) => {
+    const cycleStart = new Date(cycle.startDate);
+    const cycleEnd = new Date(cycle.endDate || new Date());
+    const current = new Date(cycleStart);
+
+    while (current <= cycleEnd) {
+      periodDateSet.add(current.toLocaleDateString('en-CA'));
+      current.setDate(current.getDate() + 1);
+    }
+  });
+
+  return periodDateSet;
+}
+
 async function syncPastMissedPrayers(user: any) {
   try {
     const start = new Date(user.createdAt);
@@ -299,18 +323,18 @@ export async function getPrayerStreaks(localTodayStr?: string) {
 
     const logsMap = new Map(logs.map(l => [l.date, l]));
 
+    const todayStr = localTodayStr || new Date().toLocaleDateString('en-CA');
+    const startDate = new Date(todayStr);
+    startDate.setDate(startDate.getDate() - 59);
+    startDate.setHours(0, 0, 0, 0);
+    const periodDateSet = await getPeriodDateSet(user._id as any, startDate.toLocaleDateString('en-CA'), todayStr);
+
     let currentStreak = 0;
     let fajrStreak = 0;
     let streakBroken = false;
     let fajrStreakBroken = false;
 
-    let today = new Date();
-    if (localTodayStr) {
-      const parts = localTodayStr.split('-');
-      if (parts.length === 3) {
-        today = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-      }
-    }
+    const today = new Date(`${todayStr}T00:00:00`);
     
     for (let i = 0; i < 60; i++) {
       const checkDate = new Date(today);
@@ -322,7 +346,7 @@ export async function getPrayerStreaks(localTodayStr?: string) {
       const dateStr = `${y}-${m}-${d}`;
 
       const log = logsMap.get(dateStr);
-      const isPeriod = await checkIsPeriodDate(user._id as any, dateStr);
+      const isPeriod = periodDateSet.has(dateStr);
 
       if (isPeriod) {
         // Skip period cycle days, they do not break the streak

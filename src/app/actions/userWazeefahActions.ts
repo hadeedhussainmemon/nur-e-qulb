@@ -7,6 +7,24 @@ import { User } from '@/models/User';
 import { Wazeefah } from '@/models/Wazeefah';
 import { UserWazeefah } from '@/models/UserWazeefah';
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+
+const reminderDaySchema = z.array(z.number().int().min(0).max(6)).max(7);
+
+const subscribeSchema = z.object({
+  targetCount: z.number().int().min(1).max(1000),
+  reminderTime: z.string().min(1).max(50),
+  reminderDays: reminderDaySchema.optional(),
+});
+
+const customWazeefahSchema = z.object({
+  title: z.string().min(3).max(100),
+  description: z.string().min(10).max(500),
+  instructions: z.array(z.string().min(1)).min(1),
+  targetCount: z.number().int().min(1).max(1000),
+  reminderTime: z.string().min(1).max(50),
+  reminderDays: reminderDaySchema,
+});
 
 export async function getUserWazeefahs() {
   try {
@@ -29,6 +47,11 @@ export async function subscribeToWazeefah(wazeefahId: string, targetCount: numbe
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
+
+    const validatedInput = subscribeSchema.safeParse({ targetCount, reminderTime, reminderDays });
+    if (!validatedInput.success) {
+      throw new Error(validatedInput.error.issues[0]?.message || 'Invalid wazeefah settings');
+    }
 
     await connectToDatabase();
     const user = await User.findOne({ email: session.user.email }).lean();
@@ -56,9 +79,9 @@ export async function subscribeToWazeefah(wazeefahId: string, targetCount: numbe
       instructions: template.instructions,
       reference: template.reference,
       quranRef: template.quranRef,
-      reminderDays: reminderDays || template.reminderDays || [0, 1, 2, 3, 4, 5, 6],
-      targetCount: targetCount || 33,
-      reminderTime: reminderTime || 'Fajr',
+      reminderDays: validatedInput.data.reminderDays || reminderDays || template.reminderDays || [0, 1, 2, 3, 4, 5, 6],
+      targetCount: validatedInput.data.targetCount,
+      reminderTime: validatedInput.data.reminderTime,
       isCustom: false,
       isActive: true,
       completions: [],
@@ -88,23 +111,36 @@ export async function createCustomWazeefah(
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) throw new Error('Unauthorized');
 
+    const validatedInput = customWazeefahSchema.safeParse({
+      title,
+      description,
+      instructions,
+      targetCount,
+      reminderTime,
+      reminderDays,
+    });
+
+    if (!validatedInput.success) {
+      throw new Error(validatedInput.error.issues[0]?.message || 'Invalid wazeefah data');
+    }
+
     await connectToDatabase();
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
     const newUserWazeefah = await UserWazeefah.create({
       userId: user._id,
-      title,
-      description,
-      instructions: instructions || [],
+      title: validatedInput.data.title,
+      description: validatedInput.data.description,
+      instructions: validatedInput.data.instructions,
       quranRef: quranRef || undefined,
-      targetCount: targetCount || 33,
-      reminderTime: reminderTime || 'Fajr',
+      targetCount: validatedInput.data.targetCount,
+      reminderTime: validatedInput.data.reminderTime,
       isCustom: true,
       isActive: true,
       completions: [],
       reference: reference || undefined,
-      reminderDays: reminderDays,
+      reminderDays: validatedInput.data.reminderDays,
     });
 
     revalidatePath('/wazeefahs');

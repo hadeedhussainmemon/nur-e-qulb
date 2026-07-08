@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { useTheme } from 'next-themes';
 import { VoiceSearch } from '@/components/layout/VoiceSearch';
 import { useSession, signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notificationActions';
 
@@ -55,6 +56,14 @@ export function Navbar() {
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
   const [isInstalled, setIsInstalled] = React.useState(false);
   const notifRef = React.useRef<HTMLDivElement>(null);
+
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  // Auto-minimize/close mobile sidebar on page navigation
+  React.useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const [notifications, setNotifications] = React.useState<any[]>([]);
 
@@ -171,7 +180,7 @@ export function Navbar() {
   return (
     <div className="flex items-center justify-between px-3 md:px-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800/40 h-14 md:h-16 shrink-0">
       {/* Mobile menu trigger */}
-      <Sheet>
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         {/* @ts-expect-error React 19 type compatibility */}
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden text-slate-600 dark:text-zinc-400">

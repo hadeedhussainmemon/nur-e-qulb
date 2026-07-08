@@ -67,7 +67,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Register Service Worker for PWA
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => console.error('Service Worker registration failed:', err));
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => {
+          reg.update().catch(() => {});
+        })
+        .catch(err => console.error('Service Worker registration failed:', err));
     }
   }, []);
 

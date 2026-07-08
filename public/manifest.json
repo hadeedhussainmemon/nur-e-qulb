@@ -3,6 +3,7 @@
   "short_name": "Nur",
   "description": "An elegant, premium, distraction-free Islamic productivity platform.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#059669",

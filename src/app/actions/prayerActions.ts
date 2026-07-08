@@ -7,8 +7,11 @@ import { User } from '@/models/User';
 import { PrayerLog } from '@/models/PrayerLog';
 import { MissedPrayer } from '@/models/MissedPrayer';
 import { PeriodTracker } from '@/models/PeriodTracker';
+import { PushSubscription } from '@/models/PushSubscription';
+import { UserWazeefah } from '@/models/UserWazeefah';
 import mongoose from 'mongoose';
 import { isPeriodActive } from '@/app/actions/periodActions';
+import webpush from 'web-push';
 
 export interface PrayerTimes {
   Fajr: string;
@@ -262,6 +265,74 @@ export async function getTodayPrayerLog(localDateStr: string) {
   }
 }
 
+// Initialize webpush details
+const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const privateKey = process.env.VAPID_PRIVATE_KEY || '';
+const subject = process.env.VAPID_SUBJECT || 'mailto:contact@nur-e-qulb.com';
+if (publicKey && privateKey) {
+  try {
+    webpush.setVapidDetails(subject, publicKey, privateKey);
+  } catch (err) {
+    console.error('Failed to set webpush VAPID details in prayerActions:', err);
+  }
+}
+
+async function triggerWazeefahRemindersForPrayer(userId: mongoose.Types.ObjectId, prayerName: string) {
+  try {
+    const capitalizedPrayerName = prayerName.charAt(0).toUpperCase() + prayerName.slice(1).toLowerCase();
+    
+    // Find active user wazeefahs matching this prayer reminder
+    const wazeefahs = await UserWazeefah.find({
+      userId,
+      isActive: true,
+      reminderTime: capitalizedPrayerName
+    }).lean();
+
+    if (wazeefahs.length === 0) return;
+
+    const subscriptions = await PushSubscription.find({ userId }).lean();
+    if (subscriptions.length === 0) return;
+
+    const localDayOfWeek = new Date().getDay();
+
+    for (const uw of wazeefahs) {
+      const days = uw.reminderDays || [0, 1, 2, 3, 4, 5, 6];
+      if (!days.includes(localDayOfWeek)) continue;
+
+      for (const sub of subscriptions) {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.subscription.endpoint,
+              keys: {
+                p256dh: sub.subscription.keys.p256dh,
+                auth: sub.subscription.keys.auth
+              }
+            },
+            JSON.stringify({
+              title: `Wazeefah: ${uw.title}`,
+              body: `Time to recite your wazeefah. Target: ${uw.targetCount}x.`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-192x192.png',
+              data: { url: '/wazeefahs' }
+            }),
+            {
+              TTL: 86400,
+              urgency: 'high'
+            }
+          );
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await PushSubscription.deleteOne({ _id: sub._id });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to trigger wazeefah push reminders after prayer completion:', err);
+  }
+}
+
 export async function togglePrayerStatus(localDateStr: string, prayerName: string, status: string) {
   try {
     const session = await getServerSession(authOptions);
@@ -299,6 +370,12 @@ export async function togglePrayerStatus(localDateStr: string, prayerName: strin
       update,
       { upsert: true, new: true }
     );
+
+    if (resolvedStatus === 'completed') {
+      triggerWazeefahRemindersForPrayer(user._id as any, prayerName).catch(err => {
+        console.error('triggerWazeefahRemindersForPrayer failed:', err);
+      });
+    }
 
     return { success: true, log: JSON.parse(JSON.stringify(updatedLog)) };
   } catch (error: any) {

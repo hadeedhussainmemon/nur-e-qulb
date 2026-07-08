@@ -121,7 +121,10 @@ const DAYS_MAP: Record<string, number> = {
 
 async function sendPushNotification(subscription: PushSubscriptionPayload, payload: NotificationPayload, subscriptionId: string): Promise<boolean> {
   try {
-    await webpush.sendNotification(subscription, JSON.stringify(payload));
+    await webpush.sendNotification(subscription, JSON.stringify(payload), {
+      TTL: 86400,
+      urgency: 'high'
+    });
     return true;
   } catch (err: unknown) {
     if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
@@ -476,7 +479,11 @@ export async function GET(req: NextRequest) {
                       prayer: lowerName,
                       date: localDateStr
                     }
-                  })
+                  }),
+                  {
+                    TTL: 86400,
+                    urgency: 'high'
+                  }
                 );
                 notificationsSent++;
               } catch (err: unknown) {
@@ -489,43 +496,7 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // 2. Send Prayer-relative Wazeefah Reminder
-        if (triggeredPrayer) {
-          const userWazeefahs = await UserWazeefah.find({
-            userId: user._id,
-            isActive: true,
-            reminderTime: triggeredPrayer
-          });
 
-          for (const uw of userWazeefahs) {
-            const days = uw.reminderDays || [0, 1, 2, 3, 4, 5, 6];
-            if (days.includes(localDayOfWeek)) {
-              try {
-                await webpush.sendNotification(
-                  {
-                    endpoint: sub.subscription.endpoint,
-                    keys: {
-                      p256dh: sub.subscription.keys.p256dh,
-                      auth: sub.subscription.keys.auth
-                    }
-                  },
-                  JSON.stringify({
-                    title: `Wazeefah: ${uw.title}`,
-                    body: `Time to recite your wazeefah. Target: ${uw.targetCount}x.`,
-                    icon: '/icons/icon-192x192.png',
-                    badge: '/icons/icon-192x192.png',
-                    data: { url: '/wazeefahs' }
-                  })
-                );
-                notificationsSent++;
-              } catch (err: unknown) {
-                if (isPushError(err) && (err.statusCode === 410 || err.statusCode === 404)) {
-                  await PushSubscription.deleteOne({ _id: sub._id as any });
-                }
-              }
-            }
-          }
-        }
 
         // 3. Send generic time-of-day Wazeefah Reminder
         if (triggeredGenericTime) {
@@ -553,7 +524,11 @@ export async function GET(req: NextRequest) {
                     icon: '/icons/icon-192x192.png',
                     badge: '/icons/icon-192x192.png',
                     data: { url: '/wazeefahs' }
-                  })
+                  }),
+                  {
+                    TTL: 86400,
+                    urgency: 'high'
+                  }
                 );
                 notificationsSent++;
               } catch (err: unknown) {

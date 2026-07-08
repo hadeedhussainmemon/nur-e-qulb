@@ -13,6 +13,21 @@ import { completeOnboarding } from '@/app/actions/onboardingActions';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -30,11 +45,34 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleRequestPermission = () => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission().then((permission) => {
-        setNotificationPermission(permission);
-      });
+  const handleRequestPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) return;
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+
+      if (permission === 'granted') {
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+
+        if (!sub) {
+          const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (!vapidPublicKey) {
+            console.warn('VAPID public key not found');
+            return;
+          }
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+        }
+
+        const { savePushSubscription } = await import('@/app/actions/pushSubscriptionActions');
+        await savePushSubscription(JSON.parse(JSON.stringify(sub)));
+      }
+    } catch (err) {
+      console.error('Failed to subscribe from user gesture:', err);
     }
   };
 

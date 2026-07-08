@@ -12,7 +12,7 @@ interface ShareCardProps {
   reference: string;
   isOpen: boolean;
   onClose: () => void;
-  mode?: 'verse' | 'calendar';
+  mode?: 'verse' | 'calendar' | 'inspiration';
   calendarData?: {
     gregorianDate: string;
     hijriDate: string;
@@ -168,7 +168,8 @@ export function ShareCard({
         // Try programmatic download as a primary attempt
         try {
           const link = document.createElement('a');
-          link.download = `${mode === 'calendar' ? 'NamazSchedule' : 'NurEQulb'}-${reference.replace(/\s+/g, '-')}.png`;
+          const prefix = mode === 'calendar' ? 'NamazSchedule' : mode === 'inspiration' ? 'DailyInspiration' : 'NurEQulb';
+          link.download = `${prefix}-${reference.replace(/\s+/g, '-')}.png`;
           link.href = image;
           document.body.appendChild(link);
           link.click();
@@ -194,14 +195,22 @@ export function ShareCard({
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('Blob generation failed');
 
-      const file = new File([blob], `${mode === 'calendar' ? 'NamazSchedule' : 'NurEQulb'}-${reference.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+      const filePrefix = mode === 'calendar' ? 'NamazSchedule' : mode === 'inspiration' ? 'DailyInspiration' : 'NurEQulb';
+      const file = new File([blob], `${filePrefix}-${reference.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
 
       // Check if browser supports Web Share API file sharing
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        const promoText = `Start using Nur-e-Qulb today to make your prayers and adhkar better! Visit: https://nur-e-qulb.vercel.app`;
+        const shareText = mode === 'calendar' 
+          ? `Namaz schedule for ${reference}\n\n${promoText}`
+          : mode === 'inspiration'
+            ? `Daily Inspiration: "${translationText}" — ${reference}\n\n${promoText}`
+            : `Quran Verse: "${translationText}" — ${reference}\n\n${promoText}`;
+
         await navigator.share({
           files: [file],
-          title: mode === 'calendar' ? "Today's Prayer Schedule" : 'Nur-e-Qulb Share',
-          text: mode === 'calendar' ? `Namaz schedule for ${reference}` : `Read Quran on Nur-e-Qulb: ${reference}`
+          title: mode === 'calendar' ? "Today's Prayer Schedule" : mode === 'inspiration' ? 'Daily Spiritual Reminder' : 'Nur-e-Qulb Share',
+          text: shareText
         });
       } else {
         // Fallback to download preview if sharing is not supported
@@ -225,7 +234,7 @@ export function ShareCard({
           {/* Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Share2 className="w-4 h-4 text-emerald-500" /> {mode === 'calendar' ? "Share Namaz Schedule" : "Share Quran Verse"}
+              <Share2 className="w-4 h-4 text-emerald-500" /> {mode === 'calendar' ? "Share Namaz Schedule" : mode === 'inspiration' ? "Share Daily Inspiration" : "Share Quran Verse"}
             </h3>
             <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-850">
               <X className="w-5 h-5" />
@@ -388,7 +397,7 @@ export function ShareCard({
               {/* Branding Link Footer */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', opacity: 0.85, position: 'relative', zIndex: 10 }}>
                 <span className="font-outfit" style={{ fontSize: '8px', fontWeight: 'bold', letterSpacing: '0.1em', color: '#34d399', textTransform: 'uppercase' }}>
-                  {mode === 'calendar' ? "DAILY NAMAZ SCHEDULE" : "READ QURAN ONLINE"}
+                  {mode === 'calendar' ? "DAILY NAMAZ SCHEDULE" : mode === 'inspiration' ? "DAILY INSPIRATION" : "READ QURAN ONLINE"}
                 </span>
                 <span className="font-outfit" style={{ fontSize: '9px', fontWeight: 500, color: '#cbd5e1', letterSpacing: '0.05em' }}>
                   nur-e-qulb.vercel.app

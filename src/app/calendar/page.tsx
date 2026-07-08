@@ -79,7 +79,13 @@ function getHijriDate(date: Date, adjustment: number) {
       month: 'long',
       year: 'numeric'
     });
+    const formatterNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      month: 'numeric'
+    });
     const parts = formatter.formatToParts(adjusted);
+    const monthNumStr = formatterNum.format(adjusted);
+    const monthNum = parseInt(monthNumStr, 10);
+
     let day = '';
     let month = '';
     let year = '';
@@ -88,10 +94,29 @@ function getHijriDate(date: Date, adjustment: number) {
       else if (p.type === 'month') month = p.value;
       else if (p.type === 'year') year = p.value;
     });
-    return { day, month, year };
+    return { day, month, year, monthNum };
   } catch (e) {
-    return { day: String(date.getDate()), month: 'Unknown', year: '1448' };
+    return { day: String(date.getDate()), month: 'Unknown', year: '1448', monthNum: 1 };
   }
+}
+
+function findGregorianDate(hijriDay: number, hijriMonthVal: number, targetHijriYear: number, hijriAdjustment: number): Date | null {
+  const approxGregYear = Math.floor(targetHijriYear * 0.97 + 622);
+  const searchStartDate = new Date(approxGregYear - 1, 0, 1);
+  const searchEndDate = new Date(approxGregYear + 1, 11, 31);
+  
+  const tempDate = new Date(searchStartDate);
+  while (tempDate <= searchEndDate) {
+    const h = getHijriDate(tempDate, hijriAdjustment);
+    const hDay = parseInt(h.day, 10);
+    const hYear = parseInt(h.year, 10);
+    
+    if (hDay === hijriDay && h.monthNum === hijriMonthVal && hYear === targetHijriYear) {
+      return new Date(tempDate);
+    }
+    tempDate.setDate(tempDate.getDate() + 1);
+  }
+  return null;
 }
 
 function formatTime12(time24: string): string {
@@ -110,6 +135,7 @@ export default function CalendarPage() {
   const [daysToHajj, setDaysToHajj] = useState(0);
   const [daysToRamadan, setDaysToRamadan] = useState(0);
   const [hijriDateString, setHijriDateString] = useState("Loading Hijri Date...");
+  const [upcomingEvents, setUpcomingEvents] = useState<{ event: string; date: string; details: string }[]>([]);
   const [isShareOpen, setIsShareOpen] = useState(false);
 
   const city = (session?.user as any)?.location?.city || 'Makkah';
@@ -150,18 +176,78 @@ export default function CalendarPage() {
     const h = getHijriDate(today, hijriAdjustment);
     setHijriDateString(`${h.day} ${h.month} ${h.year} AH`);
 
-    // Next Ramadan (Approx Feb 8, 2027)
-    // Next Hajj (Approx May 16, 2027)
-    const now = new Date();
-    const nextRamadan = new Date('2027-02-08');
-    const nextHajj = new Date('2027-05-16');
+    const currentHYear = parseInt(h.year, 10);
+    const todayHMonth = h.monthNum;
+    const todayHDay = parseInt(h.day, 10);
 
-    if (now > nextRamadan) nextRamadan.setFullYear(now.getFullYear() + 1);
-    if (now > nextHajj) nextHajj.setFullYear(now.getFullYear() + 1);
+    // Calculate Ramadan Date
+    let ramadanHYear = currentHYear;
+    if (todayHMonth > 9 || (todayHMonth === 9 && todayHDay > 1)) {
+      ramadanHYear += 1;
+    }
+    const ramadanDate = findGregorianDate(1, 9, ramadanHYear, hijriAdjustment) || new Date('2027-02-08');
+
+    // Calculate Hajj Date (starts on 8 Dhu al-Hijjah)
+    let hajjHYear = currentHYear;
+    if (todayHMonth > 12 || (todayHMonth === 12 && todayHDay > 8)) {
+      hajjHYear += 1;
+    }
+    const hajjDate = findGregorianDate(8, 12, hajjHYear, hijriAdjustment) || new Date('2027-05-16');
 
     const msPerDay = 1000 * 60 * 60 * 24;
-    setDaysToRamadan(Math.ceil((nextRamadan.getTime() - now.getTime()) / msPerDay));
-    setDaysToHajj(Math.ceil((nextHajj.getTime() - now.getTime()) / msPerDay));
+    const todayZero = new Date(today);
+    todayZero.setHours(0, 0, 0, 0);
+    const ramadanZero = new Date(ramadanDate);
+    ramadanZero.setHours(0, 0, 0, 0);
+    const hajjZero = new Date(hajjDate);
+    hajjZero.setHours(0, 0, 0, 0);
+
+    setDaysToRamadan(Math.max(0, Math.ceil((ramadanZero.getTime() - todayZero.getTime()) / msPerDay)));
+    setDaysToHajj(Math.max(0, Math.ceil((hajjZero.getTime() - todayZero.getTime()) / msPerDay)));
+
+    // Calculate Gregorian dates for other key events
+    const eventsConfig = [
+      { event: 'Ashura', day: 10, month: 1, details: 'Fasting is highly recommended.' },
+      { event: 'Mawlid al-Nabi', day: 12, month: 3, details: 'Observance of the Prophet\'s (ﷺ) birth.' },
+      { event: 'Laylat al-Miraj', day: 27, month: 7, details: 'The Night Journey.' },
+      { event: 'Laylat al-Bara\'at', day: 15, month: 8, details: 'The Night of Records.' },
+      { event: 'Eid al-Fitr', day: 1, month: 10, details: 'Festival of Breaking the Fast.' },
+    ];
+
+    const resolvedEvents = eventsConfig.map(cfg => {
+      let targetHYear = currentHYear;
+      if (todayHMonth > cfg.month || (todayHMonth === cfg.month && todayHDay > cfg.day)) {
+        targetHYear += 1;
+      }
+      
+      const gregDate = findGregorianDate(cfg.day, cfg.month, targetHYear, hijriAdjustment);
+      
+      let dateString = '';
+      if (gregDate) {
+        dateString = gregDate.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      } else {
+        // Fallback description
+        const hijriMonths = [
+          '', 'Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani',
+          'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', 'Sha\'ban',
+          'Ramadan', 'Shawwal', 'Dhu al-Qa\'dah', 'Dhu al-Hijjah'
+        ];
+        dateString = `${cfg.day} ${hijriMonths[cfg.month]}`;
+      }
+
+      return {
+        event: cfg.event,
+        date: dateString,
+        details: cfg.details
+      };
+    });
+
+    setUpcomingEvents(resolvedEvents);
   }, [session, hijriAdjustment]);
 
   const handlePrevMonth = () => {
@@ -363,13 +449,7 @@ export default function CalendarPage() {
       <div className="mt-12">
         <h3 className="text-2xl font-bold mb-6">Upcoming Islamic Events</h3>
         <div className="space-y-4">
-          {[
-            { event: 'Ashura', date: '10 Muharram', details: 'Fasting is highly recommended.' },
-            { event: 'Mawlid al-Nabi', date: '12 Rabi al-Awwal', details: 'Observance of the Prophet\'s (ﷺ) birth.' },
-            { event: 'Laylat al-Miraj', date: '27 Rajab', details: 'The Night Journey.' },
-            { event: 'Laylat al-Bara\'at', date: '15 Sha\'ban', details: 'The Night of Records.' },
-            { event: 'Eid al-Fitr', date: '1 Shawwal', details: 'Festival of Breaking the Fast.' },
-          ].map((item, i) => (
+          {upcomingEvents.map((item, i) => (
             <div key={i} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800">
               <div>
                 <h4 className="font-bold text-lg">{item.event}</h4>

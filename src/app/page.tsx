@@ -14,6 +14,7 @@ import { togglePrayerStatus, getPrayerStreaks } from '@/app/actions/prayerAction
 import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
 import Link from 'next/link';
 import useSWR from 'swr';
+import { ShareCard } from '@/components/quran/ShareCard';
 
 const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then((res) => res.json());
 
@@ -47,6 +48,40 @@ function urlBase64ToUint8Array(base64String: string) {
   }
   return outputArray;
 }
+
+const INSPIRATIONAL_QUOTES = [
+  { text: "Verily, with hardship, there is ease.", source: "Quran 94:6" },
+  { text: "So remember Me; I will remember you.", source: "Quran 2:152" },
+  { text: "My mercy encompasses all things.", source: "Quran 7:156" },
+  { text: "Indeed, Allah is with the patient.", source: "Quran 2:153" },
+  { text: "And He found you lost and guided you.", source: "Quran 93:7" },
+  { text: "And put your trust in Allah; and sufficient is Allah as a Disposer of affairs.", source: "Quran 33:3" },
+  { text: "Does man think that he will be left uncontrolled?", source: "Quran 75:36" },
+  { text: "He knows what is in every heart.", source: "Quran 67:13" },
+  { text: "Indeed, my Lord is near and responsive.", source: "Quran 11:61" },
+  { text: "The best of you are those who have the best character.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "Speak good or remain silent.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "A kind word is a form of charity.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "Whoever guides someone to goodness will have a similar reward.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "Be in this world as if you were a stranger or a traveler.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "Allah does not burden a soul beyond that it can bear.", source: "Quran 2:286" },
+  { text: "Is not Allah sufficient for His servant?", source: "Quran 39:36" },
+  { text: "And speak to people good words.", source: "Quran 2:83" },
+  { text: "Establish prayer, for indeed, prayer prohibits immorality and wrongdoing.", source: "Quran 29:45" },
+  { text: "None of you truly believes until he loves for his brother what he loves for himself.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "Verily, Allah does not look at your appearance or wealth, but at your hearts and actions.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "The most beloved of deeds to Allah are those that are most consistent, even if they are small.", source: "Prophet Muhammad (ﷺ)" },
+  { text: "And if you should count the favor of Allah, you could not enumerate them.", source: "Quran 14:34" },
+  { text: "And whoever fears Allah - He will make for him a way out.", source: "Quran 65:2" },
+  { text: "And provide for him from where he does not expect.", source: "Quran 65:3" },
+  { text: "Allah is the Light of the heavens and the earth.", source: "Quran 24:35" },
+  { text: "Peace it is until the emergence of dawn.", source: "Quran 97:5" },
+  { text: "Say, 'O My servants who have transgressed against themselves, do not despair of the mercy of Allah.'", source: "Quran 39:53" },
+  { text: "And when I am ill, it is He who cures me.", source: "Quran 26:80" },
+  { text: "And hold firmly to the rope of Allah all together and do not become divided.", source: "Quran 3:103" },
+  { text: "And do good; indeed, Allah loves the doers of good.", source: "Quran 2:195" },
+  { text: "And worship your Lord until there comes to you the certainty.", source: "Quran 15:99" }
+];
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -93,6 +128,22 @@ export default function Dashboard() {
       console.error('Failed to subscribe from user gesture:', err);
     }
   };
+
+  const [copiedInspiration, setCopiedInspiration] = useState(false);
+  const [isInspirationShareOpen, setIsInspirationShareOpen] = useState(false);
+  const [dailyInspiration] = useState(() => {
+    const day = new Date().getDate();
+    return INSPIRATIONAL_QUOTES[(day - 1) % 31];
+  });
+
+  const handleCopyInspiration = useCallback(() => {
+    const textToCopy = `"${dailyInspiration.text}" — ${dailyInspiration.source}\n\nShared via Nur E Qalbb`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedInspiration(true);
+      setTimeout(() => setCopiedInspiration(false), 2000);
+    }
+  }, [dailyInspiration]);
 
   // Stats from DB
   const [prayerStreak, setPrayerStreak] = useState(0);
@@ -683,25 +734,52 @@ export default function Dashboard() {
         </Card>
 
         {/* Daily Inspiration / Hadith Card Quote block */}
-        <Card className="p-4 flex flex-col justify-between relative overflow-hidden">
+        <Card className="p-4 flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-[0.04] pointer-events-none text-emerald-450">
             <svg className="h-full w-full" viewBox="0 0 100 60" fill="currentColor">
               <path d="M 40 60 L 40 30 Q 40 10 55 10 Q 70 10 70 30 L 70 60 Z" />
             </svg>
           </div>
           <div className="relative z-10">
-            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-foreground mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Daily Inspiration
+            <h3 className="text-sm font-semibold flex items-center justify-between text-foreground mb-2">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Daily Inspiration
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button 
+                  onClick={handleCopyInspiration}
+                  className="text-[10px] text-muted-foreground hover:text-emerald-500 transition-colors font-medium flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-slate-105 dark:hover:bg-slate-900 border-0 bg-transparent cursor-pointer"
+                >
+                  {copiedInspiration ? 'Copied! ✓' : 'Copy'}
+                </button>
+                <span className="text-[10px] text-slate-300 dark:text-slate-700">|</span>
+                <button 
+                  onClick={() => setIsInspirationShareOpen(true)}
+                  className="text-[10px] text-muted-foreground hover:text-emerald-500 transition-colors font-medium flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-slate-105 dark:hover:bg-slate-900 border-0 bg-transparent cursor-pointer"
+                >
+                  Share Card
+                </button>
+              </div>
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed italic">
-              "And seek help through patience and prayer. And indeed, it is difficult except for the humble."
+              "{dailyInspiration.text}"
             </p>
           </div>
           <p className="text-[10px] text-emerald-400 font-semibold text-right mt-2 relative z-10">
-            — Quran 2:45
+            — {dailyInspiration.source}
           </p>
         </Card>
       </div>
+
+      {isInspirationShareOpen && (
+        <ShareCard
+          isOpen={isInspirationShareOpen}
+          onClose={() => setIsInspirationShareOpen(false)}
+          mode="inspiration"
+          translationText={dailyInspiration.text}
+          reference={dailyInspiration.source}
+        />
+      )}
     </div>
   );
 }

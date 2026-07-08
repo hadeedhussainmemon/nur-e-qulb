@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<string>('granted');
   const [isStandalone, setIsStandalone] = useState(false);
+  const [swStatus, setSwStatus] = useState('Checking...');
+  const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -47,6 +49,21 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
       setIsStandalone(!!standalone);
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (reg) {
+            setSwStatus(reg.active ? 'Active ✓' : 'Installing/Waiting...');
+            setSwColor(reg.active ? 'text-emerald-505 dark:text-emerald-400' : 'text-amber-505 dark:text-amber-400');
+          } else {
+            setSwStatus('None Found ✗');
+            setSwColor('text-red-505 dark:text-red-400');
+          }
+        });
+      } else {
+        setSwStatus('Unsupported ✗');
+        setSwColor('text-red-505 dark:text-red-400');
+      }
     }
   }, []);
 
@@ -634,6 +651,90 @@ export default function SettingsPage() {
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-3">Theme preference is saved when you click &quot;Save Settings&quot;.</p>
+          </CardContent>
+        </Card>
+
+        {/* PWA / Device Diagnostics */}
+        <Card className="md:col-span-2 border-slate-200 dark:border-slate-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <Settings2 className="w-5 h-5 text-emerald-500" /> Device & PWA Diagnostics
+            </CardTitle>
+            <CardDescription>Verify your connection and PWA installation capability on this device.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850">
+                <span className="text-muted-foreground block font-medium">App Standalone Mode</span>
+                <span className="font-bold text-sm block mt-1 text-slate-800 dark:text-slate-200">
+                  {isStandalone ? 'Yes (Running as App)' : 'No (Browser Tab)'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850">
+                <span className="text-muted-foreground block font-medium">Service Worker Support</span>
+                <span className="font-bold text-sm block mt-1 text-emerald-500">
+                  {typeof window !== 'undefined' && 'serviceWorker' in navigator ? 'Supported ✓' : 'Unsupported ✗'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850">
+                <span className="text-muted-foreground block font-medium">Service Worker Status</span>
+                <span className={`font-bold text-sm block mt-1 ${swColor}`}>
+                  {swStatus}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850">
+                <span className="text-muted-foreground block font-medium">PWA Install Prompt</span>
+                <span className="font-bold text-sm block mt-1 text-slate-800 dark:text-slate-200">
+                  {typeof window !== 'undefined' && (window as any).deferredPrompt ? 'Ready to Install ✓' : 'Not Loaded / Cooldown ✗'}
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850 col-span-2">
+                <span className="text-muted-foreground block font-medium">Manifest Url link</span>
+                <span className="font-bold text-sm block mt-1 text-slate-800 dark:text-slate-200 select-all truncate">
+                  /manifest.json
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+                  try {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    if (reg) {
+                      await reg.unregister();
+                      alert('Service Worker unregistered. Reloading page to register fresh...');
+                      window.location.reload();
+                    } else {
+                      alert('No active Service Worker to unregister.');
+                    }
+                  } catch (e) {
+                    alert('Error: ' + e);
+                  }
+                }}
+                className="text-xs border-red-500/20 hover:border-red-500/5 hover:bg-red-500/5 text-red-500 dark:text-red-400 cursor-pointer"
+              >
+                Reset Service Worker Cache
+              </Button>
+
+              {typeof window !== 'undefined' && (window as any).deferredPrompt && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const prompt = (window as any).deferredPrompt;
+                    if (prompt) {
+                      prompt.prompt();
+                    }
+                  }}
+                  className="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer"
+                >
+                  Trigger Install Now
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -2,8 +2,7 @@ const CACHE_NAME = 'nur-e-qulb-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/logo.png',
-  '/icon.png'
+  '/logo.png'
 ];
 
 // Install Event

@@ -34,12 +34,34 @@ export function TasbihCounter() {
   const currentDhikr = adhkarList[activeDhikr] || adhkarList[0];
   const progress = Math.min((count / currentDhikr.target) * 100, 100);
 
+  const tasbihAudioRef = React.useRef<AudioContext | null>(null);
+
+  const playClickSound = useCallback((freq = 880, duration = 0.1) => {
+    try {
+      if (!tasbihAudioRef.current || tasbihAudioRef.current.state === 'closed') {
+        tasbihAudioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = tasbihAudioRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq / 4, ctx.currentTime + duration * 0.8);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration + 0.02);
+    } catch {}
+  }, []);
+
   const triggerHaptic = useCallback((type: 'light' | 'heavy' = 'light') => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       if (type === 'light') {
-        navigator.vibrate(50);
+        navigator.vibrate(40);
       } else {
-        navigator.vibrate([100, 50, 100]); // Heavy double vibration
+        navigator.vibrate([80, 40, 80]); // Heavy double vibration
       }
     }
   }, []);
@@ -52,6 +74,7 @@ export function TasbihCounter() {
       setCount(1);
       setIsCompleted(false);
       triggerHaptic('light');
+      playClickSound(880, 0.1);
       return;
     }
 
@@ -61,8 +84,13 @@ export function TasbihCounter() {
     if (newCount === currentDhikr.target) {
       setIsCompleted(true);
       triggerHaptic('heavy');
+      try {
+        playClickSound(1000, 0.15);
+        setTimeout(() => playClickSound(1300, 0.25), 100);
+      } catch {}
     } else {
       triggerHaptic('light');
+      playClickSound(880, 0.1);
     }
   };
 

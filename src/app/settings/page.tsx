@@ -38,10 +38,15 @@ export default function SettingsPage() {
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<string>('granted');
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotificationPermission(Notification.permission);
+    }
+    if (typeof window !== 'undefined') {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(!!standalone);
     }
   }, []);
 
@@ -451,6 +456,34 @@ export default function SettingsPage() {
             <CardDescription>Manage daily alarms and motivational prompts.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {!isStandalone && (
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 p-4 rounded-xl text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed space-y-1">
+                <p className="font-semibold flex items-center gap-1.5 text-indigo-800 dark:text-indigo-200">
+                  <Sparkles className="w-4 h-4 shrink-0 text-indigo-500 animate-pulse" />
+                  Tip for Installed App (PWA) Mode
+                </p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  You are currently using the website. To have push notifications open and come directly from your installed app rather than the web browser:
+                </p>
+                <ol className="list-decimal pl-4 mt-1.5 space-y-1 font-medium text-slate-650 dark:text-slate-400">
+                  <li>Install the app to your Home Screen (use the share/browser menu, select "Add to Home Screen").</li>
+                  <li>Open the installed app icon from your Home Screen.</li>
+                  <li>Go to Settings inside that app and click the <strong>Enable Notifications</strong> banner at the top.</li>
+                </ol>
+              </div>
+            )}
+            {isStandalone && (
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-xl text-xs text-emerald-700 dark:text-emerald-300 leading-relaxed">
+                <p className="font-semibold flex items-center gap-1.5 text-emerald-800 dark:text-emerald-200">
+                  <Check className="w-4 h-4 shrink-0 text-emerald-500" />
+                  Running in Standalone App Shell
+                </p>
+                <p className="mt-1 text-slate-650 dark:text-slate-400 font-medium">
+                  Perfect! You are inside the installed app shell. Enabling notifications here ensures they are bound directly to this standalone app on your phone.
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center justify-between space-x-4">
               <div>
                 <p className="text-base font-medium">Adhan & Prayer Alerts</p>

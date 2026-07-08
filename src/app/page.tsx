@@ -137,14 +137,28 @@ export default function Dashboard() {
     setTasbihPressed(true);
     setTimeout(() => setTasbihPressed(false), 120);
     playTasbihClick();
+
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(40);
+    }
+
     const target = TASBIH_ADHKARS[tasbihIdx].target;
     setTasbihCount((prev) => {
-      if (prev + 1 >= target) {
+      const newCount = prev + 1;
+      if (newCount >= target) {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([80, 40, 80]); // double vibrate on completion
+        }
+        // Play success chime
+        try {
+          setTimeout(() => playTasbihClick(), 120);
+        } catch {}
+
         setTasbihTotal((t) => t + target);
         return 0;
       }
       setTasbihTotal((t) => t + 1);
-      return prev + 1;
+      return newCount;
     });
   }, [tasbihIdx, playTasbihClick]);
 

@@ -169,7 +169,8 @@ export function ShareCard({
         try {
           const link = document.createElement('a');
           const prefix = mode === 'calendar' ? 'NamazSchedule' : mode === 'inspiration' ? 'DailyInspiration' : 'NurEQulb';
-          link.download = `${prefix}-${reference.replace(/\s+/g, '-')}.png`;
+          const cleanRef = reference.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+          link.download = `${prefix}-${cleanRef || 'download'}.png`;
           link.href = image;
           document.body.appendChild(link);
           link.click();
@@ -195,31 +196,64 @@ export function ShareCard({
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('Blob generation failed');
 
+      const cleanRef = reference.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       const filePrefix = mode === 'calendar' ? 'NamazSchedule' : mode === 'inspiration' ? 'DailyInspiration' : 'NurEQulb';
-      const file = new File([blob], `${filePrefix}-${reference.replace(/\s+/g, '-')}.png`, { type: 'image/png' });
+      const filename = `${filePrefix}-${cleanRef || 'share'}.png`;
+      const file = new File([blob], filename, { type: 'image/png' });
+
+      const promoText = `Start using Nur-e-Qulb today to make your prayers and adhkar better! Visit: https://nur-e-qulb.vercel.app`;
+      const shareText = mode === 'calendar' 
+        ? `Namaz schedule for ${reference}\n\n${promoText}`
+        : mode === 'inspiration'
+          ? `Daily Inspiration: "${translationText}" — ${reference}\n\n${promoText}`
+          : `Quran Verse: "${translationText}" — ${reference}\n\n${promoText}`;
 
       // Check if browser supports Web Share API file sharing
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        const promoText = `Start using Nur-e-Qulb today to make your prayers and adhkar better! Visit: https://nur-e-qulb.vercel.app`;
-        const shareText = mode === 'calendar' 
-          ? `Namaz schedule for ${reference}\n\n${promoText}`
-          : mode === 'inspiration'
-            ? `Daily Inspiration: "${translationText}" — ${reference}\n\n${promoText}`
-            : `Quran Verse: "${translationText}" — ${reference}\n\n${promoText}`;
-
-        await navigator.share({
-          files: [file],
-          title: mode === 'calendar' ? "Today's Prayer Schedule" : mode === 'inspiration' ? 'Daily Spiritual Reminder' : 'Nur-e-Qulb Share',
-          text: shareText
-        });
+        try {
+          await navigator.share({
+            files: [file],
+            title: mode === 'calendar' ? "Today's Prayer Schedule" : mode === 'inspiration' ? 'Daily Spiritual Reminder' : 'Nur-e-Qulb Share',
+            text: shareText
+          });
+        } catch (shareErr: any) {
+          // If the user cancelled, ignore silently
+          if (shareErr?.name === 'AbortError') {
+            return;
+          }
+          // If it failed because of combining files + text, try sharing files ONLY
+          console.warn('Failed sharing files + text, retrying with files only:', shareErr);
+          try {
+            await navigator.share({
+              files: [file],
+              title: mode === 'calendar' ? "Today's Prayer Schedule" : mode === 'inspiration' ? 'Daily Spiritual Reminder' : 'Nur-e-Qulb Share'
+            });
+          } catch (retryErr: any) {
+            if (retryErr?.name === 'AbortError') return;
+            throw retryErr;
+          }
+        }
       } else {
         // Fallback to download preview if sharing is not supported
         const image = canvas.toDataURL('image/png', 1.0);
         setDownloadImageUrl(image);
         setIsDownloadModalOpen(true);
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
       console.error('Failed to share image:', error);
+      
+      // Final fallback: if navigator.share failed, open the download preview modal
+      try {
+        const canvas = await generateCanvas();
+        if (canvas) {
+          const image = canvas.toDataURL('image/png', 1.0);
+          setDownloadImageUrl(image);
+          setIsDownloadModalOpen(true);
+          return;
+        }
+      } catch (e) {}
+      
       alert('Failed to generate sharing image. Please try screenshotting or saving manually.');
     } finally {
       setIsSharing(false);

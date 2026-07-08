@@ -84,15 +84,39 @@ export function Navbar() {
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    });
-    // Check if already running as PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
+
+    let handleCustomEvent: (e: any) => void;
+    let handleAppInstalled: () => void;
+
+    if (typeof window !== 'undefined') {
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+      }
+      
+      handleCustomEvent = (e: any) => {
+        setDeferredPrompt(e.detail);
+      };
+      window.addEventListener('deferredpromptready', handleCustomEvent as any);
+
+      handleAppInstalled = () => {
+        setIsInstalled(true);
+        setDeferredPrompt(null);
+      };
+      window.addEventListener('appinstalled', handleAppInstalled);
+
+      // Check if already running as PWA
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        setIsInstalled(true);
+      }
     }
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      if (typeof window !== 'undefined') {
+        if (handleCustomEvent) window.removeEventListener('deferredpromptready', handleCustomEvent as any);
+        if (handleAppInstalled) window.removeEventListener('appinstalled', handleAppInstalled);
+      }
+    };
   }, []);
 
   const handleInstall = async () => {

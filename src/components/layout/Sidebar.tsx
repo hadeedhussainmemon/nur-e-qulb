@@ -60,7 +60,18 @@ export function Sidebar() {
 
     window.addEventListener('beforeinstallprompt', handler);
 
+    let handleCustomEvent: (e: any) => void;
+
     if (typeof window !== 'undefined') {
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+      }
+      
+      handleCustomEvent = (e: any) => {
+        setDeferredPrompt(e.detail);
+      };
+      window.addEventListener('deferredpromptready', handleCustomEvent as any);
+
       const userAgent = window.navigator.userAgent || window.navigator.vendor || (window as any).opera;
       const mobileCheck = /android|iphone|ipad|ipod/i.test(userAgent);
       setIsMobile(mobileCheck);
@@ -76,6 +87,9 @@ export function Sidebar() {
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      if (typeof window !== 'undefined' && handleCustomEvent) {
+        window.removeEventListener('deferredpromptready', handleCustomEvent as any);
+      }
     };
   }, []);
 

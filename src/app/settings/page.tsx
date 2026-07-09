@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [swStatus, setSwStatus] = useState('Checking...');
   const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
+  const [isMiui, setIsMiui] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -49,6 +50,7 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
       setIsStandalone(!!standalone);
+      setIsMiui(/MiuiBrowser/i.test(window.navigator.userAgent));
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
@@ -696,7 +698,17 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {swStatus.includes('Active') && typeof window !== 'undefined' && !(window as any).deferredPrompt && (
+            {isMiui && (
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed font-semibold">
+                ⚠️ Mi Browser (Xiaomi) detected!
+                <br /><br />
+                Xiaomi's default Mi Browser does not support standard PWA installations. The 15-second popup and "Install App" triggers require a standard browser.
+                <br /><br />
+                <strong>How to fix:</strong> Please open <strong>Google Chrome</strong> on your phone, paste the website URL <strong>https://nur-e-qulb.vercel.app</strong>, and you will be able to install it instantly!
+              </div>
+            )}
+
+            {!isMiui && swStatus.includes('Active') && typeof window !== 'undefined' && !(window as any).deferredPrompt && (
               <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-1">💡 Chrome PWA Installation Info:</span>
                 Your service worker is active and icons are verified! If you see <strong>"Not Loaded / Cooldown"</strong>, Chrome is restricting the automatic popup because of its spam-protection heuristics (cooldown).

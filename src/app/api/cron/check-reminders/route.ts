@@ -157,6 +157,32 @@ async function fetchRandomAyahPayload() {
 }
 
 async function fetchRandomHadithPayload(collection: string = 'bukhari') {
+  const counts: Record<string, number> = {
+    bukhari: 7563,
+    muslim: 7563,
+    abudawud: 5274,
+    tirmidhi: 3956,
+    nasai: 5758,
+    ibnmajah: 4341
+  };
+  
+  const total = counts[collection] || 4000;
+  const randomNo = Math.floor(Math.random() * total) + 1;
+
+  try {
+    const res = await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-${collection}/${randomNo}.min.json`, {
+      cache: 'force-cache'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        metadata: { name: `Sahih al-${collection}` },
+        hadith: data
+      };
+    }
+  } catch {}
+
+  // Fallback to full collection
   const res = await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-${collection}.json`, {
     cache: 'force-cache',
   });

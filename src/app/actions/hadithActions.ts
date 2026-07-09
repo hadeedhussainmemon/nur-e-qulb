@@ -73,11 +73,29 @@ export async function fetchHadithsByCategory(collection: string, bookNumber: str
   return unstable_cache(
     async () => {
       try {
-        const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
-        if (!res.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
-        
-        const data = await res.json();
-        
+        // Try fetching book-specific section directly first (e.g. 5KB - 300KB instead of 20MB)
+        const res = await fetch(`${BASE_URL}/eng-${collection}/sections/${bookNumber}.min.json`, { cache: 'force-cache' });
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            metadata: data.metadata,
+            hadiths: data.hadiths,
+          };
+        }
+
+        const resFallback = await fetch(`${BASE_URL}/eng-${collection}/sections/${bookNumber}.json`, { cache: 'force-cache' });
+        if (resFallback.ok) {
+          const data = await resFallback.json();
+          return {
+            metadata: data.metadata,
+            hadiths: data.hadiths,
+          };
+        }
+
+        // Ultimate fallback to loading full collection if section endpoint fails
+        const fullRes = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+        if (!fullRes.ok) throw new Error(`Failed to fetch ${collection} book ${bookNumber}`);
+        const data = await fullRes.json();
         const filteredHadiths = data.hadiths.filter((h: any) => {
           let bNum = h.booknumber;
           if (bNum === undefined || bNum === null) {
@@ -85,7 +103,6 @@ export async function fetchHadithsByCategory(collection: string, bookNumber: str
           }
           return bNum !== undefined && bNum !== null && bNum.toString() === bookNumber.toString();
         });
-     
         return {
           metadata: data.metadata,
           hadiths: filteredHadiths,
@@ -101,6 +118,29 @@ export async function fetchHadithsByCategory(collection: string, bookNumber: str
 }
 
 export async function fetchRandomHadith(collection: string = 'bukhari') {
+  const counts: Record<string, number> = {
+    bukhari: 7563,
+    muslim: 7563,
+    abudawud: 5274,
+    tirmidhi: 3956,
+    nasai: 5758,
+    ibnmajah: 4341
+  };
+  const total = counts[collection] || 4000;
+  const randomNo = Math.floor(Math.random() * total) + 1;
+
+  try {
+    const res = await fetch(`${BASE_URL}/eng-${collection}/${randomNo}.min.json`, { cache: 'force-cache' });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        metadata: { name: `Sahih al-${collection}` },
+        hadith: data,
+      };
+    }
+  } catch {}
+
+  // Fallback to full collection
   try {
     const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
     if (!res.ok) throw new Error('Failed to fetch random hadith');
@@ -123,10 +163,30 @@ export async function fetchSingleHadith(collection: string, hadithNumber: string
   return unstable_cache(
     async () => {
       try {
-        const res = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
-        if (!res.ok) throw new Error('Failed to fetch single hadith');
+        // Try fetching single hadith directly first (e.g. 1KB instead of 20MB)
+        const res = await fetch(`${BASE_URL}/eng-${collection}/${hadithNumber}.min.json`, { cache: 'force-cache' });
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            metadata: {},
+            hadith: data,
+          };
+        }
+
+        const resFallback = await fetch(`${BASE_URL}/eng-${collection}/${hadithNumber}.json`, { cache: 'force-cache' });
+        if (resFallback.ok) {
+          const data = await resFallback.json();
+          return {
+            metadata: {},
+            hadith: data,
+          };
+        }
+
+        // Ultimate fallback to loading full collection
+        const fullRes = await fetch(`${BASE_URL}/eng-${collection}.json`, { cache: 'force-cache' });
+        if (!fullRes.ok) throw new Error('Failed to fetch single hadith');
         
-        const data = await res.json();
+        const data = await fullRes.json();
         const hadith = data.hadiths.find((h: any) => h.hadithnumber.toString() === hadithNumber.toString());
         
         return {

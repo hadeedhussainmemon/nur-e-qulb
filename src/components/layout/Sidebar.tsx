@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { usePWAStore } from '@/store/usePWAStore';
 
 const routes = [
   { label: 'Home',             icon: LayoutDashboard, href: '/',         color: 'text-sky-500'     },
@@ -46,60 +47,23 @@ export function Sidebar() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === 'admin';
 
-  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
-  const [isStandalone, setIsStandalone] = React.useState(false);
+  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
   const [isInstallInfoOpen, setIsInstallInfoOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isIOS, setIsIOS] = React.useState(false);
 
   React.useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-
-    let handleCustomEvent: (e: any) => void;
-
     if (typeof window !== 'undefined') {
-      if ((window as any).deferredPrompt) {
-        setDeferredPrompt((window as any).deferredPrompt);
-      }
-      
-      handleCustomEvent = (e: any) => {
-        setDeferredPrompt(e.detail);
-      };
-      window.addEventListener('deferredpromptready', handleCustomEvent as any);
-
       const userAgent = window.navigator.userAgent || window.navigator.vendor || (window as any).opera;
       const mobileCheck = /android|iphone|ipad|ipod/i.test(userAgent);
       setIsMobile(mobileCheck);
       setIsIOS(/iphone|ipad|ipod/i.test(userAgent));
-
-      if (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone
-      ) {
-        setIsStandalone(true);
-      }
     }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      if (typeof window !== 'undefined' && handleCustomEvent) {
-        window.removeEventListener('deferredpromptready', handleCustomEvent as any);
-      }
-    };
   }, []);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
+      await triggerInstall();
     } else {
       setIsInstallInfoOpen(true);
     }

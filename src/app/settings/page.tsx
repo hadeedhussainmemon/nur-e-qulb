@@ -12,6 +12,7 @@ import { isPeriodActive, togglePeriodState } from '@/app/actions/periodActions';
 import { completeOnboarding } from '@/app/actions/onboardingActions';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { usePWAStore } from '@/store/usePWAStore';
 
 function urlBase64ToUint8Array(base64String: string) {
   const cleanKey = base64String.replace(/^["']|["']$/g, '');
@@ -39,8 +40,7 @@ export default function SettingsPage() {
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
   const [swStatus, setSwStatus] = useState('Checking...');
   const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
   const [isMiui, setIsMiui] = useState(false);
@@ -50,25 +50,7 @@ export default function SettingsPage() {
       setNotificationPermission(Notification.permission);
     }
     if (typeof window !== 'undefined') {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-      setIsStandalone(!!standalone);
       setIsMiui(/MiuiBrowser/i.test(window.navigator.userAgent));
-
-      if ((window as any).deferredPrompt) {
-        setInstallPrompt((window as any).deferredPrompt);
-      }
-
-      const handlePrompt = (e: any) => {
-        setInstallPrompt(e.detail || e);
-      };
-      window.addEventListener('deferredpromptready', handlePrompt as any);
-      window.addEventListener('beforeinstallprompt', handlePrompt as any);
-
-      const handleInstalled = () => {
-        setIsStandalone(true);
-        setInstallPrompt(null);
-      };
-      window.addEventListener('appinstalled', handleInstalled);
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
@@ -84,12 +66,6 @@ export default function SettingsPage() {
         setSwStatus('Unsupported ✗');
         setSwColor('text-red-500 dark:text-red-400');
       }
-
-      return () => {
-        window.removeEventListener('deferredpromptready', handlePrompt as any);
-        window.removeEventListener('beforeinstallprompt', handlePrompt as any);
-        window.removeEventListener('appinstalled', handleInstalled);
-      };
     }
   }, []);
 
@@ -765,18 +741,11 @@ export default function SettingsPage() {
                 Reset Service Worker Cache
               </Button>
 
-              {installPrompt && (
+              {deferredPrompt && (
                 <Button
                   size="sm"
                   onClick={async () => {
-                    if (installPrompt) {
-                      installPrompt.prompt();
-                      const { outcome } = await installPrompt.userChoice;
-                      if (outcome === 'accepted') {
-                        setIsStandalone(true);
-                        setInstallPrompt(null);
-                      }
-                    }
+                    await triggerInstall();
                   }}
                   className="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer"
                 >

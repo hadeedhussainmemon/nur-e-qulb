@@ -11,6 +11,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/notificationActions';
+import { usePWAStore } from '@/store/usePWAStore';
 
 // Helper to format relative time ago
 function formatTimeAgo(dateStr: string) {
@@ -53,8 +54,7 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
   const [showNotifications, setShowNotifications] = React.useState(false);
-  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
-  const [isInstalled, setIsInstalled] = React.useState(false);
+  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
   const notifRef = React.useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
@@ -86,54 +86,8 @@ export function Navbar() {
     return () => clearInterval(interval);
   }, [loadNotifications]);
 
-  // PWA install prompt
-  React.useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    let handleCustomEvent: (e: any) => void;
-    let handleAppInstalled: () => void;
-
-    if (typeof window !== 'undefined') {
-      if ((window as any).deferredPrompt) {
-        setDeferredPrompt((window as any).deferredPrompt);
-      }
-      
-      handleCustomEvent = (e: any) => {
-        setDeferredPrompt(e.detail);
-      };
-      window.addEventListener('deferredpromptready', handleCustomEvent as any);
-
-      handleAppInstalled = () => {
-        setIsInstalled(true);
-        setDeferredPrompt(null);
-      };
-      window.addEventListener('appinstalled', handleAppInstalled);
-
-      // Check if already running as PWA
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        setIsInstalled(true);
-      }
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-      if (typeof window !== 'undefined') {
-        if (handleCustomEvent) window.removeEventListener('deferredpromptready', handleCustomEvent as any);
-        if (handleAppInstalled) window.removeEventListener('appinstalled', handleAppInstalled);
-      }
-    };
-  }, []);
-
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') setIsInstalled(true);
-    setDeferredPrompt(null);
+    await triggerInstall();
   };
 
   // Close notification panel on outside click
@@ -202,7 +156,7 @@ export function Navbar() {
       <div className="flex items-center gap-1 md:gap-2 ml-auto">
 
         {/* PWA Install button — only show if not installed */}
-        {!isInstalled && deferredPrompt && (
+        {!isStandalone && deferredPrompt && (
           <button
             onClick={handleInstall}
             title="Install App"

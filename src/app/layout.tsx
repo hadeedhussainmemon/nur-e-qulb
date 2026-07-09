@@ -85,11 +85,6 @@ export default function RootLayout({
                   }
                 } catch (e) {}
               })();
-              window.addEventListener('beforeinstallprompt', function(e) {
-                e.preventDefault();
-                window.deferredPrompt = e;
-                window.dispatchEvent(new CustomEvent('deferredpromptready', { detail: e }));
-              });
             `,
           }}
         />

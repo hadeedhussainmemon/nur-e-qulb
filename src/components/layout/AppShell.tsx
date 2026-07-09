@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { Loader2, MoonStar } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { usePWAStore } from '@/store/usePWAStore';
 
 const Sidebar = dynamic(() => import('@/components/layout/Sidebar').then(mod => mod.Sidebar), { ssr: true });
 const Navbar = dynamic(() => import('@/components/layout/Navbar').then(mod => mod.Navbar), { ssr: true });
@@ -20,51 +21,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const isSettingsPage = pathname === '/settings';
 
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showAutoPrompt, setShowAutoPrompt] = useState(false);
-  const hasPassed15s = useRef(false);
+  const { setDeferredPrompt, setIsStandalone } = usePWAStore();
   const [isCookieChecked, setIsCookieChecked] = useState(false);
   const [hasCookie, setHasCookie] = useState(false);
 
-  // Sync PWA Install Prompt after 15 seconds
+  // Sync PWA Install Prompt & Standalone Mode
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    if (isStandalone) return;
-
-    const checkAndShow = (prompt: any) => {
-      const dismissed = localStorage.getItem('nurequlb_install_prompt_dismissed');
-      if (!dismissed && prompt && hasPassed15s.current) {
-        setShowAutoPrompt(true);
-      }
+    const checkStandalone = () => {
+      const mode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+      setIsStandalone(!!mode);
     };
 
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
+    checkStandalone();
 
-    const handleCustomEvent = (e: any) => {
-      const promptEvent = e.detail;
-      setDeferredPrompt(promptEvent);
-      checkAndShow(promptEvent);
+    const handlePrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
     };
-    window.addEventListener('deferredpromptready', handleCustomEvent as any);
 
-    const timer = setTimeout(() => {
-      hasPassed15s.current = true;
-      const activePrompt = (window as any).deferredPrompt;
-      if (activePrompt) {
-        setDeferredPrompt(activePrompt);
-        checkAndShow(activePrompt);
-      }
-    }, 15000);
+    const handleInstalled = () => {
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    window.addEventListener('appinstalled', handleInstalled);
 
     return () => {
-      window.removeEventListener('deferredpromptready', handleCustomEvent as any);
-      clearTimeout(timer);
+      window.removeEventListener('beforeinstallprompt', handlePrompt);
+      window.removeEventListener('appinstalled', handleInstalled);
     };
-  }, []);
+  }, [setDeferredPrompt, setIsStandalone]);
 
   // Sync session cookie exist check
   useEffect(() => {
@@ -116,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="h-full relative bg-slate-50 dark:bg-slate-950">
+    <div className="h-full relative bg-slate-50 dark:bg-slate-955">
       {/* Desktop Sidebar — fixed left */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-[80] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/50">
         <Sidebar />
@@ -134,54 +123,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <GlobalAudioPlayer />
       <WazeefahReminderEngine />
       <BottomNav />
-
-      {/* 15-Second PWA Install Auto-Prompt Overlay Sheet */}
-      {showAutoPrompt && (
-        <div className="fixed bottom-20 md:bottom-6 right-0 md:right-6 left-0 md:left-auto z-[999] px-4 md:px-0 animate-in fade-in slide-in-from-bottom-10 duration-500">
-          <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-emerald-500/30 text-white p-5 rounded-2xl md:w-80 shadow-2xl flex flex-col gap-4">
-            <div className="flex items-start justify-between">
-              <div className="flex gap-3 items-center">
-                <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400 shrink-0">
-                  <MoonStar className="w-5 h-5 animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm">Install Nur E Qalbb</h4>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-normal">
-                    Get a standalone, fast, and distraction-free app experience.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  localStorage.setItem('nurequlb_install_prompt_dismissed', 'true');
-                  setShowAutoPrompt(false);
-                }}
-                className="flex-1 py-2 rounded-xl text-xs font-semibold bg-transparent border border-slate-700 hover:bg-white/5 text-slate-300 transition-colors cursor-pointer"
-              >
-                Later
-              </button>
-              <button
-                onClick={async () => {
-                  const prompt = (window as any).deferredPrompt || deferredPrompt;
-                  if (prompt) {
-                    prompt.prompt();
-                    const { outcome } = await prompt.userChoice;
-                    if (outcome === 'accepted') {
-                      localStorage.setItem('nurequlb_install_prompt_dismissed', 'true');
-                    }
-                  }
-                  setShowAutoPrompt(false);
-                }}
-                className="flex-1 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition-colors cursor-pointer border-0"
-              >
-                Install App
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

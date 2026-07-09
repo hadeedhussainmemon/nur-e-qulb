@@ -16,6 +16,7 @@ import { logWazeefahProgress } from '@/app/actions/userWazeefahActions';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { ShareCard } from '@/components/quran/ShareCard';
+import { usePWAStore } from '@/store/usePWAStore';
 
 const fetcher = (url: string) => fetch(url, { credentials: 'include' }).then((res) => res.json());
 
@@ -94,8 +95,7 @@ export default function Dashboard() {
   const [hijriDate, setHijriDate] = useState<string>('');
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
   const [mounted, setMounted] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
   const [isCookieChecked, setIsCookieChecked] = useState(false);
   const [hasCookie, setHasCookie] = useState(false);
 
@@ -106,48 +106,15 @@ export default function Dashboard() {
         setNotificationPermission(Notification.permission);
       }
 
-      const standaloneQuery = window.matchMedia('(display-mode: standalone)');
-      if (standaloneQuery.matches || (window.navigator as any).standalone) {
-        setIsStandalone(true);
-      }
-
-      if ((window as any).deferredPrompt) {
-        setInstallPrompt((window as any).deferredPrompt);
-      }
-
-      const handlePrompt = (e: any) => {
-        setInstallPrompt(e.detail || e);
-      };
-      window.addEventListener('deferredpromptready', handlePrompt as any);
-      window.addEventListener('beforeinstallprompt', handlePrompt as any);
-
-      const handleInstalled = () => {
-        setIsStandalone(true);
-        setInstallPrompt(null);
-      };
-      window.addEventListener('appinstalled', handleInstalled);
-
       const cookies = document.cookie;
       const exists = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
       setHasCookie(exists);
       setIsCookieChecked(true);
-
-      return () => {
-        window.removeEventListener('deferredpromptready', handlePrompt as any);
-        window.removeEventListener('beforeinstallprompt', handlePrompt as any);
-        window.removeEventListener('appinstalled', handleInstalled);
-      };
     }
   }, []);
 
   const handleInstallApp = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsStandalone(true);
-      setInstallPrompt(null);
-    }
+    await triggerInstall();
   };
 
   const handleRequestPermission = async () => {
@@ -443,7 +410,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto shrink-0 mt-2 md:mt-0">
-            {installPrompt ? (
+            {deferredPrompt ? (
               <button
                 onClick={handleInstallApp}
                 className="w-full md:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 border-0 flex items-center justify-center gap-1.5"

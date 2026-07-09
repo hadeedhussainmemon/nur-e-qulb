@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Compass as CompassIcon, MapPin, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,7 +31,7 @@ export function QiblaCompass() {
     setQiblaAngle(qibla);
   };
 
-  const handleOrientation = (event: DeviceOrientationEvent) => {
+  const handleOrientation = useCallback((event: DeviceOrientationEvent) => {
     let compassHeading = event.alpha;
     
     // Check for iOS webkitCompassHeading
@@ -47,7 +47,7 @@ export function QiblaCompass() {
     if (compassHeading !== null) {
       setHeading(compassHeading);
     }
-  };
+  }, []);
 
   const startCompass = async () => {
     setError(null);
@@ -104,7 +104,7 @@ export function QiblaCompass() {
       window.removeEventListener('deviceorientationabsolute', handleOrientation as any, true);
       window.removeEventListener('deviceorientation', handleOrientation as any, true);
     };
-  }, []);
+  }, [handleOrientation]);
 
   // Calculate rotation difference
   const compassRotation = -heading;

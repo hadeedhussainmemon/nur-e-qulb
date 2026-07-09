@@ -70,20 +70,30 @@ function getDaysInMonth(year: number, month: number, hijriAdjustment: number): C
   return days;
 }
 
+// Re-usable formatters to prevent memory leaks and slow loops
+const formatterHijriLong = typeof Intl !== 'undefined'
+  ? new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  : null;
+
+const formatterHijriNum = typeof Intl !== 'undefined'
+  ? new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      month: 'numeric'
+    })
+  : null;
+
 function getHijriDate(date: Date, adjustment: number) {
   const adjusted = new Date(date);
   adjusted.setDate(adjusted.getDate() + adjustment);
   try {
-    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-    const formatterNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-      month: 'numeric'
-    });
-    const parts = formatter.formatToParts(adjusted);
-    const monthNumStr = formatterNum.format(adjusted);
+    if (!formatterHijriLong || !formatterHijriNum) {
+      throw new Error('Intl not supported');
+    }
+    const parts = formatterHijriLong.formatToParts(adjusted);
+    const monthNumStr = formatterHijriNum.format(adjusted);
     const monthNum = parseInt(monthNumStr, 10);
 
     let day = '';

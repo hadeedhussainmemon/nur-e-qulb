@@ -28,7 +28,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Nur E Qalbb",
   description: "An elegant, premium, distraction-free Islamic productivity platform.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/logo.png",
     apple: "/icons/icon-192x192.png",

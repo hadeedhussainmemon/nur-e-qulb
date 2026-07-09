@@ -696,6 +696,15 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {swStatus.includes('Active') && typeof window !== 'undefined' && !(window as any).deferredPrompt && (
+              <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-1">💡 Chrome PWA Installation Info:</span>
+                Your service worker is active and icons are verified! If you see <strong>"Not Loaded / Cooldown"</strong>, Chrome is restricting the automatic popup because of its spam-protection heuristics (cooldown).
+                <br /><br />
+                You can still install the app immediately by tapping Chrome's menu (the <strong>three dots ⋮</strong> in the top right corner) and selecting <strong>"Install app"</strong>.
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"

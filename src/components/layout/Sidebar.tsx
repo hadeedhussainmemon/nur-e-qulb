@@ -154,7 +154,7 @@ export function Sidebar() {
               onClick={handleInstallClick}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border-0"
             >
-              <Download className="w-3.5 h-3.5" /> {deferredPrompt ? 'Install Now' : (isMobile ? 'Install Guide' : 'Installation Guide')}
+              <Download className="w-3.5 h-3.5" /> Install App
             </button>
           )}
 

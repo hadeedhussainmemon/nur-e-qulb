@@ -40,7 +40,7 @@ export default function SettingsPage() {
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
-  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
+  const { deferredPrompt, isStandalone, isInstalled, triggerInstall } = usePWAStore();
   const [swStatus, setSwStatus] = useState('Checking...');
   const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
   const [isMiui, setIsMiui] = useState(false);
@@ -698,36 +698,36 @@ export default function SettingsPage() {
                   /manifest.json
                 </span>
               </div>
+
+              {isMiui && !isInstalled && (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed font-semibold">
+                  ⚠️ Mi Browser (Xiaomi) detected!
+                  <br /><br />
+                  Xiaomi's default Mi Browser does not support standard PWA installations. The "Install App" triggers require a standard browser.
+                  <br /><br />
+                  <strong>How to fix:</strong> Please open <strong>Google Chrome</strong> on your phone, paste the website URL <strong>https://nur-e-qulb.vercel.app</strong>, and you will be able to install it instantly!
+                </div>
+              )}
+
+              {isFirefox && !isInstalled && (
+                <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed font-semibold">
+                  ℹ️ Firefox Browser detected!
+                  <br /><br />
+                  Firefox supports PWA installation on Android (via the browser menu three-dots or plus icon in the URL bar).
+                  <br /><br />
+                  Note: Desktop Firefox has deprecated standalone PWA installs. For a standalone window app on desktop, please open this link in Google Chrome or Microsoft Edge.
+                </div>
+              )}
+
+              {!isMiui && !isFirefox && !isInstalled && swStatus.includes('Active') && !deferredPrompt && (
+                <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-1">💡 Chrome PWA Installation Info:</span>
+                  Your service worker is active and icons are verified! If you see <strong>"Not Loaded / Cooldown"</strong>, Chrome is restricting the automatic popup because of its spam-protection heuristics (cooldown).
+                  <br /><br />
+                  You can still install the app immediately by tapping Chrome's menu (the <strong>three dots ⋮</strong> in the top right corner) and selecting <strong>"Install app"</strong>.
+                </div>
+              )}
             </div>
-
-            {isMiui && (
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed font-semibold">
-                ⚠️ Mi Browser (Xiaomi) detected!
-                <br /><br />
-                Xiaomi's default Mi Browser does not support standard PWA installations. The 15-second popup and "Install App" triggers require a standard browser.
-                <br /><br />
-                <strong>How to fix:</strong> Please open <strong>Google Chrome</strong> on your phone, paste the website URL <strong>https://nur-e-qulb.vercel.app</strong>, and you will be able to install it instantly!
-              </div>
-            )}
-
-            {isFirefox && (
-              <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed font-semibold">
-                ℹ️ Firefox Browser detected!
-                <br /><br />
-                Firefox supports PWA installation on Android (via the browser menu three-dots or plus icon in the URL bar).
-                <br /><br />
-                Note: Desktop Firefox has deprecated standalone PWA installs. For a standalone window app on desktop, please open this link in Google Chrome or Microsoft Edge.
-              </div>
-            )}
-
-            {!isMiui && !isFirefox && swStatus.includes('Active') && !deferredPrompt && (
-              <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-1">💡 Chrome PWA Installation Info:</span>
-                Your service worker is active and icons are verified! If you see <strong>"Not Loaded / Cooldown"</strong>, Chrome is restricting the automatic popup because of its spam-protection heuristics (cooldown).
-                <br /><br />
-                You can still install the app immediately by tapping Chrome's menu (the <strong>three dots ⋮</strong> in the top right corner) and selecting <strong>"Install app"</strong>.
-              </div>
-            )}
 
             <div className="flex gap-2 pt-2">
               <Button

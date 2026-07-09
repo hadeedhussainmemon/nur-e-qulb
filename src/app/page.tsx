@@ -95,7 +95,7 @@ export default function Dashboard() {
   const [hijriDate, setHijriDate] = useState<string>('');
   const [notificationPermission, setNotificationPermission] = useState<string>('default');
   const [mounted, setMounted] = useState(false);
-  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
+  const { deferredPrompt, isStandalone, isInstalled, triggerInstall } = usePWAStore();
   const [isCookieChecked, setIsCookieChecked] = useState(false);
   const [hasCookie, setHasCookie] = useState(false);
   const [isFirefox, setIsFirefox] = useState(false);
@@ -399,7 +399,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 pb-24 max-w-6xl mx-auto px-1 md:px-4">
       {/* PWA Prominent Install Banner */}
-      {mounted && !isStandalone && (
+      {mounted && !isInstalled && !isStandalone && (
         <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/20 text-emerald-900 dark:text-emerald-300 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
           <div className="flex gap-4">
             <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 flex items-center justify-center">

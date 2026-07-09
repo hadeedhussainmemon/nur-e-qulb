@@ -47,7 +47,7 @@ export function Sidebar() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === 'admin';
 
-  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
+  const { deferredPrompt, isStandalone, isInstalled, triggerInstall } = usePWAStore();
   const [isInstallInfoOpen, setIsInstallInfoOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isIOS, setIsIOS] = React.useState(false);
@@ -115,7 +115,7 @@ export function Sidebar() {
 
         <div className="shrink-0 space-y-2 mt-auto pt-2">
           {/* Install App Button */}
-          {!isStandalone && (
+          {!isInstalled && !isStandalone && (
             <button
               onClick={handleInstallClick}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer border-0"

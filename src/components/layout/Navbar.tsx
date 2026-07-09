@@ -54,7 +54,7 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const { data: session } = useSession();
   const [showNotifications, setShowNotifications] = React.useState(false);
-  const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
+  const { deferredPrompt, isStandalone, isInstalled, triggerInstall } = usePWAStore();
   const notifRef = React.useRef<HTMLDivElement>(null);
 
   const pathname = usePathname();
@@ -156,7 +156,7 @@ export function Navbar() {
       <div className="flex items-center gap-1 md:gap-2 ml-auto">
 
         {/* PWA Install button — only show if not installed */}
-        {!isStandalone && deferredPrompt && (
+        {!isInstalled && !isStandalone && deferredPrompt && (
           <button
             onClick={handleInstall}
             title="Install App"

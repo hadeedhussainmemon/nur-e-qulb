@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/register';
   const isSettingsPage = pathname === '/settings';
 
-  const { setDeferredPrompt, setIsStandalone } = usePWAStore();
+  const { setDeferredPrompt, setIsStandalone, setIsInstalled } = usePWAStore();
   const [isCookieChecked, setIsCookieChecked] = useState(false);
   const [hasCookie, setHasCookie] = useState(false);
 
@@ -36,13 +36,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     checkStandalone();
 
+    const wasInstalled = localStorage.getItem('nurequlb_pwa_installed') === 'true';
+    if (wasInstalled) {
+      setIsInstalled(true);
+    }
+
     const handlePrompt = (e: any) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      const alreadyInstalled = localStorage.getItem('nurequlb_pwa_installed') === 'true';
+      if (!alreadyInstalled) {
+        setDeferredPrompt(e);
+      }
     };
 
     const handleInstalled = () => {
       setIsStandalone(true);
+      setIsInstalled(true);
       setDeferredPrompt(null);
     };
 
@@ -53,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('beforeinstallprompt', handlePrompt);
       window.removeEventListener('appinstalled', handleInstalled);
     };
-  }, [setDeferredPrompt, setIsStandalone]);
+  }, [setDeferredPrompt, setIsStandalone, setIsInstalled]);
 
   // Sync session cookie exist check
   useEffect(() => {

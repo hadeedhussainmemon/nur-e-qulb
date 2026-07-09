@@ -97,6 +97,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, isAuthPage, isSettingsPage, router]);
 
+  // Fade out and remove PWA Splash Screen once session load status resolves
+  useEffect(() => {
+    if (status !== 'loading') {
+      const splash = document.getElementById('pwa-splash');
+      if (splash) {
+        splash.style.opacity = '0';
+        const timer = setTimeout(() => {
+          splash.remove();
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [status]);
+
   if (status === 'loading' && !session && (!isCookieChecked || hasCookie)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">

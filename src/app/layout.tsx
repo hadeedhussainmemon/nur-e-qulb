@@ -83,13 +83,37 @@ export default function RootLayout({
                   if (theme && theme !== 'default') {
                     document.documentElement.classList.add('theme-' + theme);
                   }
+                  
+                  var cookies = document.cookie;
+                  var hasSession = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
+                  if (!hasSession && window.location.pathname === '/') {
+                    document.documentElement.classList.add('hide-splash');
+                  }
                 } catch (e) {}
               })();
             `,
           }}
         />
+        <style dangerouslySetInnerHTML={{ __html: `
+          html.hide-splash #pwa-splash {
+            display: none !important;
+            pointer-events: none !important;
+          }
+          @keyframes pwa-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.96); }
+          }
+        ` }} />
       </head>
       <body className={`${inter.variable} ${amiri.variable} ${outfit.variable} antialiased font-sans`}>
+        {/* PWA Splash Loader to prevent hydration flash for logged in users */}
+        <div id="pwa-splash" style={{ position: 'fixed', inset: 0, background: '#020617', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 99999, transition: 'opacity 0.4s ease-in-out' }}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <img src="/logo.png" alt="Nur E Qalbb Logo" style={{ width: '75px', height: '75px', objectFit: 'contain', animation: 'pwa-pulse 2s infinite ease-in-out' }} />
+            <div style={{ fontFamily: 'var(--font-outfit), sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#f8fafc', letterSpacing: '0.05em' }}>NUR E QALBB</div>
+          </div>
+        </div>
+
         <SessionProvider>
           <SWRProvider>
             <ThemeSyncEngine />

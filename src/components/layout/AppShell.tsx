@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (status === 'loading' && !session && (!isCookieChecked || hasCookie)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-955">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
@@ -98,14 +98,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isAuthPage || (pathname === '/' && (status === 'unauthenticated' || (status === 'loading' && isCookieChecked && !hasCookie)))) {
     return (
-      <main className="min-h-screen bg-white dark:bg-slate-955">
+      <main className="min-h-screen bg-white dark:bg-slate-950">
         {children}
       </main>
     );
   }
 
   return (
-    <div className="h-full relative bg-slate-50 dark:bg-slate-955">
+    <div className="h-full relative bg-slate-50 dark:bg-slate-950">
       {/* Desktop Sidebar — fixed left */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-[80] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/50">
         <Sidebar />

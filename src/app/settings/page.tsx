@@ -44,6 +44,7 @@ export default function SettingsPage() {
   const [swStatus, setSwStatus] = useState('Checking...');
   const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
   const [isMiui, setIsMiui] = useState(false);
+  const [isFirefox, setIsFirefox] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -51,6 +52,7 @@ export default function SettingsPage() {
     }
     if (typeof window !== 'undefined') {
       setIsMiui(/MiuiBrowser/i.test(window.navigator.userAgent));
+      setIsFirefox(/Firefox|FxiOS/i.test(window.navigator.userAgent));
 
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
@@ -687,7 +689,7 @@ export default function SettingsPage() {
               <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850">
                 <span className="text-muted-foreground block font-medium">PWA Install Prompt</span>
                 <span className="font-bold text-sm block mt-1 text-slate-800 dark:text-slate-200">
-                  {typeof window !== 'undefined' && (window as any).deferredPrompt ? 'Ready to Install ✓' : 'Not Loaded / Cooldown ✗'}
+                  {deferredPrompt ? 'Ready to Install ✓' : 'Not Loaded / Cooldown ✗'}
                 </span>
               </div>
               <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-850 col-span-2">
@@ -708,7 +710,17 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {!isMiui && swStatus.includes('Active') && typeof window !== 'undefined' && !(window as any).deferredPrompt && (
+            {isFirefox && (
+              <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed font-semibold">
+                ℹ️ Firefox Browser detected!
+                <br /><br />
+                Firefox supports PWA installation on Android (via the browser menu three-dots or plus icon in the URL bar).
+                <br /><br />
+                Note: Desktop Firefox has deprecated standalone PWA installs. For a standalone window app on desktop, please open this link in Google Chrome or Microsoft Edge.
+              </div>
+            )}
+
+            {!isMiui && !isFirefox && swStatus.includes('Active') && !deferredPrompt && (
               <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl text-[11px] text-muted-foreground leading-relaxed">
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 block mb-1">💡 Chrome PWA Installation Info:</span>
                 Your service worker is active and icons are verified! If you see <strong>"Not Loaded / Cooldown"</strong>, Chrome is restricting the automatic popup because of its spam-protection heuristics (cooldown).

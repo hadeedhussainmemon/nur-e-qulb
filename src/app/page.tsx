@@ -98,6 +98,7 @@ export default function Dashboard() {
   const { deferredPrompt, isStandalone, triggerInstall } = usePWAStore();
   const [isCookieChecked, setIsCookieChecked] = useState(false);
   const [hasCookie, setHasCookie] = useState(false);
+  const [isFirefox, setIsFirefox] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -105,6 +106,8 @@ export default function Dashboard() {
       if ('Notification' in window) {
         setNotificationPermission(Notification.permission);
       }
+
+      setIsFirefox(/Firefox|FxiOS/i.test(window.navigator.userAgent));
 
       const cookies = document.cookie;
       const exists = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
@@ -340,7 +343,7 @@ export default function Dashboard() {
 
   if (status === 'loading' && (!isCookieChecked || hasCookie)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-955">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
@@ -419,7 +422,15 @@ export default function Dashboard() {
               </button>
             ) : (
               <div className="text-[11px] bg-slate-500/10 dark:bg-slate-500/20 px-4 py-2.5 rounded-xl text-slate-650 dark:text-slate-300 font-semibold leading-relaxed w-full">
-                💡 <strong>Quick Install:</strong> Open browser menu (three dots <strong className="font-mono">⋮</strong> in Chrome, or <strong>Share</strong> button on iOS) and select <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.
+                {isFirefox ? (
+                  <span>
+                    💡 <strong>Firefox:</strong> Tap browser menu (three dots <strong className="font-mono">⋮</strong>) and select <strong>"Install"</strong> (on Android), or use Google Chrome/Edge on desktop for standalone mode.
+                  </span>
+                ) : (
+                  <span>
+                    💡 <strong>Quick Install:</strong> Open browser menu (three dots <strong className="font-mono">⋮</strong> in Chrome/Edge, or <strong>Share</strong> button on iOS) and select <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.
+                  </span>
+                )}
               </div>
             )}
           </div>

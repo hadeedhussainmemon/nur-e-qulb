@@ -51,6 +51,7 @@ export function Sidebar() {
   const [isInstallInfoOpen, setIsInstallInfoOpen] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isIOS, setIsIOS] = React.useState(false);
+  const [isFirefox, setIsFirefox] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -58,6 +59,7 @@ export function Sidebar() {
       const mobileCheck = /android|iphone|ipad|ipod/i.test(userAgent);
       setIsMobile(mobileCheck);
       setIsIOS(/iphone|ipad|ipod/i.test(userAgent));
+      setIsFirefox(/Firefox|FxiOS/i.test(userAgent));
     }
   }, []);
 
@@ -72,8 +74,8 @@ export function Sidebar() {
   const visibleRoutes = React.useMemo(() => {
     if (isAdmin) {
       return [
+        { label: 'Admin Panel', icon: ShieldAlert, href: '/admin', color: 'text-red-500' },
         ...routes,
-        { label: 'Admin Console', icon: ShieldAlert, href: '/admin', color: 'text-rose-500 font-bold' }
       ];
     }
     return routes;

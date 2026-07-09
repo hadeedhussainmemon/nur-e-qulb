@@ -23,6 +23,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showAutoPrompt, setShowAutoPrompt] = useState(false);
   const hasPassed15s = useRef(false);
+  const [isCookieChecked, setIsCookieChecked] = useState(false);
+  const [hasCookie, setHasCookie] = useState(false);
 
   // Sync PWA Install Prompt after 15 seconds
   useEffect(() => {
@@ -64,6 +66,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Sync session cookie exist check
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cookies = document.cookie;
+      const exists = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
+      setHasCookie(exists);
+      setIsCookieChecked(true);
+    }
+  }, []);
+
   // Register Service Worker for PWA
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -87,17 +99,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [status, session, isAuthPage, isSettingsPage, router]);
 
-  if (status === 'loading' && !session) {
+  if (status === 'loading' && !session && (!isCookieChecked || hasCookie)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-955">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
   }
 
-  if (isAuthPage || (pathname === '/' && status === 'unauthenticated')) {
+  if (isAuthPage || (pathname === '/' && (status === 'unauthenticated' || (status === 'loading' && isCookieChecked && !hasCookie)))) {
     return (
-      <main className="min-h-screen bg-white dark:bg-slate-950">
+      <main className="min-h-screen bg-white dark:bg-slate-955">
         {children}
       </main>
     );

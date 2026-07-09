@@ -96,6 +96,8 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isCookieChecked, setIsCookieChecked] = useState(false);
+  const [hasCookie, setHasCookie] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -124,6 +126,11 @@ export default function Dashboard() {
         setInstallPrompt(null);
       };
       window.addEventListener('appinstalled', handleInstalled);
+
+      const cookies = document.cookie;
+      const exists = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
+      setHasCookie(exists);
+      setIsCookieChecked(true);
 
       return () => {
         window.removeEventListener('deferredpromptready', handlePrompt as any);
@@ -364,15 +371,15 @@ export default function Dashboard() {
     }
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' && (!isCookieChecked || hasCookie)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-955">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
       </div>
     );
   }
 
-  if (status === 'unauthenticated') {
+  if (status === 'unauthenticated' || (status === 'loading' && isCookieChecked && !hasCookie)) {
     return <PublicHome />;
   }
 

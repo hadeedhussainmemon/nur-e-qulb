@@ -107,6 +107,9 @@ export default function RootLayout({
             opacity: 1;
             visibility: visible;
           }
+          #pwa-splash img {
+            color: transparent;
+          }
           html.hide-splash #pwa-splash {
             opacity: 0 !important;
             visibility: hidden !important;

@@ -106,14 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('nurequlb_logged_in');
       }
 
-      const splash = document.getElementById('pwa-splash');
-      if (splash) {
-        splash.style.opacity = '0';
-        const timer = setTimeout(() => {
-          splash.remove();
-        }, 400);
-        return () => clearTimeout(timer);
-      }
+      document.documentElement.classList.add('hide-splash');
     }
   }, [status]);
 

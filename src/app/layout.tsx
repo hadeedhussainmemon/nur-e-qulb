@@ -94,8 +94,22 @@ export default function RootLayout({
           }}
         />
         <style dangerouslySetInnerHTML={{ __html: `
+          #pwa-splash {
+            position: fixed;
+            inset: 0;
+            background: #020617;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+            opacity: 1;
+            visibility: visible;
+          }
           html.hide-splash #pwa-splash {
-            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
             pointer-events: none !important;
           }
           @keyframes pwa-pulse {
@@ -106,7 +120,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${amiri.variable} ${outfit.variable} antialiased font-sans`}>
         {/* PWA Splash Loader to prevent hydration flash for logged in users */}
-        <div id="pwa-splash" style={{ position: 'fixed', inset: 0, background: '#020617', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 99999, transition: 'opacity 0.4s ease-in-out' }}>
+        <div id="pwa-splash">
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <img src="/logo.png" alt="Nur E Qalbb Logo" style={{ width: '75px', height: '75px', objectFit: 'contain', animation: 'pwa-pulse 2s infinite ease-in-out' }} />
             <div style={{ fontFamily: 'var(--font-outfit), sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#f8fafc', letterSpacing: '0.05em' }}>NUR E QALBB</div>

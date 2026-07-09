@@ -100,6 +100,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Fade out and remove PWA Splash Screen once session load status resolves
   useEffect(() => {
     if (status !== 'loading') {
+      if (status === 'authenticated') {
+        localStorage.setItem('nurequlb_logged_in', 'true');
+      } else {
+        localStorage.removeItem('nurequlb_logged_in');
+      }
+
       const splash = document.getElementById('pwa-splash');
       if (splash) {
         splash.style.opacity = '0';

@@ -84,9 +84,8 @@ export default function RootLayout({
                     document.documentElement.classList.add('theme-' + theme);
                   }
                   
-                  var cookies = document.cookie;
-                  var hasSession = cookies.includes('next-auth.session-token') || cookies.includes('__Secure-next-auth.session-token');
-                  if (!hasSession && window.location.pathname === '/') {
+                  var loggedIn = localStorage.getItem('nurequlb_logged_in') === 'true';
+                  if (!loggedIn && window.location.pathname === '/') {
                     document.documentElement.classList.add('hide-splash');
                   }
                 } catch (e) {}

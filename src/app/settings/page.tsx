@@ -14,8 +14,9 @@ import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
+  const cleanKey = base64String.replace(/^["']|["']$/g, '');
+  const padding = '='.repeat((4 - (cleanKey.length % 4)) % 4);
+  const base64 = (cleanKey + padding)
     .replace(/\-/g, '+')
     .replace(/_/g, '/');
 
@@ -37,8 +38,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [notificationPermission, setNotificationPermission] = useState<string>('granted');
+  const [notificationPermission, setNotificationPermission] = useState<string>('default');
   const [isStandalone, setIsStandalone] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [swStatus, setSwStatus] = useState('Checking...');
   const [swColor, setSwColor] = useState('text-slate-800 dark:text-slate-200');
   const [isMiui, setIsMiui] = useState(false);
@@ -52,20 +54,42 @@ export default function SettingsPage() {
       setIsStandalone(!!standalone);
       setIsMiui(/MiuiBrowser/i.test(window.navigator.userAgent));
 
+      if ((window as any).deferredPrompt) {
+        setInstallPrompt((window as any).deferredPrompt);
+      }
+
+      const handlePrompt = (e: any) => {
+        setInstallPrompt(e.detail || e);
+      };
+      window.addEventListener('deferredpromptready', handlePrompt as any);
+      window.addEventListener('beforeinstallprompt', handlePrompt as any);
+
+      const handleInstalled = () => {
+        setIsStandalone(true);
+        setInstallPrompt(null);
+      };
+      window.addEventListener('appinstalled', handleInstalled);
+
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then((reg) => {
           if (reg) {
             setSwStatus(reg.active ? 'Active ✓' : 'Installing/Waiting...');
-            setSwColor(reg.active ? 'text-emerald-505 dark:text-emerald-400' : 'text-amber-505 dark:text-amber-400');
+            setSwColor(reg.active ? 'text-emerald-500 dark:text-emerald-400' : 'text-amber-500 dark:text-amber-400');
           } else {
             setSwStatus('None Found ✗');
-            setSwColor('text-red-505 dark:text-red-400');
+            setSwColor('text-red-500 dark:text-red-400');
           }
         });
       } else {
         setSwStatus('Unsupported ✗');
-        setSwColor('text-red-505 dark:text-red-400');
+        setSwColor('text-red-500 dark:text-red-400');
       }
+
+      return () => {
+        window.removeEventListener('deferredpromptready', handlePrompt as any);
+        window.removeEventListener('beforeinstallprompt', handlePrompt as any);
+        window.removeEventListener('appinstalled', handleInstalled);
+      };
     }
   }, []);
 
@@ -741,13 +765,17 @@ export default function SettingsPage() {
                 Reset Service Worker Cache
               </Button>
 
-              {typeof window !== 'undefined' && (window as any).deferredPrompt && (
+              {installPrompt && (
                 <Button
                   size="sm"
-                  onClick={() => {
-                    const prompt = (window as any).deferredPrompt;
-                    if (prompt) {
-                      prompt.prompt();
+                  onClick={async () => {
+                    if (installPrompt) {
+                      installPrompt.prompt();
+                      const { outcome } = await installPrompt.userChoice;
+                      if (outcome === 'accepted') {
+                        setIsStandalone(true);
+                        setInstallPrompt(null);
+                      }
                     }
                   }}
                   className="text-xs bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer"

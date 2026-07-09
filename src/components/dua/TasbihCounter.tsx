@@ -130,7 +130,14 @@ export function TasbihCounter() {
         </h2>
 
         {/* The Tap Area */}
-        <div className="relative w-64 h-64 mx-auto cursor-pointer touch-none select-none" onClick={handleTap}>
+        <div 
+          className="relative w-64 h-64 mx-auto cursor-pointer touch-none select-none" 
+          onClick={handleTap}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            handleTap();
+          }}
+        >
           {/* Progress Circle SVG */}
           <svg className="w-full h-full transform -rotate-90 pointer-events-none" viewBox="0 0 100 100">
             {/* Track */}

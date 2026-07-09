@@ -45,7 +45,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/api/') || 
     url.pathname.startsWith('/_next/') || 
     url.pathname.includes('/auth/') ||
-    url.hostname.includes('localhost') ||
     url.hostname.includes('vercel.live')
   ) {
     return;

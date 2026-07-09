@@ -129,3 +129,37 @@ export async function createComment(postId: string, content: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function likePost(postId: string) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) throw new Error('Unauthorized');
+
+    await connectToDatabase();
+    const user = await User.findOne({ email: session.user.email }).lean();
+    if (!user) throw new Error('User not found');
+
+    const post = await Post.findById(postId);
+    if (!post) throw new Error('Post not found');
+
+    const hasLiked = post.likedBy && post.likedBy.some(id => id.toString() === user._id.toString());
+
+    if (hasLiked) {
+      post.likedBy = post.likedBy.filter(id => id.toString() !== user._id.toString());
+      post.likesCount = Math.max(0, post.likesCount - 1);
+    } else {
+      if (!post.likedBy) post.likedBy = [];
+      post.likedBy.push(user._id as any);
+      post.likesCount += 1;
+    }
+
+    await post.save();
+    
+    revalidatePath('/community');
+    return { success: true, likesCount: post.likesCount, hasLiked: !hasLiked };
+  } catch (error: any) {
+    console.error('Failed to toggle like:', error);
+    return { success: false, error: error.message };
+  }
+}
+

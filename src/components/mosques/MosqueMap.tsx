@@ -37,7 +37,9 @@ const userIcon = new L.Icon({
 // Component to dynamically update map view
 function ChangeView({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
-  map.setView(center, zoom);
+  React.useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
   return null;
 }
 

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getPosts, createPost, createComment, getPostWithComments } from '@/app/actions/communityActions';
+import { getPosts, createPost, createComment, getPostWithComments, likePost } from '@/app/actions/communityActions';
 import { useSession } from 'next-auth/react';
 import { Loader2, MessageCircle, Heart, PlusCircle, Pin, ArrowLeft, Send } from 'lucide-react';
 
 export default function CommunityPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
@@ -23,6 +23,54 @@ export default function CommunityPage() {
     const res = await getPosts(1, 20, category);
     if (res.success) setPosts(res.posts);
     setLoading(false);
+  };
+
+  const handleLikePost = async (e: React.MouseEvent, postId: string) => {
+    e.stopPropagation();
+    if (status !== 'authenticated') return alert('Must be logged in to like posts.');
+    
+    const userId = (session?.user as any)?.id;
+    
+    // Optimistic Update
+    setPosts(prev => prev.map(p => {
+      if (p._id === postId) {
+        const hasLiked = p.likedBy && p.likedBy.includes(userId);
+        const newLikedBy = hasLiked
+          ? p.likedBy.filter((id: string) => id !== userId)
+          : [...(p.likedBy || []), userId];
+        return {
+          ...p,
+          likedBy: newLikedBy,
+          likesCount: hasLiked ? Math.max(0, p.likesCount - 1) : p.likesCount + 1
+        };
+      }
+      return p;
+    }));
+
+    if (activePost && activePost._id === postId) {
+      setActivePost((prev: any) => {
+        if (!prev) return null;
+        const hasLiked = prev.likedBy && prev.likedBy.includes(userId);
+        const newLikedBy = hasLiked
+          ? prev.likedBy.filter((id: string) => id !== userId)
+          : [...(prev.likedBy || []), userId];
+        return {
+          ...prev,
+          likedBy: newLikedBy,
+          likesCount: hasLiked ? Math.max(0, prev.likesCount - 1) : prev.likesCount + 1
+        };
+      });
+    }
+
+    const res = await likePost(postId);
+    if (res.success) {
+      if (activePost && activePost._id === postId) {
+        loadSinglePost(postId);
+      } else {
+        const freshPosts = await getPosts(1, 20, category);
+        if (freshPosts.success) setPosts(freshPosts.posts);
+      }
+    }
   };
 
   useEffect(() => {
@@ -91,8 +139,22 @@ export default function CommunityPage() {
               </div>
               <h1 className="text-2xl font-bold font-outfit mb-4">{activePost.title}</h1>
               <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{activePost.content}</p>
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-sm text-muted-foreground flex items-center gap-2">
-                Posted by <span className="font-semibold text-slate-900 dark:text-white">{activePost.userId?.name || 'Anonymous'}</span>
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Posted by <span className="font-semibold text-slate-900 dark:text-white">{activePost.userId?.name || 'Anonymous'}</span>
+                </span>
+                
+                <button
+                  onClick={(e) => handleLikePost(e, activePost._id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer ${
+                    activePost.likedBy?.includes((session?.user as any)?.id)
+                      ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450'
+                      : 'hover:bg-slate-50 border-slate-200 text-muted-foreground'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${activePost.likedBy?.includes((session?.user as any)?.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <span>Upvote ({activePost.likesCount || 0})</span>
+                </button>
               </div>
             </div>
 
@@ -222,6 +284,15 @@ export default function CommunityPage() {
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="font-medium">By {post.userId?.name || 'Anonymous'}</span>
                 <div className="flex items-center gap-4">
+                  <button
+                    onClick={(e) => handleLikePost(e, post._id)}
+                    className={`flex items-center gap-1 hover:text-rose-500 transition cursor-pointer ${
+                      post.likedBy?.includes((session?.user as any)?.id) ? 'text-rose-500 font-semibold' : ''
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${post.likedBy?.includes((session?.user as any)?.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    <span>{post.likesCount || 0}</span>
+                  </button>
                   <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {post.commentsCount}</span>
                 </div>
               </div>

@@ -100,10 +100,9 @@ export default function FastingTrackerPage() {
     'Ramadan', 'Shawwal', 'Dhu al-Qadah', 'Dhu al-Hijjah'
   ];
 
-  // 3. Get white days of the current Hijri month that are today or in the future
+  // 3. Get white days that are today or in the future
   const getWhiteDays = () => {
     const current = new Date();
-    const currentHijri = getHijriDate(current);
     const days: { date: Date; type: string; label: string }[] = [];
     
     const todayStart = new Date();
@@ -118,8 +117,6 @@ export default function FastingTrackerPage() {
       checkStart.setHours(0,0,0,0);
 
       if (
-        hd.month === currentHijri.month && 
-        hd.year === currentHijri.year && 
         (hd.day === 13 || hd.day === 14 || hd.day === 15) &&
         checkStart.getTime() >= todayStart.getTime()
       ) {

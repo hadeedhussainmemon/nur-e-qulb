@@ -8,6 +8,7 @@ export interface IPost extends Document {
   tags: string[];
   likesCount: number;
   commentsCount: number;
+  likedBy: mongoose.Types.ObjectId[];
   isPinned: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +27,7 @@ const PostSchema = new Schema<IPost>(
     tags: [{ type: String, trim: true, lowercase: true }],
     likesCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
+    likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     isPinned: { type: Boolean, default: false },
   },
   { timestamps: true }

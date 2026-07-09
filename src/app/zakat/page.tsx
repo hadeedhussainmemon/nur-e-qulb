@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { calculateZakat, saveZakatRecord, getZakatHistory, ZakatInputs } from '@/app/actions/zakatActions';
+import React, { useState, useEffect, useCallback } from 'react';
+import { calculateZakat, saveZakatRecord, getZakatHistory, ZakatInputs, CURRENCY_DATA } from '@/app/actions/zakatActions';
 import { Loader2, Calculator, Save, AlertCircle, CheckCircle2, History } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
@@ -17,12 +17,25 @@ export default function ZakatCalculatorPage() {
     otherAssets: 0,
     debts: 0,
     immediateExpenses: 0,
+    goldPriceGram: 75,
+    silverPriceGram: 0.90,
+    nisabBasis: 'silver',
   });
 
   const [calcResult, setCalcResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // Sync default metal rates when currency changes
+  useEffect(() => {
+    const currencyData = CURRENCY_DATA[currency] || CURRENCY_DATA.USD;
+    setInputs(prev => ({
+      ...prev,
+      goldPriceGram: currencyData.goldPricePerGram,
+      silverPriceGram: currencyData.silverPricePerGram,
+    }));
+  }, [currency]);
 
   const currencySymbols: Record<string, string> = {
     USD: '$',
@@ -45,19 +58,19 @@ export default function ZakatCalculatorPage() {
     }
   }, [status]);
 
-  const handleCalculate = async () => {
+  const handleCalculate = useCallback(async () => {
     const result = await calculateZakat(inputs, currency);
     if (result.success) {
       setCalcResult(result);
     }
-  };
+  }, [inputs, currency]);
 
-  // Recalculate if inputs/result exist and currency changes
+  // Recalculate if inputs/result exist
   useEffect(() => {
     if (calcResult) {
       handleCalculate();
     }
-  }, [currency]);
+  }, [inputs, currency, handleCalculate]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -83,20 +96,62 @@ export default function ZakatCalculatorPage() {
         <p className="text-muted-foreground">Calculate and track your annual Zakat securely.</p>
       </div>
 
-      {/* Currency Selector */}
-      <div className="flex justify-center items-center gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50 max-w-sm mx-auto">
-        <label className="text-sm font-semibold text-slate-700 dark:text-slate-350">Select Currency:</label>
-        <select
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-slate-350 dark:border-slate-800 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="USD">USD ($)</option>
-          <option value="INR">INR (₹)</option>
-          <option value="PKR">PKR (₨)</option>
-          <option value="EUR">EUR (€)</option>
-          <option value="GBP">GBP (£)</option>
-        </select>
+      {/* Zakat Settings & Custom Rates */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50 max-w-2xl mx-auto grid md:grid-cols-2 gap-6 shadow-sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Select Currency</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="USD">USD ($)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="PKR">PKR (₨)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Nisab Basis</label>
+            <select
+              value={inputs.nisabBasis}
+              name="nisabBasis"
+              onChange={(e) => setInputs(prev => ({ ...prev, nisabBasis: e.target.value as 'silver' | 'gold' }))}
+              className="flex h-10 w-full rounded-md border border-slate-200 dark:border-slate-800 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="silver">Silver Nisab (612.36g) — Recommended</option>
+              <option value="gold">Gold Nisab (87.48g)</option>
+            </select>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Gold Price per Gram ({symbol})</label>
+            <input
+              type="number"
+              name="goldPriceGram"
+              min="0"
+              value={inputs.goldPriceGram || ''}
+              onChange={handleChange}
+              className="w-full h-10 px-3 border rounded-lg dark:bg-slate-800 dark:border-slate-700 border-slate-200 text-sm"
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Silver Price per Gram ({symbol})</label>
+            <input
+              type="number"
+              name="silverPriceGram"
+              min="0"
+              value={inputs.silverPriceGram || ''}
+              onChange={handleChange}
+              className="w-full h-10 px-3 border rounded-lg dark:bg-slate-800 dark:border-slate-700 border-slate-200 text-sm"
+              placeholder="0"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -173,29 +228,33 @@ export default function ZakatCalculatorPage() {
                   <span className="font-bold">{symbol}{calcResult.netWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between border-b border-emerald-200/50 dark:border-emerald-800/50 pb-2">
-                  <span className="text-muted-foreground text-sm font-semibold">Nisab Threshold (Silver)</span>
-                  <span className="font-bold">{symbol}{calcResult.nisabThreshold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between py-2 items-center">
-                  <span className="text-muted-foreground text-sm font-semibold">Status</span>
-                  {calcResult.isEligible ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1 text-sm">
-                      <CheckCircle2 className="w-4 h-4" /> Eligible for Zakat
-                    </span>
-                  ) : (
-                    <span className="text-red-500 font-black flex items-center gap-1 text-sm">
-                      <AlertCircle className="w-4 h-4" /> Below Nisab
-                    </span>
-                  )}
-                </div>
-              </div>
+                   <span className="text-muted-foreground text-sm font-semibold">Nisab Threshold ({calcResult.nisabBasis === 'gold' ? 'Gold' : 'Silver'})</span>
+                   <span className="font-bold">{symbol}{calcResult.nisabThreshold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                 </div>
+                 <div className="flex justify-between py-2 items-center">
+                   <span className="text-muted-foreground text-sm font-semibold">Status</span>
+                   {calcResult.isEligible ? (
+                     <span className="text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1 text-sm">
+                       <CheckCircle2 className="w-4 h-4" /> Eligible for Zakat
+                     </span>
+                   ) : (
+                     <span className="text-red-500 font-black flex items-center gap-1 text-sm">
+                       <AlertCircle className="w-4 h-4" /> Below Nisab
+                     </span>
+                   )}
+                 </div>
+               </div>
+ 
+               <div className="bg-white dark:bg-slate-900 p-4 rounded-xl text-center shadow-sm relative z-10 border border-slate-100 dark:border-slate-850">
+                 <p className="text-xs text-muted-foreground mb-1 font-bold uppercase tracking-wider">Total Zakat Due (2.5%)</p>
+                 <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
+                   {symbol}{calcResult.zakatDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                 </p>
+               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl text-center shadow-sm relative z-10 border border-slate-100 dark:border-slate-850">
-                <p className="text-xs text-muted-foreground mb-1 font-bold uppercase tracking-wider">Total Zakat Due (2.5%)</p>
-                <p className="text-4xl font-black text-emerald-600 dark:text-emerald-400">
-                  {symbol}{calcResult.zakatDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </div>
+               <div className="text-[10px] text-slate-500 dark:text-slate-400 text-center relative z-10 font-medium">
+                 Calculated using Gold at {symbol}{calcResult.goldPriceUsed}/g and Silver at {symbol}{calcResult.silverPriceUsed}/g
+               </div>
 
               {status === 'authenticated' && (
                 <button

@@ -50,6 +50,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Indexes for performance
-UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ email: 1 }, { unique: true, sparse: true });
+
 
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

@@ -229,6 +229,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'No subscriptions found' });
     }
 
+    // Batch fetch all today/recent prayer logs and wazeefahs to avoid N+1 queries in loop
+    const userIds = subscriptions
+      .map(sub => sub.userId?._id?.toString())
+      .filter(Boolean) as string[];
+    const uniqueUserIds = Array.from(new Set(userIds));
+
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoStr = twoDaysAgo.toLocaleDateString('en-CA');
+
+    const [allPrayerLogs, allUserWazeefahs] = await Promise.all([
+      PrayerLog.find({ userId: { $in: uniqueUserIds }, date: { $gte: twoDaysAgoStr } }).lean(),
+      UserWazeefah.find({ userId: { $in: uniqueUserIds }, isActive: true }).lean(),
+    ]);
+
+    const prayerLogsMap = new Map<string, any>();
+    allPrayerLogs.forEach(log => {
+      const key = `${log.userId.toString()}__${log.date}`;
+      prayerLogsMap.set(key, log);
+    });
+
+    const wazeefahsMap = new Map<string, any[]>();
+    allUserWazeefahs.forEach(uw => {
+      const key = uw.userId.toString();
+      if (!wazeefahsMap.has(key)) {
+        wazeefahsMap.set(key, []);
+      }
+      wazeefahsMap.get(key)!.push(uw);
+    });
+
     // 3. Group subscriptions by location & prayer preferences to minimize API fetches
     const groups: Record<string, {
       city: string;
@@ -418,7 +448,7 @@ export async function GET(req: NextRequest) {
         const userSettings = user.settingsId;
 
         // Load today's prayer log to check if they prayed yet
-        const todayLog = await PrayerLog.findOne({ userId: user._id, date: localDateStr }).lean();
+        const todayLog = prayerLogsMap.get(`${user._id.toString()}__${localDateStr}`);
 
         // 1. Send Prayer Reminder
         if (userSettings?.notifications?.prayerReminders !== false) {
@@ -500,11 +530,8 @@ export async function GET(req: NextRequest) {
 
         // 3. Send generic time-of-day Wazeefah Reminder
         if (triggeredGenericTime) {
-          const userWazeefahs = await UserWazeefah.find({
-            userId: user._id,
-            isActive: true,
-            reminderTime: triggeredGenericTime
-          });
+          const userWazeefahs = (wazeefahsMap.get(user._id.toString()) || [])
+            .filter((uw: any) => uw.reminderTime === triggeredGenericTime);
 
           for (const uw of userWazeefahs) {
             const days = uw.reminderDays || [0, 1, 2, 3, 4, 5, 6];

@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Clock, Check, Loader2, CircleDot, ArrowRight, MoonStar, 
-  BookOpen, Compass, Heart, Calendar, RotateCcw, BellOff 
+  BookOpen, Compass, Heart, Calendar, RotateCcw, BellOff,
+  Download, Smartphone
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
@@ -35,8 +36,9 @@ function formatTime12(timeStr: string): string {
 }
 
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
+  const cleanKey = base64String.replace(/^["']|["']$/g, '');
+  const padding = '='.repeat((4 - (cleanKey.length % 4)) % 4);
+  const base64 = (cleanKey + padding)
     .replace(/\-/g, '+')
     .replace(/_/g, '/');
 
@@ -90,13 +92,56 @@ export default function Dashboard() {
   const [hijriAdjustment, setHijriAdjustment] = useState(() => (session?.user as any)?.hijriAdjustment || 0);
   const [loadingDb, setLoadingDb] = useState(true);
   const [hijriDate, setHijriDate] = useState<string>('');
-  const [notificationPermission, setNotificationPermission] = useState<string>('granted');
+  const [notificationPermission, setNotificationPermission] = useState<string>('default');
+  const [mounted, setMounted] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotificationPermission(Notification.permission);
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      if ('Notification' in window) {
+        setNotificationPermission(Notification.permission);
+      }
+
+      const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+      if (standaloneQuery.matches || (window.navigator as any).standalone) {
+        setIsStandalone(true);
+      }
+
+      if ((window as any).deferredPrompt) {
+        setInstallPrompt((window as any).deferredPrompt);
+      }
+
+      const handlePrompt = (e: any) => {
+        setInstallPrompt(e.detail || e);
+      };
+      window.addEventListener('deferredpromptready', handlePrompt as any);
+      window.addEventListener('beforeinstallprompt', handlePrompt as any);
+
+      const handleInstalled = () => {
+        setIsStandalone(true);
+        setInstallPrompt(null);
+      };
+      window.addEventListener('appinstalled', handleInstalled);
+
+      return () => {
+        window.removeEventListener('deferredpromptready', handlePrompt as any);
+        window.removeEventListener('beforeinstallprompt', handlePrompt as any);
+        window.removeEventListener('appinstalled', handleInstalled);
+      };
     }
   }, []);
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsStandalone(true);
+      setInstallPrompt(null);
+    }
+  };
 
   const handleRequestPermission = async () => {
     if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) return;
@@ -376,8 +421,39 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 pb-24 max-w-6xl mx-auto px-1 md:px-4">
+      {/* PWA Prominent Install Banner */}
+      {mounted && !isStandalone && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 border border-emerald-500/20 text-emerald-900 dark:text-emerald-300 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex gap-4">
+            <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0 flex items-center justify-center">
+              <Smartphone className="w-6 h-6 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-bold text-base text-slate-800 dark:text-white">Install Nur-e-Qulb App</h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed max-w-2xl">
+                Add this application to your device home screen for seamless offline Quran recitation, instant prayer notifications, and fast loading speeds.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto shrink-0 mt-2 md:mt-0">
+            {installPrompt ? (
+              <button
+                onClick={handleInstallApp}
+                className="w-full md:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 border-0 flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4" /> Install Now
+              </button>
+            ) : (
+              <div className="text-[11px] bg-slate-500/10 dark:bg-slate-500/20 px-4 py-2.5 rounded-xl text-slate-650 dark:text-slate-300 font-semibold leading-relaxed w-full">
+                💡 <strong>Quick Install:</strong> Open browser menu (three dots <strong className="font-mono">⋮</strong> in Chrome, or <strong>Share</strong> button on iOS) and select <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Notification Permission Alert Banner */}
-      {notificationPermission !== 'granted' && (
+      {mounted && notificationPermission !== 'granted' && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 p-4 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
           <div className="flex gap-3">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">

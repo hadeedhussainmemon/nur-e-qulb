@@ -8,6 +8,18 @@ import { FastingLog } from '@/models/FastingLog';
 import { RamadanStats } from '@/models/RamadanStats';
 import { MissedFast } from '@/models/MissedFast';
 
+function getHijriYear(): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-TN-u-ca-islamic-umalqura', { year: 'numeric' });
+    const formatted = formatter.format(new Date()); // e.g. "1447 AH"
+    const match = formatted.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 1447;
+  } catch (e) {
+    return 1447; // fallback
+  }
+}
+
+
 export async function getFastingLogs() {
   try {
     const session = await getServerSession(authOptions);
@@ -42,9 +54,9 @@ export async function logFast(dateStr: string, type: string, status: string, not
       { upsert: true, new: true }
     );
 
-    // If a makeup fast was completed, we can decrement the missed fasts in RamadanStats for the current Hijri year (e.g. 1447)
+    // If a makeup fast was completed, we can decrement the missed fasts in RamadanStats for the current Hijri year
     if (type === 'makeup' && status === 'completed') {
-      const currentYear = 1447; // Default or calculate dynamically
+      const currentYear = getHijriYear();
       await RamadanStats.findOneAndUpdate(
         { userId: user._id, year: currentYear },
         { $inc: { fastsMissed: -1 } },
@@ -88,7 +100,7 @@ export async function getFastingSummary() {
     } as any);
 
     // Missed fasts (makeup targets) from RamadanStats
-    const ramadanYear = 1447; // Current active Hijri year
+    const ramadanYear = getHijriYear();
     const ramadanStats = await RamadanStats.findOne({ userId: user._id, year: ramadanYear }).lean();
     const missedFasts = ramadanStats ? ramadanStats.fastsMissed : 0;
 
@@ -112,7 +124,7 @@ export async function adjustFastsMissed(change: number) {
     const user = await User.findOne({ email: session.user.email }).lean();
     if (!user) throw new Error('User not found');
 
-    const currentYear = 1447;
+    const currentYear = getHijriYear();
     const stats = await RamadanStats.findOneAndUpdate(
       { userId: user._id, year: currentYear },
       { $inc: { fastsMissed: change } },

@@ -24,6 +24,9 @@ const zakatSchema = z.object({
   otherAssets: z.number().min(0).default(0),
   debts: z.number().min(0).default(0),
   immediateExpenses: z.number().min(0).default(0),
+  goldPriceGram: z.number().min(0).optional(),
+  silverPriceGram: z.number().min(0).optional(),
+  nisabBasis: z.enum(['silver', 'gold']).default('silver'),
 });
 
 export type ZakatInputs = z.infer<typeof zakatSchema>;
@@ -49,12 +52,20 @@ export async function calculateZakat(inputs: ZakatInputs, currency = 'USD') {
   
   const netWorth = totalAssets - totalLiabilities;
 
+  // Use custom prices if provided, otherwise fallback to defaults
+  const goldPrice = data.goldPriceGram !== undefined && data.goldPriceGram > 0 
+    ? data.goldPriceGram 
+    : currencyData.goldPricePerGram;
+
+  const silverPrice = data.silverPriceGram !== undefined && data.silverPriceGram > 0 
+    ? data.silverPriceGram 
+    : currencyData.silverPricePerGram;
+
   // Nisab is traditionally based on Gold (87.48g) or Silver (612.36g). 
-  const nisabSilver = 612.36 * currencyData.silverPricePerGram;
-  const nisabGold = 87.48 * currencyData.goldPricePerGram;
+  const nisabSilver = 612.36 * silverPrice;
+  const nisabGold = 87.48 * goldPrice;
   
-  // Use Silver Nisab by default for strictness, but let user know.
-  const nisabThreshold = nisabSilver;
+  const nisabThreshold = data.nisabBasis === 'gold' ? nisabGold : nisabSilver;
 
   const isEligible = netWorth >= nisabThreshold;
   const zakatDue = isEligible ? netWorth * 0.025 : 0;
@@ -67,6 +78,9 @@ export async function calculateZakat(inputs: ZakatInputs, currency = 'USD') {
     zakatDue,
     currency,
     symbol: currencyData.symbol,
+    goldPriceUsed: goldPrice,
+    silverPriceUsed: silverPrice,
+    nisabBasis: data.nisabBasis,
   };
 }
 
